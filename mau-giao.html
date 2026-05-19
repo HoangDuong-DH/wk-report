@@ -2366,13 +2366,14 @@ function renderSupportAnalyticsMG(){
       html += `<rect class="au-row-bar-fg" x="${barX}" y="${barY}" width="${fillW}" height="${barH}" fill="${color}"/>`;
     }
 
-    // Pct text right
+    // Pct text right (giữa bar)
     const pctTxt = noData ? '—' : Math.round(s.pct) + '%';
     html += `<text class="au-row-pct" x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="${noData ? '#a4886a' : color}">${pctTxt}</text>`;
-    // câu count below pct
+    // Score detail (vd 8.5/19.5) — ĐẶT TRÊN bar, anchor=end right, KHÔNG đè desc
     if(!noData){
-      const scr = Math.round(s.score*10)/10;
-      html += `<text class="au-row-desc" x="${rowX+rowW-4}" y="${barY-3}" text-anchor="end">${scr}/${s.max}</text>`;
+      const scr = Math.round(s.score * 10) / 10;
+      const mx  = Math.round(s.max   * 10) / 10;
+      html += `<text class="au-row-desc" x="${rowX+rowW-4}" y="${yTop+12}" text-anchor="end" dominant-baseline="hanging">${scr}/${mx}</text>`;
     }
   });
 
