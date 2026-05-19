@@ -6,10 +6,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- AUTO CACHE-BUST: lần đầu mỗi session, force fetch HTML mới (chống edge cache) -->
+<!-- AUTO CACHE-BUST: chỉ chạy khi http/https (không cần cho file:// local) -->
 <script>
 (function autoCacheBust(){
   try{
+    // Skip cho file:// — gây security warning vô nghĩa
+    if(location.protocol === 'file:') return;
     var SK = 'wk-fresh-session-mg';
     if(sessionStorage.getItem(SK)) return;
     sessionStorage.setItem(SK, '1');

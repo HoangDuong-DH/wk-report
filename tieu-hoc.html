@@ -11,6 +11,7 @@
 <script>
 (function autoCacheBust(){
   try{
+    if(location.protocol === 'file:') return;
     var SK = 'wk-fresh-session';
     if(sessionStorage.getItem(SK)) return;
     sessionStorage.setItem(SK, '1');
