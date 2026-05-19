@@ -501,11 +501,12 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
   font:700 9.5px/1.2 var(--font-body);color:var(--ink-mute);
   letter-spacing:.08em;text-transform:uppercase;text-align:center;
 }
-.ability .mini-radar svg{width:230px;height:auto;aspect-ratio:235/145;display:block}
+.ability .mini-radar svg{width:230px;height:auto;aspect-ratio:235/145;display:block;overflow:visible}
 /* Labels: ĐỒNG NHẤT size để tránh shift khi active đổi → tránh clip */
 .ability .mini-radar .mr-axis{
-  font:700 12px/1 var(--font-body);fill:var(--ink-soft);
-  letter-spacing:.02em;
+  font:700 10.5px/1 var(--font-body);fill:var(--ink-soft);
+  letter-spacing:.01em;
+  paint-order:stroke;stroke:#fff8ec;stroke-width:2.5px;stroke-linejoin:round;
 }
 /* Active: chỉ khác MÀU + BOLD, không đổi size → vị trí label ổn định */
 .ability .mini-radar .mr-axis.active{fill:var(--orange-deep);font-weight:900}
@@ -1810,19 +1811,33 @@ function renderMiniRadars(){
       html += `<circle cx="${x}" cy="${y}" r="3" fill="#f08526" stroke="#fff" stroke-width="1.2"/>`;
     });
     // Labels — anchor theo cos(angle): bên phải start, bên trái end, trên/dưới middle.
-    // LR động: ngũ giác (N=5) cần nới rộng hơn để 2 label đáy không chồng.
-    const LR_BASE = R + (N === 5 ? 22 : N === 3 ? 18 : 16);
+    // LR động + offset Y/X để KHÔNG đè polygon & không đè nhau (đặc biệt ngũ giác N=5).
     group.skills.forEach((s, i) => {
       const a = ang(i);
       const cosA = Math.cos(a), sinA = Math.sin(a);
-      // Đẩy radial label đáy ra xa thêm cho ngũ giác để tách "Kiểu mẫu" / "Đo lường"
-      const LR = LR_BASE + (N === 5 && sinA > 0.5 ? 4 : 0);
+      // LR cơ bản — đủ rộng để text không chạm polygon vertex tại 100%
+      let LR = R + 14;
+      if(N === 5){
+        // Ngũ giác: nới mạnh hơn vì 5 đỉnh chật chội
+        LR = R + 16;
+        // 2 đỉnh đáy (sinA ≈ 0.81): đẩy thêm radial để tách khỏi nhau
+        if(sinA > 0.5) LR = R + 22;
+      } else if(N === 3){
+        LR = R + 15;
+      } else if(N === 4){
+        LR = R + 14;
+      }
       const lx = cx + LR * cosA;
-      // Top label nhích lên (i=0); các label dưới (sinA>0) nhích xuống 3px để không đụng polygon
-      const ly = cy + LR * sinA + (i === 0 ? -3 : (sinA > 0.3 ? 4 : 2));
+      // Offset Y theo vị trí: đỉnh đẩy lên, đáy đẩy xuống — giữ chữ rõ khỏi polygon
+      let dy = 0;
+      if(sinA < -0.7) dy = -4;           // đỉnh trên
+      else if(sinA > 0.7) dy = 5;        // đỉnh dưới (bottom của square N=4)
+      else if(sinA > 0.3) dy = 3;        // hai đỉnh dưới-bên của ngũ giác
+      else if(sinA < -0.3) dy = -1;      // hai đỉnh trên-bên của ngũ giác
+      const ly = cy + LR * sinA + dy;
       let anchor = 'middle';
-      if(cosA > 0.15) anchor = 'start';
-      else if(cosA < -0.15) anchor = 'end';
+      if(cosA > 0.2) anchor = 'start';
+      else if(cosA < -0.2) anchor = 'end';
       html += `<text class="mr-axis" x="${lx}" y="${ly}" text-anchor="${anchor}" dominant-baseline="middle">${s.label}</text>`;
     });
     svg.innerHTML = html;
