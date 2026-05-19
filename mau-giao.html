@@ -1823,7 +1823,9 @@ function renderMiniRadars(){
     svg.innerHTML = html;
   });
 }
-renderMiniRadars();
+// NOTE: Không gọi renderMiniRadars() ngay tại đây — sẽ TDZ với
+// __atomicScoresMG (let declared phía dưới). recomputeAllMG() ở cuối
+// script sẽ render mini radars khi đến lúc (line ~2660).
 
 /* ═══════════════════════════════════════════════════════════════
    ATOMIC SCORING L3 v2 — 61 tiêu chí, hệ số tuyến tính 6 mức
