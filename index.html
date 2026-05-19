@@ -10,7 +10,8 @@
 <script>
 (function autoCacheBust(){
   try{
-    if(location.protocol === 'file:') return;
+    if(location.protocol !== 'http:' && location.protocol !== 'https:') return;
+    if(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(location.hostname)) return;
     var SK = 'wk-fresh-session-idx';
     if(sessionStorage.getItem(SK)) return;
     sessionStorage.setItem(SK, '1');

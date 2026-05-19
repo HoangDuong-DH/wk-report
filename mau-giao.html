@@ -6,12 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- AUTO CACHE-BUST: chỉ chạy khi http/https (không cần cho file:// local) -->
+<!-- AUTO CACHE-BUST: chỉ chạy khi http/https public; bỏ qua file://, chrome-error://, localhost -->
 <script>
 (function autoCacheBust(){
   try{
-    // Skip cho file:// — gây security warning vô nghĩa
-    if(location.protocol === 'file:') return;
+    // Chỉ chạy cho http(s) — bỏ qua file://, chrome-error://, blob:, data:...
+    if(location.protocol !== 'http:' && location.protocol !== 'https:') return;
+    // Bỏ qua local dev server (localhost, 127.0.0.1, 0.0.0.0)
+    if(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(location.hostname)) return;
     var SK = 'wk-fresh-session-mg';
     if(sessionStorage.getItem(SK)) return;
     sessionStorage.setItem(SK, '1');
@@ -3913,6 +3915,12 @@ function _pickAtomicLevel_MG(ma, level){
     });
   }
   _updateAtomicProgress_MG();
+  // Trigger full report refresh — ability tables, radar, 3 panel HỖ TRỢ/BLOOM/ĐỘ KHÓ
+  // Debounce nhẹ để click liên tục mượt (raf đủ rồi, không cần setTimeout)
+  if(typeof applyAtomicToReportMG === 'function'){
+    if(_pickAtomicLevel_MG._raf) cancelAnimationFrame(_pickAtomicLevel_MG._raf);
+    _pickAtomicLevel_MG._raf = requestAnimationFrame(() => applyAtomicToReportMG());
+  }
 }
 
 function _updateAtomicProgress_MG(){
@@ -4007,8 +4015,25 @@ async function _parseBatchFileMG(file){
   const info = {};
   const scores = {};
 
-  // Format v2: 1 sheet duy nhất, tên sheet = "P.T. DŨNG 2021" (tên bé + năm sinh)
-  const sheetName = wb.SheetNames[0];
+  // Scan TẤT CẢ sheets tìm sheet có atomic data (≥10 ô N.N) — không hardcode index 0
+  let bestSheetName = wb.SheetNames[0];
+  let bestCount = 0;
+  for(const sn of wb.SheetNames){
+    const sht = wb.Sheets[sn];
+    if(!sht) continue;
+    const rows = XLSX.utils.sheet_to_json(sht, {header:1, defval:''});
+    let cnt = 0;
+    for(const r of rows){
+      if(!r) continue;
+      for(let i = 0; i < Math.min(r.length, 5); i++){
+        if(/^\d+\.\d+$/.test(String(r[i] || '').trim())){ cnt++; break; }
+      }
+    }
+    if(cnt > bestCount){ bestCount = cnt; bestSheetName = sn; }
+  }
+  const sheetName = bestSheetName;
+
+  // Extract bé info từ tên sheet "P.T. DŨNG 2021" (tên + năm sinh)
   const yobMatch = sheetName.match(/(\d{4})/);
   if(yobMatch){
     info.yob = yobMatch[1];
@@ -4017,19 +4042,39 @@ async function _parseBatchFileMG(file){
     info.name = sheetName.trim();
   }
 
-  // Parse 61 atomic scores từ sheet đó (cột B=Mã, cột E=Mức)
+  // Parse atomic scores — header-based column detect, fallback default B=1 / E=4
   const atomicSheetV2 = wb.Sheets[sheetName];
   if(atomicSheetV2){
     const rows = XLSX.utils.sheet_to_json(atomicSheetV2, {header:1, defval:''});
+    // Detect column index từ header row
+    let maCol = 1, lvlCol = 4;
+    for(let i = 0; i < Math.min(rows.length, 15); i++){
+      const r = rows[i];
+      if(!r) continue;
+      let foundMa = -1, foundLvl = -1;
+      for(let j = 0; j < r.length; j++){
+        const v = String(r[j] || '').toLowerCase().trim();
+        if(foundMa < 0 && (v === 'mã' || v === 'mã tiêu chí' || v.startsWith('mã'))) foundMa = j;
+        if(foundLvl < 0 && (v.includes('mức') && (v.includes('nhập') || v.includes('đánh giá') || v === 'mức'))) foundLvl = j;
+      }
+      if(foundMa >= 0 && foundLvl >= 0){ maCol = foundMa; lvlCol = foundLvl; break; }
+    }
+    let parsedCount = 0;
     rows.forEach(r => {
-      if(!r || r.length < 5) return;
-      const ma = String(r[1] || '').trim();
-      const muc = r[4];
+      if(!r) return;
+      const ma = String(r[maCol] || '').trim();
       if(!ma || !/^\d+\.\d+$/.test(ma)) return;
+      let muc = r[lvlCol];
       if(muc === '' || muc === null || muc === undefined) return;
+      // Chấp nhận cả number lẫn string "5", "5 ", "5.0"
+      if(typeof muc === 'string') muc = muc.trim();
       const lvl = parseInt(muc, 10);
-      if([5,4,3,2,1,0].includes(lvl)) scores[ma] = lvl;
+      if(Number.isFinite(lvl) && [5,4,3,2,1,0].includes(lvl)){
+        scores[ma] = lvl;
+        parsedCount++;
+      }
     });
+    console.log('[atomic-parser] sheet="' + sheetName + '" cols(ma=' + maCol + ',lvl=' + lvlCol + ') parsed=' + parsedCount);
   }
 
   // Backward compat: format cũ Atomic_Excel_L3.xlsx có sheet riêng cho info + atomic
