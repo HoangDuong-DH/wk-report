@@ -740,6 +740,24 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
 .channel-panel .insight-table .muted{font-size:9.7px;line-height:1.35}
 .channel-panel .insight-chart{min-height:190px}
 
+/* ───── AUTONOMY chart — gauge + 4 ladder bars ───── */
+.autonomy-panel .autonomy-wrap{display:flex;flex-direction:column;gap:8px}
+.autonomy-chart{
+  width:100%;height:auto;display:block;background:#fffaf0;
+  border:1px dashed var(--hair);border-radius:12px;padding:6px;
+}
+.autonomy-chart .au-gauge-bg{fill:#fff;stroke:#f0dcb0;stroke-width:8}
+.autonomy-chart .au-gauge-fg{fill:none;stroke-width:10;stroke-linecap:round}
+.autonomy-chart .au-gauge-pct{font:900 32px/1 var(--font-display);fill:var(--ink)}
+.autonomy-chart .au-gauge-lbl{font:700 10.5px/1 var(--font-body);fill:var(--ink-soft);letter-spacing:.06em;text-transform:uppercase}
+.autonomy-chart .au-gauge-tag{font:800 12px/1 var(--font-body);fill:var(--orange-deep)}
+.autonomy-chart .au-row-lvl{font:900 14px/1 var(--font-display);fill:#fff}
+.autonomy-chart .au-row-name{font:700 12px/1 var(--font-body);fill:var(--ink)}
+.autonomy-chart .au-row-desc{font:500 10.5px/1.2 var(--font-body);fill:var(--ink-soft)}
+.autonomy-chart .au-row-pct{font:900 13px/1 var(--font-body)}
+.autonomy-chart .au-row-bar-bg{fill:#fff3da;stroke:#f0dcb0;stroke-width:.6}
+.autonomy-chart .au-row-bar-fg{rx:5;ry:5}
+
 /* ───── BLOOM pyramid — 6 cấp Bloom Taxonomy ───── */
 .bloom-panel .bloom-pyr-wrap{
   display:flex;flex-direction:column;align-items:stretch;gap:8px;
@@ -1432,20 +1450,14 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
     <div class="insight-grid">
       <!-- A-E "Đánh giá theo đơn vị riêng biệt" removed — không match format ATOMIC L3 mới -->
 
-            <!-- HỖ TRỢ: 4 bậc dựa vào cột "Mức độ hỗ trợ" trong data atomic -->
-      <div class="insight-panel channel-panel">
-        <h3><span class="chip">HỖ TRỢ</span>Mức độ hỗ trợ bé cần khi làm bài</h3>
-        <div class="insight-split">
-          <div>
-            <table class="insight-table" id="mg-support-table">
-              <thead><tr><th>Mức</th><th>Mô tả</th><th>Thực tế</th><th>Tỷ lệ</th></tr></thead>
-              <tbody></tbody>
-            </table>
-            <div class="insight-help" id="mg-support-highlight">
-              <p><b>Điểm nổi bật:</b> —</p>
-            </div>
+      <!-- TỰ CHỦ: gauge tổng + ladder 4 mức (dựa cột "Mức độ hỗ trợ" data atomic) -->
+      <div class="insight-panel autonomy-panel">
+        <h3><span class="chip">TỰ CHỦ</span>Mức độ tự chủ khi thực hiện bài</h3>
+        <div class="autonomy-wrap">
+          <svg id="mg-autonomy-chart" class="autonomy-chart" viewBox="0 0 560 300" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="insight-help" id="mg-support-highlight">
+            <p><b>Điểm nổi bật:</b> —</p>
           </div>
-          <svg id="mg-support-chart" class="insight-chart" viewBox="0 0 360 240"></svg>
         </div>
       </div>
 
@@ -2276,40 +2288,114 @@ const __SUPPORT_LABELS_MG = {
 
 function renderSupportAnalyticsMG(){
   const agg = aggregateAtomicMG();
-  const tbody = document.querySelector('#mg-support-table tbody');
-  if(tbody){
-    let html = '';
-    [4,3,2,1].forEach(lvl => {
-      const s = agg.supportSum[lvl] || {score:0,max:0,count:0,pct:0};
-      const score = Math.round(s.score*10)/10;
-      html += '<tr><td class="code">' + lvl + '</td>';
-      html += '<td>' + _escHtmlMG(__SUPPORT_LABELS_MG[lvl]) + '</td>';
-      html += '<td class="num">' + score + '/' + s.max + '</td>';
-      html += '<td>' + _pctBadgeMG(s.pct) + '</td></tr>';
-    });
-    tbody.innerHTML = html;
+  const svg = document.getElementById('mg-autonomy-chart');
+  if(!svg) return;
+
+  // ───── Tính autonomy index: weighted theo support level (cao = tự chủ cao) ─────
+  // mức 4 (bé tự làm) đóng góp 4×; mức 1 (cần hướng dẫn) đóng góp 1×.
+  let wScore = 0, wMax = 0;
+  [4,3,2,1].forEach(lvl => {
+    const s = agg.supportSum[lvl];
+    if(s && s.max > 0){ wScore += s.score * lvl; wMax += s.max * lvl; }
+  });
+  const autonomyIdx = wMax > 0 ? Math.round(wScore / wMax * 100) : 0;
+
+  // ───── 4 mức với metadata ─────
+  const ROW_COLORS = {
+    4: '#5fb74f',  // xanh lá — tự chủ cao
+    3: '#a3c950',  // xanh chartreuse
+    2: '#f5a623',  // cam — cần gợi ý
+    1: '#df5728',  // đỏ cam — cần hướng dẫn
+  };
+  const ROW_DESC = {
+    4: 'Tự làm sau khi nghe đề 1 lần',
+    3: 'Cần đọc lại đề 2 lần',
+    2: 'Cần gợi ý nhẹ',
+    1: 'Cần hướng dẫn từng bước',
+  };
+
+  // ───── Render SVG ─────
+  // viewBox 560×300. Trái: gauge tròn 200×200 ở (30,30→230,230). Phải: 4 row ladder.
+  const cx = 130, cy = 130, r = 78;
+  let html = '';
+  // Gauge background (full circle)
+  html += `<circle class="au-gauge-bg" cx="${cx}" cy="${cy}" r="${r}"/>`;
+  // Gauge foreground (arc theo autonomyIdx, từ -90° clockwise)
+  const startAng = -Math.PI/2;
+  const endAng = -Math.PI/2 + (autonomyIdx/100) * 2*Math.PI;
+  const lx = cx + r*Math.cos(endAng), ly = cy + r*Math.sin(endAng);
+  const largeArc = autonomyIdx > 50 ? 1 : 0;
+  const arcColor = autonomyIdx >= 65 ? '#5fb74f' : autonomyIdx >= 45 ? '#f5a623' : '#df5728';
+  if(autonomyIdx > 0){
+    html += `<path class="au-gauge-fg" stroke="${arcColor}" d="M ${cx} ${cy-r} A ${r} ${r} 0 ${largeArc} 1 ${lx} ${ly}"/>`;
   }
-  const svg = document.getElementById('mg-support-chart');
-  if(svg){
-    const rows = [4,3,2,1].map(lvl => ({
-      label: __SUPPORT_LABELS_MG[lvl],
-      pct: agg.supportSum[lvl]?.pct || 0,
-      level: lvl,
-    }));
-    svg.innerHTML = _barSvgMG(rows, {h:240, rowH:48});
-  }
-  // Highlight
+  // Gauge labels
+  html += `<text class="au-gauge-pct" x="${cx}" y="${cy-2}" text-anchor="middle" dominant-baseline="middle">${autonomyIdx}%</text>`;
+  html += `<text class="au-gauge-lbl" x="${cx}" y="${cy+22}" text-anchor="middle">Chỉ số tự chủ</text>`;
+  // Tag: bé thiên về…
+  const tag = autonomyIdx >= 65 ? 'Bé thiên về TỰ LÀM' : autonomyIdx >= 45 ? 'Bé CẦN GỢI Ý' : 'Bé CẦN ĐỒNG HÀNH';
+  html += `<text class="au-gauge-tag" x="${cx}" y="${cy+r+24}" text-anchor="middle" fill="${arcColor}">${tag}</text>`;
+
+  // ───── 4 ladder rows (phải, cột x=260..540) ─────
+  const rowX = 260, rowW = 280, rowStart = 30, rowH = 60;
+  [4,3,2,1].forEach((lvl, i) => {
+    const s = agg.supportSum[lvl] || {score:0, max:0, count:0, filled:0, pct:0};
+    const yTop = rowStart + i*rowH;
+    const color = ROW_COLORS[lvl];
+    const noData = s.max === 0;
+
+    // Level circle (24×24 with số)
+    const cyRow = yTop + 24;
+    html += `<circle cx="${rowX+14}" cy="${cyRow}" r="13" fill="${color}"/>`;
+    html += `<text class="au-row-lvl" x="${rowX+14}" y="${cyRow+1}" text-anchor="middle" dominant-baseline="middle">${lvl}</text>`;
+
+    // Description text
+    html += `<text class="au-row-name" x="${rowX+36}" y="${yTop+12}" dominant-baseline="hanging">Mức ${lvl}</text>`;
+    html += `<text class="au-row-desc" x="${rowX+36}" y="${yTop+27}" dominant-baseline="hanging">${_escHtmlMG(ROW_DESC[lvl])}</text>`;
+
+    // Bar bg + fg
+    const barY = yTop + 40;
+    const barH = 10;
+    const barX = rowX + 36;
+    const barW = rowW - 36 - 60;  // chừa 60px cho text % bên phải
+    html += `<rect class="au-row-bar-bg" x="${barX}" y="${barY}" width="${barW}" height="${barH}" rx="5"/>`;
+    if(!noData && s.pct > 0){
+      const fillW = Math.max(4, (s.pct/100) * barW);
+      html += `<rect class="au-row-bar-fg" x="${barX}" y="${barY}" width="${fillW}" height="${barH}" fill="${color}"/>`;
+    }
+
+    // Pct text right
+    const pctTxt = noData ? '—' : Math.round(s.pct) + '%';
+    html += `<text class="au-row-pct" x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="${noData ? '#a4886a' : color}">${pctTxt}</text>`;
+    // câu count below pct
+    if(!noData){
+      const scr = Math.round(s.score*10)/10;
+      html += `<text class="au-row-desc" x="${rowX+rowW-4}" y="${barY-3}" text-anchor="end">${scr}/${s.max}</text>`;
+    }
+  });
+
+  svg.innerHTML = html;
+
+  // ───── Highlight ─────
   const hi = document.getElementById('mg-support-highlight');
   if(hi){
-    const rows = [4,3,2,1].map(lvl => ({lvl, ...(agg.supportSum[lvl]||{})}));
-    const filledOnly = rows.filter(r => r.count > 0);
-    const best = [...filledOnly].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
-    const weak = [...filledOnly].sort((a,b)=>(a.pct||0)-(b.pct||0))[0];
-    if(best){
-      hi.innerHTML = '<p><b>Điểm nổi bật:</b> bé mạnh nhất ở mức <b>' + best.lvl +
-                     ' (' + _escHtmlMG(__SUPPORT_LABELS_MG[best.lvl]) + ')</b> đạt ' +
-                     Math.round(best.pct) + '%. Mức cần luyện thêm: <b>' + weak.lvl + '</b> ' +
-                     Math.round(weak.pct) + '%.</p>';
+    const filledRows = [4,3,2,1]
+      .map(lvl => ({lvl, ...(agg.supportSum[lvl]||{count:0,filled:0,pct:0})}))
+      .filter(r => r.max > 0 && r.filled > 0);
+    if(filledRows.length === 0){
+      hi.innerHTML = '<p><b>Điểm nổi bật:</b> chưa có dữ liệu để phân tích tự chủ.</p>';
+    } else {
+      const best = [...filledRows].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
+      const weak = [...filledRows].sort((a,b)=>(a.pct||0)-(b.pct||0))[0];
+      const tone = autonomyIdx >= 65
+        ? 'Bé có khả năng <b>tự chủ tốt</b> khi làm bài.'
+        : autonomyIdx >= 45
+          ? 'Bé <b>cần gợi ý vừa phải</b> để hoàn thành bài.'
+          : 'Bé <b>cần được đồng hành nhiều</b> trong quá trình làm bài.';
+      hi.innerHTML = '<p><b>Chỉ số tự chủ ' + autonomyIdx + '%</b> — ' + tone +
+                     ' Mức làm tốt nhất: <b>' + best.lvl + ' (' + _escHtmlMG(ROW_DESC[best.lvl]) +
+                     ')</b> ' + Math.round(best.pct) + '%' +
+                     (best.lvl !== weak.lvl ? '; cần luyện thêm: <b>' + weak.lvl + '</b> ' + Math.round(weak.pct) + '%' : '') + '.</p>';
     }
   }
 }
