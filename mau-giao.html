@@ -740,6 +740,28 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
 .channel-panel .insight-table .muted{font-size:9.7px;line-height:1.35}
 .channel-panel .insight-chart{min-height:190px}
 
+/* ───── BLOOM pyramid — 6 cấp Bloom Taxonomy ───── */
+.bloom-panel .bloom-pyr-wrap{
+  display:flex;flex-direction:column;align-items:stretch;gap:8px;
+}
+.bloom-pyramid-svg{
+  width:100%;height:auto;display:block;background:#fffaf0;
+  border:1px dashed var(--hair);border-radius:12px;padding:6px;
+}
+.bloom-pyramid-svg .pyr-name{
+  font:800 13px/1 var(--font-body);fill:#fff;
+  paint-order:stroke;stroke:rgba(0,0,0,.15);stroke-width:.5px;
+}
+.bloom-pyramid-svg .pyr-label{
+  font:700 12.5px/1 var(--font-body);fill:var(--ink);
+}
+.bloom-pyramid-svg .pyr-pct{
+  font:900 13px/1 var(--font-body);
+}
+.bloom-pyramid-svg .pyr-empty{
+  font:600 11.5px/1 var(--font-body);fill:var(--ink-soft);font-style:italic;
+}
+
 /* ───── Section 6 — Nhận xét & Định hướng ───── */
 .s6{padding:0 44px;margin-top:22px;position:relative}
 .s6 .nx-box{
@@ -1427,20 +1449,14 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
         </div>
       </div>
 
-      <!-- CẤP BLOOM: 5 cấp (Nhận biết / Hiểu / Ứng dụng / Phân tích / Sáng tạo) -->
-      <div class="insight-panel metric-panel">
+      <!-- CẤP BLOOM: pyramid 6 cấp Bloom Taxonomy, mỗi cấp có % data thực -->
+      <div class="insight-panel metric-panel bloom-panel">
         <h3><span class="chip">BLOOM</span>Năng lực theo cấp độ Bloom</h3>
-        <div class="insight-split">
-          <div>
-            <table class="insight-table" id="mg-bloom-table">
-              <thead><tr><th>Cấp độ</th><th>Số câu</th><th>Tỷ lệ</th></tr></thead>
-              <tbody></tbody>
-            </table>
-            <div class="insight-help" id="mg-bloom-highlight">
-              <p><b>Điểm nổi bật:</b> —</p>
-            </div>
+        <div class="bloom-pyr-wrap">
+          <svg id="mg-bloom-pyramid" class="bloom-pyramid-svg" viewBox="0 0 540 320" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="insight-help" id="mg-bloom-highlight">
+            <p><b>Điểm nổi bật:</b> —</p>
           </div>
-          <svg id="mg-bloom-chart" class="insight-chart" viewBox="0 0 360 260"></svg>
         </div>
       </div>
 
@@ -2300,47 +2316,91 @@ function renderSupportAnalyticsMG(){
 
 function renderBloomAnalyticsMG(){
   const agg = aggregateAtomicMG();
-  const order = ['Nhận biết','Hiểu','Ứng dụng','Phân tích','Sáng tạo','Sáng tạo '];
-  const seen = new Set();
-  const bloomOrdered = order.filter(o => {
-    const trimmed = o.trim();
-    if(seen.has(trimmed)) return false;
-    seen.add(trimmed);
-    return agg.bloomSum[trimmed] || agg.bloomSum[o];
-  }).map(o => o.trim());
-  // Include any other bloom keys not in standard order
-  for(const k in agg.bloomSum){
-    if(!seen.has(k.trim())){ bloomOrdered.push(k); seen.add(k.trim()); }
-  }
-  const tbody = document.querySelector('#mg-bloom-table tbody');
-  if(tbody){
-    let html = '';
-    bloomOrdered.forEach(k => {
-      const s = agg.bloomSum[k] || {count:0, pct:0};
-      html += '<tr><td>' + _escHtmlMG(k) + '</td>';
-      html += '<td class="num">' + (s.count||0) + '</td>';
-      html += '<td>' + _pctBadgeMG(s.pct) + '</td></tr>';
-    });
-    tbody.innerHTML = html;
-  }
-  const svg = document.getElementById('mg-bloom-chart');
-  if(svg){
-    const rows = bloomOrdered.map(k => ({
-      label: k,
-      pct: agg.bloomSum[k]?.pct || 0,
-      count: agg.bloomSum[k]?.count || 0,
-    }));
-    svg.innerHTML = _barSvgMG(rows, {h:260, rowH:48});
-  }
+  // 6 cấp Bloom Taxonomy (Revised) — đỉnh: cấp thấp nhất → đáy: cấp cao nhất
+  // dataKey = key trong agg.bloomSum (theo atomic data); label = tên hiển thị
+  const levels = [
+    {idx:1, dataKey:'Nhận biết', label:'Ghi nhớ',  en:'Remember',   color:'#e94e44'},
+    {idx:2, dataKey:'Hiểu',      label:'Hiểu',     en:'Understand', color:'#f5b223'},
+    {idx:3, dataKey:'Ứng dụng',  label:'Vận dụng', en:'Apply',      color:'#5cb85c'},
+    {idx:4, dataKey:'Phân tích', label:'Phân tích',en:'Analyze',    color:'#5bc0de'},
+    {idx:5, dataKey:'Đánh giá',  label:'Đánh giá', en:'Evaluate',   color:'#337ab7'},
+    {idx:6, dataKey:'Sáng tạo',  label:'Sáng tạo', en:'Create',     color:'#2a4d8f'},
+  ];
+  const svg = document.getElementById('mg-bloom-pyramid');
+  if(!svg) return;
+
+  // ───── SVG geom ─────
+  const W = 540, H = 320;
+  const pyrLeft = 22, pyrTop = 14;
+  const pyrW = 260;   // width đáy pyramid
+  const pyrH = H - 2*pyrTop;
+  const cx = pyrLeft + pyrW/2;
+  const N = levels.length;
+  const rowH = pyrH / N;
+
+  let html = '<defs>';
+  // 6 arrow markers, mỗi cấp 1 màu
+  levels.forEach((lv, i) => {
+    html += `<marker id="bloom-mk-${i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L10,5 L0,10 Z" fill="${lv.color}"/>
+            </marker>`;
+  });
+  html += '</defs>';
+
+  levels.forEach((lv, i) => {
+    const yTop = pyrTop + i * rowH;
+    const yBot = pyrTop + (i+1) * rowH;
+    const wTop = pyrW * (i / N);
+    const wBot = pyrW * ((i+1) / N);
+    const path = `M${cx - wTop/2},${yTop} L${cx + wTop/2},${yTop} L${cx + wBot/2},${yBot} L${cx - wBot/2},${yBot} Z`;
+    html += `<path d="${path}" fill="${lv.color}" stroke="#fff" stroke-width="1.5"/>`;
+
+    // Bloom name inside row (chỉ khi row đủ rộng để chứa text)
+    const rowCy = (yTop + yBot) / 2;
+    if(wBot > 70){
+      html += `<text class="pyr-name" x="${cx}" y="${rowCy}" text-anchor="middle" dominant-baseline="middle">${_escHtmlMG(lv.label)}</text>`;
+    }
+
+    // Arrow + label + pct outside on right
+    const arrowX1 = cx + wBot/2 + 8;
+    const arrowX2 = arrowX1 + 26;
+    html += `<line x1="${arrowX1}" y1="${rowCy}" x2="${arrowX2}" y2="${rowCy}" stroke="${lv.color}" stroke-width="2.6" marker-end="url(#bloom-mk-${i})"/>`;
+
+    const textX = arrowX2 + 10;
+    const s = agg.bloomSum[lv.dataKey];
+    const hasData = s && s.count > 0;
+    const pctText = hasData ? (Math.round(s.pct) + '%') : '—';
+    const countText = hasData ? `<tspan fill="#a4886a" font-weight="600" font-size="10.5"> · ${s.count} câu</tspan>` : '';
+
+    if(hasData){
+      html += `<text class="pyr-label" x="${textX}" y="${rowCy}" dominant-baseline="middle">
+                ${lv.idx}: ${_escHtmlMG(lv.label)} <tspan fill="#a4886a" font-weight="500">(${lv.en})</tspan>
+                <tspan x="${textX}" dy="15" class="pyr-pct" fill="${lv.color}">${pctText}</tspan>${countText}
+              </text>`;
+    } else {
+      html += `<text class="pyr-label" x="${textX}" y="${rowCy}" dominant-baseline="middle">
+                ${lv.idx}: ${_escHtmlMG(lv.label)} <tspan fill="#a4886a" font-weight="500">(${lv.en})</tspan>
+                <tspan x="${textX}" dy="15" class="pyr-empty">chưa có dữ liệu</tspan>
+              </text>`;
+    }
+  });
+
+  svg.innerHTML = html;
+
+  // ───── Highlight ─────
+  const filled = levels
+    .map(lv => ({...lv, ...(agg.bloomSum[lv.dataKey]||{count:0})}))
+    .filter(r => r.count > 0);
   const hi = document.getElementById('mg-bloom-highlight');
   if(hi){
-    const all = bloomOrdered.map(k => ({k, ...(agg.bloomSum[k]||{})})).filter(r => r.count);
-    const best = [...all].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
-    const weak = [...all].sort((a,b)=>(a.pct||0)-(b.pct||0))[0];
-    if(best && weak){
-      hi.innerHTML = '<p><b>Điểm nổi bật:</b> cấp <b>' + _escHtmlMG(best.k) + '</b> đạt ' +
-                     Math.round(best.pct) + '%; thấp nhất là <b>' + _escHtmlMG(weak.k) + '</b> (' +
-                     Math.round(weak.pct) + '%).</p>';
+    if(filled.length === 0){
+      hi.innerHTML = '<p><b>Điểm nổi bật:</b> chưa có dữ liệu Bloom.</p>';
+    } else {
+      const best = [...filled].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
+      const weak = [...filled].sort((a,b)=>(a.pct||0)-(b.pct||0))[0];
+      hi.innerHTML = '<p><b>Điểm nổi bật:</b> cấp <b>' + _escHtmlMG(best.label) +
+                     '</b> đạt ' + Math.round(best.pct) + '%; thấp nhất là <b>' +
+                     _escHtmlMG(weak.label) + '</b> (' + Math.round(weak.pct) + '%).</p>';
     }
   }
 }
