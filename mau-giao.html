@@ -2436,45 +2436,8 @@ function renderChannelAnalyticsMG(){
     } else hi.innerHTML = '<p><b>Điểm nổi bật:</b> —</p>';
   }
 }
-function renderBloomAnalyticsMG(){
-  const tbody = document.querySelector('#mg-bloom-table tbody');
-  if(tbody) tbody.innerHTML = ANALYTICS_MG.bloom.map(r=>`<tr><td>${_escHtmlMG(r.label)}</td><td class="num">${r.count ?? '—'}</td><td>${_pctBadgeMG(r.pct)}</td></tr>`).join('');
-  const svg = document.getElementById('mg-bloom-chart');
-  if(svg){
-    const tiers = ANALYTICS_MG.bloom;
-    // Bloom pyramid: width tỉ lệ với pct để trực quan hoá năng lực thật sự
-    // Min 80px (đảm bảo readable), max 300px. Càng cao % càng rộng.
-    const cx=180, y=[24,92,160], h=52, padInside=18;
-    let html = `<rect x="0" y="0" width="360" height="240" rx="12" fill="#fffaf0"/>`;
-    // Center axis line — visual anchor để mắt nhận ra alignment
-    html += `<line x1="180" y1="14" x2="180" y2="226" stroke="#f0dcb0" stroke-width="1" stroke-dasharray="3 4"/>`;
-    tiers.forEach((d,i)=>{
-      const p=Number(d.pct)||0;
-      // Width = 80 + (pct/100)*220 → 80px nếu 0%, 300px nếu 100%
-      const ww = Math.max(90, Math.min(300, 90 + (p/100)*210));
-      const x = cx - ww/2;
-      const color = _pctColorMG(p);
-      html += `<path d="M${x+padInside} ${y[i]} H${x+ww-padInside} L${x+ww} ${y[i]+h} H${x} Z" fill="${color}" opacity=".92" stroke="#fff" stroke-width="1.5"/>`;
-      const tierName = _escHtmlMG(d.label.split('(')[0].trim());
-      html += `<text x="${cx}" y="${y[i]+20}" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">${tierName}</text>`;
-      html += `<text x="${cx}" y="${y[i]+40}" text-anchor="middle" font-size="18" font-weight="900" fill="#fff">${Math.round(p)}%</text>`;
-      // Sub note bên phải tier — số câu
-      if(d.count != null){
-        html += `<text x="${x+ww+8}" y="${y[i]+h/2+4}" font-size="9.5" font-weight="700" fill="#7b6244">${d.count} câu</text>`;
-      }
-    });
-    svg.innerHTML = html;
-  }
-  const hi = document.getElementById('mg-bloom-highlight');
-  if(hi){
-    const rows = ANALYTICS_MG.bloom || [];
-    const best = [...rows].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
-    const low = [...rows].sort((a,b)=>(a.pct||0)-(b.pct||0))[0];
-    hi.innerHTML = best && low
-      ? `<p><b>Điểm nổi bật:</b> mức <b>${_escHtmlMG(best.label)}</b> đạt ${Math.round(best.pct)}%; mức thấp nhất là <b>${_escHtmlMG(low.label)}</b> (${Math.round(low.pct)}%).</p>`
-      : '<p><b>Điểm nổi bật:</b> —</p>';
-  }
-}
+// renderBloomAnalyticsMG cũ (dùng ANALYTICS_MG.bloom static) đã bị xóa
+// — function mới ở line ~2281 dùng agg.bloomSum thay thế.
 function _setChartA11yMG(svgId, title){
   const svg = document.getElementById(svgId);
   if(!svg) return;
