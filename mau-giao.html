@@ -1809,16 +1809,20 @@ function renderMiniRadars(){
       const [x, y] = pt(i, v);
       html += `<circle cx="${x}" cy="${y}" r="3" fill="#f08526" stroke="#fff" stroke-width="1.2"/>`;
     });
-    // Labels
-    const LR = R + 16;
+    // Labels — anchor theo cos(angle): bên phải start, bên trái end, trên/dưới middle.
+    // LR động: ngũ giác (N=5) cần nới rộng hơn để 2 label đáy không chồng.
+    const LR_BASE = R + (N === 5 ? 22 : N === 3 ? 18 : 16);
     group.skills.forEach((s, i) => {
       const a = ang(i);
-      const lx = cx + LR * Math.cos(a);
-      const ly = cy + LR * Math.sin(a) + (i === 0 ? -2 : 3);
+      const cosA = Math.cos(a), sinA = Math.sin(a);
+      // Đẩy radial label đáy ra xa thêm cho ngũ giác để tách "Kiểu mẫu" / "Đo lường"
+      const LR = LR_BASE + (N === 5 && sinA > 0.5 ? 4 : 0);
+      const lx = cx + LR * cosA;
+      // Top label nhích lên (i=0); các label dưới (sinA>0) nhích xuống 3px để không đụng polygon
+      const ly = cy + LR * sinA + (i === 0 ? -3 : (sinA > 0.3 ? 4 : 2));
       let anchor = 'middle';
-      const angDeg = (a * 180 / Math.PI + 360) % 360;
-      if(angDeg > 5 && angDeg < 175) anchor = 'start';
-      else if(angDeg > 185 && angDeg < 355) anchor = 'end';
+      if(cosA > 0.15) anchor = 'start';
+      else if(cosA < -0.15) anchor = 'end';
       html += `<text class="mr-axis" x="${lx}" y="${ly}" text-anchor="${anchor}" dominant-baseline="middle">${s.label}</text>`;
     });
     svg.innerHTML = html;
