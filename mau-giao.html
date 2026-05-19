@@ -2316,15 +2316,14 @@ function renderSupportAnalyticsMG(){
 
 function renderBloomAnalyticsMG(){
   const agg = aggregateAtomicMG();
-  // 6 cấp Bloom Taxonomy (Revised) — đỉnh: cấp thấp nhất → đáy: cấp cao nhất
-  // dataKey = key trong agg.bloomSum (theo atomic data); label = tên hiển thị
+  // 5 cấp Bloom có trong atomic L3 data — đỉnh: cấp thấp nhất → đáy: cấp cao nhất
+  // (Khớp đúng atomic data: không có "Đánh giá/Evaluate")
   const levels = [
-    {idx:1, dataKey:'Nhận biết', label:'Ghi nhớ',  en:'Remember',   color:'#e94e44'},
-    {idx:2, dataKey:'Hiểu',      label:'Hiểu',     en:'Understand', color:'#f5b223'},
-    {idx:3, dataKey:'Ứng dụng',  label:'Vận dụng', en:'Apply',      color:'#5cb85c'},
-    {idx:4, dataKey:'Phân tích', label:'Phân tích',en:'Analyze',    color:'#5bc0de'},
-    {idx:5, dataKey:'Đánh giá',  label:'Đánh giá', en:'Evaluate',   color:'#337ab7'},
-    {idx:6, dataKey:'Sáng tạo',  label:'Sáng tạo', en:'Create',     color:'#2a4d8f'},
+    {idx:1, dataKey:'Nhận biết', label:'Nhận biết', en:'Remember',   color:'#e94e44'},
+    {idx:2, dataKey:'Hiểu',      label:'Hiểu',      en:'Understand', color:'#f5b223'},
+    {idx:3, dataKey:'Ứng dụng',  label:'Ứng dụng',  en:'Apply',      color:'#5cb85c'},
+    {idx:4, dataKey:'Phân tích', label:'Phân tích', en:'Analyze',    color:'#3aa0d6'},
+    {idx:5, dataKey:'Sáng tạo',  label:'Sáng tạo',  en:'Create',     color:'#2a4d8f'},
   ];
   const svg = document.getElementById('mg-bloom-pyramid');
   if(!svg) return;
@@ -2368,29 +2367,26 @@ function renderBloomAnalyticsMG(){
 
     const textX = arrowX2 + 10;
     const s = agg.bloomSum[lv.dataKey];
-    const hasData = s && s.count > 0;
+    // hasData = đã có ít nhất 1 atomic được chấm cho cấp này (filled > 0)
+    const hasData = s && s.filled > 0;
     const pctText = hasData ? (Math.round(s.pct) + '%') : '—';
-    const countText = hasData ? `<tspan fill="#a4886a" font-weight="600" font-size="10.5"> · ${s.count} câu</tspan>` : '';
+    const countText = s && s.count > 0
+      ? `<tspan fill="#a4886a" font-weight="600" font-size="10.5"> · ${s.filled || 0}/${s.count} câu</tspan>`
+      : '';
 
-    if(hasData){
-      html += `<text class="pyr-label" x="${textX}" y="${rowCy}" dominant-baseline="middle">
-                ${lv.idx}: ${_escHtmlMG(lv.label)} <tspan fill="#a4886a" font-weight="500">(${lv.en})</tspan>
-                <tspan x="${textX}" dy="15" class="pyr-pct" fill="${lv.color}">${pctText}</tspan>${countText}
-              </text>`;
-    } else {
-      html += `<text class="pyr-label" x="${textX}" y="${rowCy}" dominant-baseline="middle">
-                ${lv.idx}: ${_escHtmlMG(lv.label)} <tspan fill="#a4886a" font-weight="500">(${lv.en})</tspan>
-                <tspan x="${textX}" dy="15" class="pyr-empty">chưa có dữ liệu</tspan>
-              </text>`;
-    }
+    // Render label luôn (5 cấp đều có data trong atomic L3); pct = "—" khi chưa chấm
+    html += `<text class="pyr-label" x="${textX}" y="${rowCy}" dominant-baseline="middle">
+              ${lv.idx}: ${_escHtmlMG(lv.label)} <tspan fill="#a4886a" font-weight="500">(${lv.en})</tspan>
+              <tspan x="${textX}" dy="15" class="pyr-pct" fill="${lv.color}">${pctText}</tspan>${countText}
+            </text>`;
   });
 
   svg.innerHTML = html;
 
   // ───── Highlight ─────
   const filled = levels
-    .map(lv => ({...lv, ...(agg.bloomSum[lv.dataKey]||{count:0})}))
-    .filter(r => r.count > 0);
+    .map(lv => ({...lv, ...(agg.bloomSum[lv.dataKey]||{count:0,filled:0})}))
+    .filter(r => r.filled > 0);
   const hi = document.getElementById('mg-bloom-highlight');
   if(hi){
     if(filled.length === 0){
