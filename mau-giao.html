@@ -972,6 +972,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
 .atomic-legend .lvl[data-l="4"] b{background:var(--g-A)}
 .atomic-legend .lvl[data-l="3"] b{background:var(--g-B)}
 .atomic-legend .lvl[data-l="2"] b{background:var(--g-C)}
+.atomic-legend .lvl[data-l="1"] b{background:#c84818}
 .atomic-legend .lvl[data-l="0"] b{background:var(--g-L)}
 .atomic-legend label{margin-left:auto;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .atomic-content{
@@ -1037,6 +1038,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
 .atomic-table .levels button.active[data-lvl="4"]{background:var(--g-A);color:#fff;border-color:var(--g-A)}
 .atomic-table .levels button.active[data-lvl="3"]{background:var(--g-B);color:#fff;border-color:var(--g-B)}
 .atomic-table .levels button.active[data-lvl="2"]{background:var(--g-C);color:#fff;border-color:var(--g-C)}
+.atomic-table .levels button.active[data-lvl="1"]{background:#c84818;color:#fff;border-color:#c84818}
 .atomic-table .levels button.active[data-lvl="0"]{background:var(--g-L);color:#fff;border-color:var(--g-L)}
 .atomic-status{
   position:sticky;bottom:0;padding:10px 22px;
@@ -1222,6 +1224,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
     <span class="lvl" data-l="4"><b>4</b> Tốt</span>
     <span class="lvl" data-l="3"><b>3</b> Khá</span>
     <span class="lvl" data-l="2"><b>2</b> Hỗ trợ</span>
+    <span class="lvl" data-l="1"><b>1</b> Cần nhiều</span>
     <span class="lvl" data-l="0"><b>0</b> Chưa</span>
     <label><input type="checkbox" id="atomic-show-weights" onchange="document.querySelectorAll('.atomic-table').forEach(t=>t.classList.toggle('show-weights',this.checked))"> Hiện trọng số</label>
   </div>
@@ -1782,79 +1785,78 @@ function renderMiniRadars(){
 renderMiniRadars();
 
 /* ═══════════════════════════════════════════════════════════════
-   ATOMIC SCORING L3 — 63 tiêu chí + 315 mô tả tham chiếu
-   Source: Atomic_Excel_L3.xlsx
+   ATOMIC SCORING L3 v2 — 61 tiêu chí, hệ số tuyến tính 6 mức
+   Source: AUTOMIC-L3-PHAN-TAN-DUNG.xlsx (final format)
    Formula: điểm đạt = trọng số × hệ số nhân
-     5→1.00 | 4→0.75 | 3→0.50 | 2→0.25 | 0→0.00
-   Tổng max: 170 điểm — 4 lĩnh vực (24+61+32+53)
-   Ngưỡng: S≥80 | A 65-79 | B 50-64 | C 30-49 | L<30
+     5→1.00 | 4→0.80 | 3→0.60 | 2→0.40 | 1→0.20 | 0→0.00
+   Tổng max: 160 điểm — 14 câu (12×10 + 2×20 cho câu 13,14)
+   Cột bổ sung: nhóm, bloom, difficulty, support (1-4)
    ═══════════════════════════════════════════════════════════════ */
-const __ATOMIC_MULTIPLIER_L3 = {5:1.0, 4:0.75, 3:0.5, 2:0.25, 0:0.0};
+const __ATOMIC_MULTIPLIER_L3 = {5:1.0, 4:0.8, 3:0.6, 2:0.4, 1:0.2, 0:0.0};
+const __ATOMIC_LEVELS_L3 = [5, 4, 3, 2, 1, 0];  // thứ tự hiển thị UI
 
 const __ATOMIC_CRITERIA_L3 = [
-  {cau:1, ma:"1.1", label:"Tính khép kín", weight:2.0, skill:"observation"},
-  {cau:1, ma:"1.2", label:"Số cạnh ≥ 4", weight:2.0, skill:"observation"},
-  {cau:1, ma:"1.3", label:"Đúng 6 cạnh", weight:2.0, skill:"precision"},
-  {cau:1, ma:"1.4", label:"Tỷ lệ ngang > dọc", weight:1.0, skill:"precision"},
-  {cau:1, ma:"1.5", label:"Nét vẽ thẳng", weight:1.0, skill:"observation"},
-  {cau:1, ma:"1.6", label:"Hoàn thành ≤60s", weight:1.0, skill:"attention"},
-  {cau:1, ma:"1.7", label:"Kích thước vừa khung", weight:1.0, skill:"geometry"},
-  {cau:2, ma:"2.1", label:"Hiểu quy luật chẵn/lẻ", weight:3.0, skill:"number"},
-  {cau:2, ma:"2.2", label:"Nhận diện số trong tròn/vuông", weight:2.0, skill:"attention"},
-  {cau:2, ma:"2.3", label:"Nét nối sạch sẽ", weight:2.0, skill:"attention"},
-  {cau:2, ma:"2.4", label:"Số cặp nối đúng", weight:3.0, skill:"number"},
-  {cau:3, ma:"3.1", label:"Hiểu yêu cầu 'chọn 1 dãy'", weight:3.0, skill:"attention"},
-  {cau:3, ma:"3.2", label:"Ghi nhớ chuỗi yếu tố", weight:4.0, skill:"memory"},
-  {cau:3, ma:"3.3", label:"Khoanh trong dãy chứa đúng đáp án", weight:2.0, skill:"memory"},
-  {cau:3, ma:"3.4", label:"Tập trung trong khi nghe", weight:1.0, skill:"attention"},
-  {cau:4, ma:"4.1", label:"Phân loại người tuyết MŨ → khu MŨ", weight:2.5, skill:"analysis"},
-  {cau:4, ma:"4.2", label:"Phân loại người tuyết TAY → khu TAY", weight:2.5, skill:"analysis"},
-  {cau:4, ma:"4.3", label:"Xử lý vùng GIAO mũ+tay", weight:2.0, skill:"synthesis"},
-  {cau:4, ma:"4.4", label:"Đường nối sạch sẽ", weight:2.0, skill:"data"},
-  {cau:4, ma:"4.5", label:"Giải thích tiêu chí khi GV hỏi", weight:1.0, skill:"understanding"},
-  {cau:5, ma:"5.1", label:"Tạo 2 nhóm rõ ràng", weight:3.0, skill:"synthesis"},
-  {cau:5, ma:"5.2", label:"Tiêu chí phân loại có nghĩa", weight:3.0, skill:"synthesis"},
-  {cau:5, ma:"5.3", label:"Số vật phân đúng nhóm", weight:3.0, skill:"data"},
-  {cau:5, ma:"5.4", label:"Giải thích tiêu chí", weight:1.0, skill:"understanding"},
-  {cau:6, ma:"6.1", label:"Hiểu chủ đề cháy/cứu hỏa", weight:2.0, skill:"understanding"},
-  {cau:6, ma:"6.2", label:"Xác định tranh 1 (bắt đầu)", weight:2.0, skill:"synthesis"},
-  {cau:6, ma:"6.3", label:"Xác định tranh 4 (kết thúc)", weight:2.0, skill:"synthesis"},
-  {cau:6, ma:"6.4", label:"Thứ tự 2-3 ở giữa", weight:2.0, skill:"synthesis"},
-  {cau:6, ma:"6.5", label:"Viết số rõ ràng", weight:2.0, skill:"understanding"},
-  {cau:7, ma:"7.1", label:"Đặt KEM ở ngăn cuối", weight:2.5, skill:"geometry"},
-  {cau:7, ma:"7.2", label:"Đặt CHAI NƯỚC TRÊN sữa chua", weight:2.5, skill:"geometry"},
-  {cau:7, ma:"7.3", label:"Đặt TÁO DƯỚI sữa chua", weight:2.0, skill:"geometry"},
-  {cau:7, ma:"7.4", label:"Đặt SỮA CHUA ở giữa", weight:2.0, skill:"application"},
-  {cau:7, ma:"7.5", label:"Hiểu khái niệm trên/dưới", weight:1.0, skill:"application"},
-  {cau:8, ma:"8.1", label:"Hiểu yêu cầu phép cộng", weight:2.0, skill:"number"},
-  {cau:8, ma:"8.2", label:"Số cặp đúng tổng = 6", weight:4.0, skill:"number"},
-  {cau:8, ma:"8.3", label:"Đếm hình trên thẻ hình", weight:2.0, skill:"application"},
-  {cau:8, ma:"8.4", label:"Có dấu vết thử-sai", weight:2.0, skill:"application"},
-  {cau:9, ma:"9.1", label:"Khoanh đúng thẻ đáp án", weight:5.0, skill:"geometry"},
-  {cau:9, ma:"9.2", label:"Có suy luận hình học", weight:3.0, skill:"geometry"},
-  {cau:9, ma:"9.3", label:"Loại trừ thẻ không phù hợp", weight:2.0, skill:"geometry"},
-  {cau:10, ma:"10.1", label:"Hiểu yêu cầu (tròn=cao, tam=thấp)", weight:2.0, skill:"observation"},
-  {cau:10, ma:"10.2", label:"So đúng cao hơn ví dụ", weight:3.0, skill:"measurement"},
-  {cau:10, ma:"10.3", label:"So đúng thấp hơn ví dụ", weight:3.0, skill:"measurement"},
-  {cau:10, ma:"10.4", label:"Vẽ ký hiệu đúng (tròn/tam)", weight:2.0, skill:"observation"},
-  {cau:11, ma:"11.1", label:"Dãy 1 (áo-quần)", weight:2.0, skill:"pattern"},
-  {cau:11, ma:"11.2", label:"Dãy 2 (nồi-ấm)", weight:2.0, skill:"pattern"},
-  {cau:11, ma:"11.3", label:"Dãy 3 (máy hút bụi-quạt)", weight:2.0, skill:"pattern"},
-  {cau:11, ma:"11.4", label:"Dãy 4 (nho-cherry)", weight:2.0, skill:"pattern"},
-  {cau:11, ma:"11.5", label:"Dãy 5 (cà chua-bắp cải)", weight:2.0, skill:"pattern"},
-  {cau:12, ma:"12.1", label:"Đếm donut đúng", weight:1.5, skill:"number"},
-  {cau:12, ma:"12.2", label:"Đếm muffin đúng", weight:1.5, skill:"number"},
-  {cau:12, ma:"12.3", label:"Đếm bánh mì dài đúng", weight:1.5, skill:"number"},
-  {cau:12, ma:"12.4", label:"Đếm bretzel đúng", weight:1.5, skill:"number"},
-  {cau:12, ma:"12.5", label:"Vẽ biểu đồ tương ứng số đếm", weight:2.0, skill:"data"},
-  {cau:12, ma:"12.6", label:"Tam giác vào loại nhiều nhất", weight:2.0, skill:"data"},
-  {cau:13, ma:"13.1", label:"TRÔI CHẢY: Số ô vẽ thành hình có nghĩa", weight:8.0, skill:"fluency"},
-  {cau:13, ma:"13.2", label:"LINH HOẠT: Số nhóm chủ đề khác nhau", weight:8.0, skill:"flexibility"},
-  {cau:13, ma:"13.3", label:"ĐỘC ĐÁO: Số ý ngoài DS phổ biến", weight:8.0, skill:"originality"},
-  {cau:14, ma:"14.1", label:"TRÔI CHẢY: Số ô vẽ thành hình", weight:8.0, skill:"fluency"},
-  {cau:14, ma:"14.2", label:"LINH HOẠT: Số nhóm chủ đề", weight:6.0, skill:"flexibility"},
-  {cau:14, ma:"14.3", label:"ĐỘC ĐÁO: Ý lạ ngoài DS phổ biến", weight:6.0, skill:"originality"},
-  {cau:14, ma:"14.4", label:"CHÍNH XÁC: Chi tiết bổ sung", weight:6.0, skill:"precision"},
+  {cau:1, ma:"1.1", label:"Tính khép kín", weight:2.0, skill:"observation", nhom:"Tư duy cơ bản", bloom:"Nhận biết", difficulty:"Dễ", support:4},
+  {cau:1, ma:"1.2", label:"Số cạnh ≥ 4", weight:2.0, skill:"geometry", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:1, ma:"1.3", label:"Đúng 6 cạnh", weight:2.0, skill:"geometry", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:1, ma:"1.4", label:"Tỷ lệ ngang > dọc", weight:2.0, skill:"geometry", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:1, ma:"1.5", label:"Thể hiện nét vẽ rõ, có kiểm soát", weight:1.0, skill:"observation", nhom:"Tư duy cơ bản", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:1, ma:"1.6", label:"Căn chỉnh kích thước hình phù hợp trong khung", weight:1.0, skill:"observation", nhom:"Tư duy cơ bản", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:2, ma:"2.1", label:"Nhận diện và phân biệt đúng các hình cần nối", weight:2.0, skill:"geometry", nhom:"Tư duy toán học", bloom:"Nhận biết", difficulty:"Dễ", support:4},
+  {cau:2, ma:"2.2", label:"Nhận diện đúng mặt số trong phạm vi bài", weight:2.0, skill:"number", nhom:"Tư duy toán học", bloom:"Nhận biết", difficulty:"Dễ", support:4},
+  {cau:2, ma:"2.3", label:"Quan sát mẫu và nhận ra quy luật ghép số với hình", weight:3.0, skill:"pattern", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Trung bình", support:4},
+  {cau:2, ma:"2.4", label:"Áp dụng quy luật để nối đúng số với hình tương ứng", weight:3.0, skill:"application", nhom:"Tư duy logic", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:3, ma:"3.1", label:"Hiểu yêu cầu nghe và chọn dãy tương ứng", weight:3.0, skill:"understanding", nhom:"Tư duy logic", bloom:"Hiểu", difficulty:"Trung bình", support:2},
+  {cau:3, ma:"3.2", label:"Ghi nhớ chuỗi yếu tố", weight:4.0, skill:"memory", nhom:"Tư duy cơ bản", bloom:"Ứng dụng", difficulty:"Trung bình", support:2},
+  {cau:3, ma:"3.3", label:"Đối chiếu chuỗi đã nghe với dãy đáp án và khoanh đúng", weight:2.0, skill:"memory", nhom:"Tư duy cơ bản", bloom:"Ứng dụng", difficulty:"Trung bình", support:2},
+  {cau:3, ma:"3.4", label:"Tập trung trong khi nghe", weight:1.0, skill:"attention", nhom:"Tư duy cơ bản", bloom:"Hiểu", difficulty:"Trung bình", support:2},
+  {cau:4, ma:"4.1", label:"Phân loại người tuyết MŨ → khu MŨ", weight:2.0, skill:"data", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Trung bình", support:1},
+  {cau:4, ma:"4.2", label:"Phân loại người tuyết TAY → khu TAY", weight:2.0, skill:"data", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Trung bình", support:1},
+  {cau:4, ma:"4.3", label:"Xử lý vùng GIAO mũ+tay", weight:3.0, skill:"synthesis", nhom:"Tư duy logic", bloom:"Phân tích", difficulty:"Khó", support:1},
+  {cau:4, ma:"4.5", label:"Giải thích được lý do phân loại theo mũ/tay", weight:3.0, skill:"analysis", nhom:"Tư duy logic", bloom:"Phân tích", difficulty:"Khó", support:1},
+  {cau:5, ma:"5.1", label:"Quan sát và nhận diện đặc điểm nổi bật của từng hình", weight:2.0, skill:"observation", nhom:"Tư duy cơ bản", bloom:"Nhận biết", difficulty:"Trung bình", support:4},
+  {cau:5, ma:"5.2", label:"Phân loại hình vào 2 nhóm có logic", weight:3.0, skill:"data", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Khó", support:4},
+  {cau:5, ma:"5.3", label:"Giải thích được lý do phân nhóm", weight:3.0, skill:"analysis", nhom:"Tư duy logic", bloom:"Phân tích", difficulty:"Khó", support:4},
+  {cau:5, ma:"5.4", label:"Linh hoạt điều chỉnh hoặc chấp nhận cách phân loại hợp lý khác", weight:2.0, skill:"flexibility", nhom:"Tư duy sáng tạo", bloom:"Sáng tạo", difficulty:"Khó", support:4},
+  {cau:6, ma:"6.1", label:"Hiểu chủ đề cháy/cứu hỏa", weight:2.0, skill:"understanding", nhom:"Tư duy logic", bloom:"Hiểu", difficulty:"Trung bình", support:4},
+  {cau:6, ma:"6.2", label:"Xác định tranh 1 (bắt đầu)", weight:2.0, skill:"understanding", nhom:"Tư duy logic", bloom:"Hiểu", difficulty:"Trung bình", support:4},
+  {cau:6, ma:"6.3", label:"Xác định tranh 4 (kết thúc)", weight:2.0, skill:"synthesis", nhom:"Tư duy logic", bloom:"Phân tích", difficulty:"Trung bình", support:4},
+  {cau:6, ma:"6.4", label:"Sắp xếp tranh giữa theo đúng diễn biến", weight:2.0, skill:"analysis", nhom:"Tư duy logic", bloom:"Phân tích", difficulty:"Khó", support:4},
+  {cau:6, ma:"6.5", label:"Thể hiện thứ tự tranh rõ ràng bằng số", weight:2.0, skill:"attention", nhom:"Tư duy cơ bản", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:7, ma:"7.1", label:"Đặt KEM ở ngăn cuối", weight:2.0, skill:"geometry", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:7, ma:"7.2", label:"Đặt CHAI NƯỚC TRÊN sữa chua", weight:2.0, skill:"geometry", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:7, ma:"7.3", label:"Đặt TÁO DƯỚI sữa chua", weight:2.0, skill:"geometry", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:7, ma:"7.4", label:"Đặt SỮA CHUA ở giữa", weight:2.0, skill:"geometry", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:7, ma:"7.5", label:"Hiểu và áp dụng chỉ dẫn gồm vật mốc và quan hệ vị trí", weight:2.0, skill:"application", nhom:"Tư duy logic", bloom:"Phân tích", difficulty:"Khó", support:4},
+  {cau:8, ma:"8.1", label:"Nhận diện đúng số lượng/chữ số trên thẻ", weight:3.0, skill:"number", nhom:"Tư duy toán học", bloom:"Nhận biết", difficulty:"Dễ", support:4},
+  {cau:8, ma:"8.2", label:"Hiểu yêu cầu ghép 2 thẻ để tạo tổng bằng 6", weight:2.0, skill:"number", nhom:"Tư duy toán học", bloom:"Hiểu", difficulty:"Trung bình", support:4},
+  {cau:8, ma:"8.3", label:"Số cặp đúng tổng = 6", weight:3.0, skill:"number", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Khó", support:4},
+  {cau:8, ma:"8.4", label:"Kiểm tra và điều chỉnh cặp ghép", weight:2.0, skill:"analysis", nhom:"Tư duy logic", bloom:"Phân tích", difficulty:"Khó", support:4},
+  {cau:9, ma:"9.1", label:"Nhận diện được phần hình ảnh còn khuyết", weight:2.0, skill:"observation", nhom:"Tư duy cơ bản", bloom:"Nhận biết", difficulty:"Trung bình", support:4},
+  {cau:9, ma:"9.2", label:"Lựa chọn đúng thẻ hình ảnh phù hợp để hoàn thiện tranh", weight:3.0, skill:"geometry", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Khó", support:4},
+  {cau:9, ma:"9.3", label:"Giải thích lý do chọn thẻ dựa trên đường viền, hướng, màu hoặc chi tiết khớp", weight:3.0, skill:"analysis", nhom:"Tư duy logic", bloom:"Phân tích", difficulty:"Khó", support:4},
+  {cau:9, ma:"9.4", label:"Loại trừ được thẻ không phù hợp", weight:2.0, skill:"analysis", nhom:"Tư duy logic", bloom:"Phân tích", difficulty:"Khó", support:4},
+  {cau:10, ma:"10.1", label:"Hiểu quy ước: tròn = cao hơn mẫu, tam giác = thấp hơn mẫu", weight:2.0, skill:"understanding", nhom:"Tư duy logic", bloom:"Hiểu", difficulty:"Trung bình", support:4},
+  {cau:10, ma:"10.2", label:"Xác định đúng chồng cao hơn mẫu", weight:3.0, skill:"measurement", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Trung bình", support:4},
+  {cau:10, ma:"10.3", label:"Xác định đúng chồng thấp hơn mẫu", weight:3.0, skill:"measurement", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Trung bình", support:4},
+  {cau:10, ma:"10.4", label:"Vẽ ký hiệu đúng (tròn/tam)", weight:2.0, skill:"application", nhom:"Tư duy logic", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:11, ma:"11.1", label:"Nhận diện được quy luật", weight:2.0, skill:"pattern", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Trung bình", support:4},
+  {cau:11, ma:"11.2", label:"Dãy 2 (nồi-ấm)", weight:2.0, skill:"pattern", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Trung bình", support:4},
+  {cau:11, ma:"11.3", label:"Dãy 3 (máy hút bụi-quạt)", weight:2.0, skill:"pattern", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Khó", support:4},
+  {cau:11, ma:"11.4", label:"Dãy 4 (nho-cherry)", weight:2.0, skill:"pattern", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Khó", support:2},
+  {cau:11, ma:"11.5", label:"Dãy 5 (cà chua-bắp cải)", weight:2.0, skill:"pattern", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Khó", support:2},
+  {cau:12, ma:"12.1", label:"Đếm số lượng đúng", weight:2.0, skill:"number", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Trung bình", support:4},
+  {cau:12, ma:"12.2", label:"Vẽ biểu đồ tương ứng số đếm", weight:3.0, skill:"data", nhom:"Tư duy toán học", bloom:"Ứng dụng", difficulty:"Khó", support:2},
+  {cau:12, ma:"12.3", label:"Xác định loại có số lượng nhiều nhất", weight:3.0, skill:"number", nhom:"Tư duy toán học", bloom:"Phân tích", difficulty:"Trung bình", support:2},
+  {cau:12, ma:"12.4", label:"Xác định loại bánh nhiều nhất và thể hiện bằng hình tam giác", weight:2.0, skill:"analysis", nhom:"Tư duy logic", bloom:"Ứng dụng", difficulty:"Khó", support:2},
+  {cau:13, ma:"13.1", label:"TRÔI CHẢY: Số ô vẽ thành hình có nghĩa", weight:5.0, skill:"fluency", nhom:"Tư duy sáng tạo", bloom:"Sáng tạo", difficulty:"Khó", support:4},
+  {cau:13, ma:"13.2", label:"LINH HOẠT: Số nhóm chủ đề khác nhau", weight:5.0, skill:"flexibility", nhom:"Tư duy sáng tạo", bloom:"Sáng tạo", difficulty:"Khó", support:4},
+  {cau:13, ma:"13.3", label:"ĐỘC ĐÁO: Số ý ngoài DS phổ biến", weight:5.0, skill:"originality", nhom:"Tư duy sáng tạo", bloom:"Sáng tạo", difficulty:"Khó", support:4},
+  {cau:13, ma:"13.4", label:"CHÍNH XÁC: Sử dụng nét gốc làm một phần có nghĩa của hình vẽ", weight:5.0, skill:"precision", nhom:"Tư duy sáng tạo", bloom:"Sáng tạo", difficulty:"Khó", support:4},
+  {cau:14, ma:"14.1", label:"TRÔI CHẢY: Số ô vẽ thành hình", weight:5.0, skill:"fluency", nhom:"Tư duy sáng tạo", bloom:"Sáng tạo", difficulty:"Khó", support:4},
+  {cau:14, ma:"14.2", label:"LINH HOẠT: Số nhóm chủ đề", weight:5.0, skill:"flexibility", nhom:"Tư duy sáng tạo", bloom:"Sáng tạo", difficulty:"Khó", support:4},
+  {cau:14, ma:"14.3", label:"ĐỘC ĐÁO: Ý lạ ngoài DS phổ biến", weight:5.0, skill:"originality", nhom:"Tư duy sáng tạo", bloom:"Sáng tạo", difficulty:"Khó", support:4},
+  {cau:14, ma:"14.4", label:"CHÍNH XÁC: Sử dụng nét gốc làm một phần có nghĩa của hình vẽ", weight:5.0, skill:"precision", nhom:"Tư duy sáng tạo", bloom:"Sáng tạo", difficulty:"Khó", support:4},
 ];
 
 const __ATOMIC_DESCRIPTIONS_L3 = {
@@ -3651,7 +3653,7 @@ function _buildAtomicUI_MG(){
       html += '  <td><span class="ability-tag">'+skillLabel+'</span></td>';
       html += '  <td class="center"><button class="info-btn" onclick="_showAtomicHelp_MG(\''+c.ma+'\')" title="Xem chi tiết 5 mức">ⓘ</button></td>';
       html += '  <td class="center"><div class="levels" data-ma="'+c.ma+'">';
-      [5,4,3,2,0].forEach(lvl => {
+      __ATOMIC_LEVELS_L3.forEach(lvl => {
         const active = __atomicScoresMG[c.ma] === lvl ? 'active' : '';
         html += '<button class="'+active+'" data-lvl="'+lvl+'" onclick="_pickAtomicLevel_MG(\''+c.ma+'\','+lvl+')">'+lvl+'</button>';
       });
@@ -3720,8 +3722,10 @@ function _showAtomicHelp_MG(ma){
   lines.push('═══ ' + c.ma + '. ' + c.label + ' ═══');
   lines.push('Trọng số: ' + c.weight + ' điểm · Năng lực đo: ' + (__ATOMIC_SKILL_LABELS_MG[c.skill] || c.skill));
   lines.push('');
-  [5,4,3,2,0].forEach(lvl => {
-    lines.push('Mức ' + lvl + ': ' + (d[lvl] || '—'));
+  [5,4,3,2,1,0].forEach(lvl => {
+    let descText = d[lvl];
+    if(lvl === 1 && !descText) descText = '(Trung gian giữa mức 0 và mức 2 — bé có nỗ lực nhưng cần hỗ trợ nhiều)';
+    lines.push('Mức ' + lvl + ': ' + (descText || '—'));
   });
   alert(lines.join('\n'));
 }
@@ -3781,42 +3785,65 @@ async function _parseBatchFileMG(file){
   const info = {};
   const scores = {};
 
-  // Sheet "2.Thông tin HS" — info fields
-  const infoSheet = wb.Sheets['2.Thông tin HS'] || wb.Sheets[wb.SheetNames.find(n => /thông tin/i.test(n))];
-  if(infoSheet){
-    const rows = XLSX.utils.sheet_to_json(infoSheet, {header:1, defval:''});
+  // Format v2: 1 sheet duy nhất, tên sheet = "P.T. DŨNG 2021" (tên bé + năm sinh)
+  const sheetName = wb.SheetNames[0];
+  const yobMatch = sheetName.match(/(\d{4})/);
+  if(yobMatch){
+    info.yob = yobMatch[1];
+    info.name = sheetName.replace(/\d{4}/, '').replace(/[_\-]+/g, ' ').trim();
+  } else {
+    info.name = sheetName.trim();
+  }
+
+  // Parse 61 atomic scores từ sheet đó (cột B=Mã, cột E=Mức)
+  const atomicSheetV2 = wb.Sheets[sheetName];
+  if(atomicSheetV2){
+    const rows = XLSX.utils.sheet_to_json(atomicSheetV2, {header:1, defval:''});
+    rows.forEach(r => {
+      if(!r || r.length < 5) return;
+      const ma = String(r[1] || '').trim();
+      const muc = r[4];
+      if(!ma || !/^\d+\.\d+$/.test(ma)) return;
+      if(muc === '' || muc === null || muc === undefined) return;
+      const lvl = parseInt(muc, 10);
+      if([5,4,3,2,1,0].includes(lvl)) scores[ma] = lvl;
+    });
+  }
+
+  // Backward compat: format cũ Atomic_Excel_L3.xlsx có sheet riêng cho info + atomic
+  const oldInfoSheet = wb.Sheets['2.Thông tin HS'];
+  if(oldInfoSheet){
+    const rows = XLSX.utils.sheet_to_json(oldInfoSheet, {header:1, defval:''});
     rows.forEach(r => {
       if(!r || !r[0] || !r[1]) return;
       const label = String(r[0]).toLowerCase().trim();
       const value = String(r[1]).trim();
-      if(label.includes('họ và tên') || label === 'tên') info.name = value;
+      if(label.includes('họ và tên') || label === 'tên') info.name = info.name || value;
       else if(label.includes('giới tính')) info.sex = value;
       else if(label.includes('ngày sinh') || label.includes('năm sinh')){
-        // Extract year
         const m = value.match(/(\d{4})/);
-        if(m) info.yob = m[1];
+        if(m) info.yob = info.yob || m[1];
       }
       else if(label.includes('lớp')) info.class = value;
       else if(label.includes('ngày đánh giá')) info.date = value;
       else if(label.includes('giáo viên')) info.teacher = value;
     });
   }
-
-  // Sheet "3.Nhập atomic" — 63 atomic scores
-  const atomicSheet = wb.Sheets['3.Nhập atomic'] || wb.Sheets[wb.SheetNames.find(n => /nhập atomic/i.test(n))];
-  if(atomicSheet){
-    const rows = XLSX.utils.sheet_to_json(atomicSheet, {header:1, defval:''});
+  const oldAtomicSheet = wb.Sheets['3.Nhập atomic'];
+  if(oldAtomicSheet && Object.keys(scores).length === 0){
+    const rows = XLSX.utils.sheet_to_json(oldAtomicSheet, {header:1, defval:''});
     rows.forEach(r => {
       if(!r || r.length < 5) return;
       const ma = String(r[1] || '').trim();
       const muc = r[4];
       if(!ma || !/^\d+\.\d+$/.test(ma)) return;
+      if(muc === '' || muc === null || muc === undefined) return;
       const lvl = parseInt(muc, 10);
-      if([5,4,3,2,0].includes(lvl)) scores[ma] = lvl;
+      if([5,4,3,2,1,0].includes(lvl)) scores[ma] = lvl;
     });
   }
 
-  if(Object.keys(scores).length < 30){
+  if(Object.keys(scores).length < 20){
     return null;  // Không đủ data, skip
   }
   return {
