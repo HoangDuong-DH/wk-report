@@ -1390,38 +1390,24 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
     <div class="insight-grid">
       <!-- A-E "Đánh giá theo đơn vị riêng biệt" removed — không match format ATOMIC L3 mới -->
 
-      <div class="insight-panel metric-panel">
-        <h3><span class="chip">ABS</span>So sánh theo độ trừu tượng</h3>
-        <div class="insight-split">
-          <div>
-            <table class="insight-table" id="mg-abstract-table">
-              <thead><tr><th>Mức độ</th><th>Cách xử lý</th><th>Thực tế</th><th>Tỷ lệ</th></tr></thead>
-              <tbody></tbody>
-            </table>
-            <div class="insight-help" id="mg-abstract-highlight">
-              <p><b>Điểm nổi bật:</b> —</p>
-            </div>
-          </div>
-          <svg id="mg-abstract-chart" class="insight-chart" viewBox="0 0 360 220"></svg>
-        </div>
-      </div>
-
+            <!-- HỖ TRỢ: 4 bậc dựa vào cột "Mức độ hỗ trợ" trong data atomic -->
       <div class="insight-panel channel-panel">
         <h3><span class="chip">HỖ TRỢ</span>Mức độ hỗ trợ bé cần khi làm bài</h3>
         <div class="insight-split">
           <div>
-            <table class="insight-table" id="mg-channel-table">
-              <thead><tr><th>Phân loại</th><th>Thực tế</th><th>Tỷ lệ</th></tr></thead>
+            <table class="insight-table" id="mg-support-table">
+              <thead><tr><th>Mức</th><th>Mô tả</th><th>Thực tế</th><th>Tỷ lệ</th></tr></thead>
               <tbody></tbody>
             </table>
-            <div class="insight-help" id="mg-channel-highlight">
+            <div class="insight-help" id="mg-support-highlight">
               <p><b>Điểm nổi bật:</b> —</p>
             </div>
           </div>
-          <svg id="mg-channel-chart" class="insight-chart" viewBox="0 0 520 220"></svg>
+          <svg id="mg-support-chart" class="insight-chart" viewBox="0 0 360 240"></svg>
         </div>
       </div>
 
+      <!-- CẤP BLOOM: 5 cấp (Nhận biết / Hiểu / Ứng dụng / Phân tích / Sáng tạo) -->
       <div class="insight-panel metric-panel">
         <h3><span class="chip">BLOOM</span>Năng lực theo cấp độ Bloom</h3>
         <div class="insight-split">
@@ -1434,6 +1420,26 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
               <p><b>Điểm nổi bật:</b> —</p>
             </div>
           </div>
+          <svg id="mg-bloom-chart" class="insight-chart" viewBox="0 0 360 260"></svg>
+        </div>
+      </div>
+
+      <!-- MỨC ĐỘ KHÓ: 3 cấp (Dễ / Trung bình / Khó) -->
+      <div class="insight-panel metric-panel">
+        <h3><span class="chip">ĐỘ KHÓ</span>Phân tích theo mức độ khó</h3>
+        <div class="insight-split">
+          <div>
+            <table class="insight-table" id="mg-difficulty-table">
+              <thead><tr><th>Mức</th><th>Số câu</th><th>Tỷ lệ</th></tr></thead>
+              <tbody></tbody>
+            </table>
+            <div class="insight-help" id="mg-difficulty-highlight">
+              <p><b>Điểm nổi bật:</b> —</p>
+            </div>
+          </div>
+          <svg id="mg-difficulty-chart" class="insight-chart" viewBox="0 0 360 200"></svg>
+        </div>
+      </div>
           <svg id="mg-bloom-chart" class="insight-chart" viewBox="0 0 360 240"></svg>
         </div>
       </div>
@@ -1712,61 +1718,102 @@ function renderRadar(){
 }
 renderRadar();
 
-/* ─── Mini radars cho từng ability block — highlight axis tương ứng ───
-   ViewBox 150×130 — cx=75 cy=62 R=34. Labels ở radius R+13 với chiều dài
-   được rút gọn để fit gọn không bị cắt. */
+/* ─── Mini radars cho từng ability block — show năng lực con của nhóm ───
+   Mỗi mini radar có axes = skills trong nhóm (3-5 axes per group).
+   Value = pct của skill từ aggregateAtomicMG hoặc _GRADE_PCT từ click.
+   ═══════════════════════════════════════════════════════════════ */
+const __ABILITY_GROUPS_MG = {
+  0: { title:'CƠ BẢN', skills:[
+    {key:'attention', label:'Chú ý'},
+    {key:'observation', label:'Quan sát'},
+    {key:'memory', label:'Ghi nhớ'},
+  ]},
+  1: { title:'TOÁN HỌC', skills:[
+    {key:'number', label:'Số học'},
+    {key:'geometry', label:'Hình học'},
+    {key:'measurement', label:'Đo lường'},
+    {key:'pattern', label:'Kiểu mẫu'},
+    {key:'data', label:'Dữ liệu'},
+  ]},
+  2: { title:'LOGIC', skills:[
+    {key:'understanding', label:'Hiểu'},
+    {key:'application', label:'Ứng dụng'},
+    {key:'analysis', label:'Phân tích'},
+    {key:'synthesis', label:'Tổng hợp'},
+  ]},
+  3: { title:'SÁNG TẠO', skills:[
+    {key:'fluency', label:'Trôi chảy'},
+    {key:'flexibility', label:'Linh hoạt'},
+    {key:'originality', label:'Độc đáo'},
+    {key:'precision', label:'Chính xác'},
+  ]},
+};
+
+function _getSkillPctMG(skillKey){
+  // Try ATOMIC agg first
+  if(typeof aggregateAtomicMG === 'function' && Object.keys(__atomicScoresMG || {}).length > 0){
+    const agg = aggregateAtomicMG();
+    const s = agg.skillSum[skillKey];
+    if(s && s.max > 0) return s.pct;
+  }
+  // Fallback: từ grade span hiện tại trên DOM
+  const span = document.querySelector('.ability tbody span[data-skill="' + skillKey + '"]');
+  if(span){
+    const m = span.className.match(/g([SABCL])/);
+    if(m) return __GRADE_PCT[m[1]] || 50;
+  }
+  return 50;
+}
+
 function renderMiniRadars(){
-  const data = RADAR_DATA.child;
-  const labels = ['CƠ BẢN','TOÁN','LOGIC','SÁNG TẠO'];
-  const N=4;
-  const cx=75, cy=62, R=34;
-  const ang=i=> -Math.PI/2 + i*(2*Math.PI/N);
-  const pt=(i,v)=>{
-    const r=R*(v/100);
-    return [cx+r*Math.cos(ang(i)), cy+r*Math.sin(ang(i))];
-  };
-  document.querySelectorAll('.mini-radar-svg').forEach(svg=>{
-    const activeIdx = +svg.dataset.mrIdx || 0;
+  document.querySelectorAll('.mini-radar-svg').forEach(svg => {
+    const groupIdx = +svg.dataset.mrIdx || 0;
+    const group = __ABILITY_GROUPS_MG[groupIdx];
+    if(!group) return;
+    const N = group.skills.length;
+    const cx = 75, cy = 62, R = 30;
+    const ang = i => -Math.PI/2 + i*(2*Math.PI/N);
+    const pt = (i, v) => {
+      const r = R * (v/100);
+      return [cx + r*Math.cos(ang(i)), cy + r*Math.sin(ang(i))];
+    };
     let html = '';
-    // bg square (4-axis radar)
-    const bgPts=[];
-    for(let i=0;i<N;i++){ const [x,y]=pt(i,100); bgPts.push(`${x},${y}`); }
+    // Background polygon
+    const bgPts = [];
+    for(let i = 0; i < N; i++){ const [x, y] = pt(i, 100); bgPts.push(`${x},${y}`); }
     html += `<polygon points="${bgPts.join(' ')}" fill="#fff7e2" stroke="none"/>`;
-    // grid rings (25/50/75/100)
-    for(let k=1;k<=4;k++){
-      const pts=[];
-      for(let i=0;i<N;i++){ const [x,y]=pt(i, k*25); pts.push(`${x},${y}`); }
+    // Grid rings
+    for(let k = 1; k <= 4; k++){
+      const pts = [];
+      for(let i = 0; i < N; i++){ const [x, y] = pt(i, k*25); pts.push(`${x},${y}`); }
       html += `<polygon points="${pts.join(' ')}" fill="none" stroke="#f0dcb0" stroke-width=".8" stroke-dasharray="${k===4?'':'2 2'}"/>`;
     }
-    // axes
-    for(let i=0;i<N;i++){
-      const [x,y]=pt(i,100);
+    // Axes
+    for(let i = 0; i < N; i++){
+      const [x, y] = pt(i, 100);
       html += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#f0dcb0" stroke-width=".8"/>`;
     }
-    // child polygon — fill amber
-    const pts = data.map((v,i)=>pt(i,v).join(',')).join(' ');
+    // Skill values
+    const vals = group.skills.map(s => _getSkillPctMG(s.key));
+    const pts = vals.map((v, i) => pt(i, v).join(',')).join(' ');
     html += `<polygon points="${pts}" fill="#f5b84a" fill-opacity=".4" stroke="#f08526" stroke-width="1.8" stroke-linejoin="round"/>`;
-    // vertices — active to + viền, các vertex khác nhỏ
-    data.forEach((v,i)=>{
-      const [x,y]=pt(i,v);
-      if(i===activeIdx){
-        html += `<circle cx="${x}" cy="${y}" r="4" fill="#df5728" stroke="#fff" stroke-width="1.8"/>`;
-      } else {
-        html += `<circle cx="${x}" cy="${y}" r="2" fill="#f08526" stroke="#fff" stroke-width="1"/>`;
-      }
+    // Vertex dots
+    vals.forEach((v, i) => {
+      const [x, y] = pt(i, v);
+      html += `<circle cx="${x}" cy="${y}" r="3" fill="#f08526" stroke="#fff" stroke-width="1.2"/>`;
     });
-    // labels — fit trong viewBox -45 -5 220 140 với font lớn 12.5/14.5px
-    const LR = R + 18;
-    for(let i=0;i<N;i++){
+    // Labels
+    const LR = R + 16;
+    group.skills.forEach((s, i) => {
       const a = ang(i);
-      const lx = cx + LR*Math.cos(a);
-      const ly = cy + LR*Math.sin(a) + (i===0 ? -2 : (i===2 ? 5 : 2));  // tweak vertical offset
-      let anchor='middle';
-      if(i===1) anchor='start';
-      if(i===3) anchor='end';
-      const cls = (i===activeIdx) ? 'mr-axis active' : 'mr-axis';
-      html += `<text class="${cls}" x="${lx}" y="${ly}" text-anchor="${anchor}" dominant-baseline="middle">${labels[i]}</text>`;
-    }
+      const lx = cx + LR * Math.cos(a);
+      const ly = cy + LR * Math.sin(a) + (i === 0 ? -2 : 3);
+      let anchor = 'middle';
+      const angDeg = (a * 180 / Math.PI + 360) % 360;
+      if(angDeg > 5 && angDeg < 175) anchor = 'start';
+      else if(angDeg > 185 && angDeg < 355) anchor = 'end';
+      html += `<text class="mr-axis" x="${lx}" y="${ly}" text-anchor="${anchor}" dominant-baseline="middle">${s.label}</text>`;
+    });
     svg.innerHTML = html;
   });
 }
@@ -1934,30 +1981,73 @@ function aggregateAtomicMG(scores){
   scores = scores || __atomicScoresMG;
   const skillSum = {};   // {observation: {score: X, max: Y}}
   const cauSum = {};     // {1: {score: X, max: 10}, ...}
+  const supportSum = {1:{score:0,max:0,count:0,filled:0}, 2:{score:0,max:0,count:0,filled:0},
+                      3:{score:0,max:0,count:0,filled:0}, 4:{score:0,max:0,count:0,filled:0}};
+  const bloomSum = {};   // {bloom_label: {score, max, count}}
+  const difficultySum = {Dễ:{score:0,max:0,count:0,filled:0},
+                         'Trung bình':{score:0,max:0,count:0,filled:0},
+                         Khó:{score:0,max:0,count:0,filled:0}};
   __ATOMIC_CRITERIA_L3.forEach(c => {
     const lvl = scores[c.ma];
     const point = lvl != null ? _atomicPointMG(c.ma, lvl) : 0;
-    // Per-skill aggregate
-    if(!skillSum[c.skill]) skillSum[c.skill] = {score:0, max:0};
+    const scored = lvl != null;
+    // Per-skill
+    if(!skillSum[c.skill]) skillSum[c.skill] = {score:0, max:0, count:0};
     skillSum[c.skill].score += point;
     skillSum[c.skill].max += c.weight;
-    // Per-câu aggregate
+    skillSum[c.skill].count++;
+    // Per-câu
     if(!cauSum[c.cau]) cauSum[c.cau] = {score:0, max:0, filled:0, total:0};
     cauSum[c.cau].score += point;
     cauSum[c.cau].max += c.weight;
     cauSum[c.cau].total++;
-    if(lvl != null) cauSum[c.cau].filled++;
+    if(scored) cauSum[c.cau].filled++;
+    // Per-support (1-4)
+    if(c.support && supportSum[c.support]){
+      supportSum[c.support].score += point;
+      supportSum[c.support].max += c.weight;
+      supportSum[c.support].count++;
+      if(scored) supportSum[c.support].filled++;
+    }
+    // Per-bloom
+    const bloomKey = c.bloom ? c.bloom.trim() : '';
+    if(bloomKey){
+      if(!bloomSum[bloomKey]) bloomSum[bloomKey] = {score:0, max:0, count:0, filled:0};
+      bloomSum[bloomKey].score += point;
+      bloomSum[bloomKey].max += c.weight;
+      bloomSum[bloomKey].count++;
+      if(scored) bloomSum[bloomKey].filled++;
+    }
+    // Per-difficulty
+    const diffKey = c.difficulty ? c.difficulty.trim() : '';
+    if(diffKey && difficultySum[diffKey]){
+      difficultySum[diffKey].score += point;
+      difficultySum[diffKey].max += c.weight;
+      difficultySum[diffKey].count++;
+      if(scored) difficultySum[diffKey].filled++;
+    }
   });
 
-  // Convert skillSum → grade letter
-  const skillGrades = {};
+  // Compute pct for each
   for(const k in skillSum){
     const s = skillSum[k];
     s.pct = s.max ? Math.round(s.score / s.max * 100) : 0;
     s.grade = _pctToGradeMG(s.pct);
-    skillGrades[k] = s;
   }
-  // Per-lĩnh vực aggregate (4 nhóm)
+  for(const k in supportSum){
+    const s = supportSum[k];
+    s.pct = s.max ? Math.round(s.score / s.max * 100) : 0;
+  }
+  for(const k in bloomSum){
+    const s = bloomSum[k];
+    s.pct = s.max ? Math.round(s.score / s.max * 100) : 0;
+  }
+  for(const k in difficultySum){
+    const s = difficultySum[k];
+    s.pct = s.max ? Math.round(s.score / s.max * 100) : 0;
+  }
+
+  // Per-lĩnh vực (4 nhóm)
   const fieldMap = {
     'basic':['attention','observation','memory'],
     'math':['number','geometry','measurement','pattern','data'],
@@ -1973,11 +2063,11 @@ function aggregateAtomicMG(scores){
     fields[f] = {score:sc, max:mx, pct: mx ? Math.round(sc/mx*100) : 0};
     fields[f].grade = _pctToGradeMG(fields[f].pct);
   }
-  // Total
   const totalScore = Object.values(skillSum).reduce((a,s)=>a+s.score,0);
   const totalMax = Object.values(skillSum).reduce((a,s)=>a+s.max,0);
   return {
-    skillSum, skillGrades, cauSum, fields,
+    skillSum, cauSum, fields, supportSum, bloomSum, difficultySum,
+    skillGrades: skillSum,
     total: {score: totalScore, max: totalMax, pct: totalMax ? Math.round(totalScore/totalMax*100) : 0},
   };
 }
@@ -2130,6 +2220,138 @@ function _barSvgMG(rows, opts={}){
   });
   return html;
 }
+
+
+// Map support level → friendly label
+const __SUPPORT_LABELS_MG = {
+  4: 'Tự làm sau khi nghe đề 1 lần',
+  3: 'Cần đọc lại đề 2 lần',
+  2: 'Cần gợi ý nhẹ',
+  1: 'Cần hướng dẫn từng bước',
+};
+
+function renderSupportAnalyticsMG(){
+  const agg = aggregateAtomicMG();
+  const tbody = document.querySelector('#mg-support-table tbody');
+  if(tbody){
+    let html = '';
+    [4,3,2,1].forEach(lvl => {
+      const s = agg.supportSum[lvl] || {score:0,max:0,count:0,pct:0};
+      const score = Math.round(s.score*10)/10;
+      html += '<tr><td class="code">' + lvl + '</td>';
+      html += '<td>' + _escHtmlMG(__SUPPORT_LABELS_MG[lvl]) + '</td>';
+      html += '<td class="num">' + score + '/' + s.max + '</td>';
+      html += '<td>' + _pctBadgeMG(s.pct) + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  }
+  const svg = document.getElementById('mg-support-chart');
+  if(svg){
+    const rows = [4,3,2,1].map(lvl => ({
+      label: __SUPPORT_LABELS_MG[lvl],
+      pct: agg.supportSum[lvl]?.pct || 0,
+      level: lvl,
+    }));
+    svg.innerHTML = _barSvgMG(rows, {h:240, rowH:48});
+  }
+  // Highlight
+  const hi = document.getElementById('mg-support-highlight');
+  if(hi){
+    const rows = [4,3,2,1].map(lvl => ({lvl, ...(agg.supportSum[lvl]||{})}));
+    const filledOnly = rows.filter(r => r.count > 0);
+    const best = [...filledOnly].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
+    const weak = [...filledOnly].sort((a,b)=>(a.pct||0)-(b.pct||0))[0];
+    if(best){
+      hi.innerHTML = '<p><b>Điểm nổi bật:</b> bé mạnh nhất ở mức <b>' + best.lvl +
+                     ' (' + _escHtmlMG(__SUPPORT_LABELS_MG[best.lvl]) + ')</b> đạt ' +
+                     Math.round(best.pct) + '%. Mức cần luyện thêm: <b>' + weak.lvl + '</b> ' +
+                     Math.round(weak.pct) + '%.</p>';
+    }
+  }
+}
+
+function renderBloomAnalyticsMG(){
+  const agg = aggregateAtomicMG();
+  const order = ['Nhận biết','Hiểu','Ứng dụng','Phân tích','Sáng tạo','Sáng tạo '];
+  const seen = new Set();
+  const bloomOrdered = order.filter(o => {
+    const trimmed = o.trim();
+    if(seen.has(trimmed)) return false;
+    seen.add(trimmed);
+    return agg.bloomSum[trimmed] || agg.bloomSum[o];
+  }).map(o => o.trim());
+  // Include any other bloom keys not in standard order
+  for(const k in agg.bloomSum){
+    if(!seen.has(k.trim())){ bloomOrdered.push(k); seen.add(k.trim()); }
+  }
+  const tbody = document.querySelector('#mg-bloom-table tbody');
+  if(tbody){
+    let html = '';
+    bloomOrdered.forEach(k => {
+      const s = agg.bloomSum[k] || {count:0, pct:0};
+      html += '<tr><td>' + _escHtmlMG(k) + '</td>';
+      html += '<td class="num">' + (s.count||0) + '</td>';
+      html += '<td>' + _pctBadgeMG(s.pct) + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  }
+  const svg = document.getElementById('mg-bloom-chart');
+  if(svg){
+    const rows = bloomOrdered.map(k => ({
+      label: k,
+      pct: agg.bloomSum[k]?.pct || 0,
+      count: agg.bloomSum[k]?.count || 0,
+    }));
+    svg.innerHTML = _barSvgMG(rows, {h:260, rowH:48});
+  }
+  const hi = document.getElementById('mg-bloom-highlight');
+  if(hi){
+    const all = bloomOrdered.map(k => ({k, ...(agg.bloomSum[k]||{})})).filter(r => r.count);
+    const best = [...all].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
+    const weak = [...all].sort((a,b)=>(a.pct||0)-(b.pct||0))[0];
+    if(best && weak){
+      hi.innerHTML = '<p><b>Điểm nổi bật:</b> cấp <b>' + _escHtmlMG(best.k) + '</b> đạt ' +
+                     Math.round(best.pct) + '%; thấp nhất là <b>' + _escHtmlMG(weak.k) + '</b> (' +
+                     Math.round(weak.pct) + '%).</p>';
+    }
+  }
+}
+
+function renderDifficultyAnalyticsMG(){
+  const agg = aggregateAtomicMG();
+  const order = ['Khó','Trung bình','Dễ'];
+  const tbody = document.querySelector('#mg-difficulty-table tbody');
+  if(tbody){
+    let html = '';
+    order.forEach(k => {
+      const s = agg.difficultySum[k] || {count:0, pct:0};
+      html += '<tr><td>' + _escHtmlMG(k) + '</td>';
+      html += '<td class="num">' + (s.count||0) + '</td>';
+      html += '<td>' + _pctBadgeMG(s.pct) + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  }
+  const svg = document.getElementById('mg-difficulty-chart');
+  if(svg){
+    const rows = order.map(k => ({
+      label: k,
+      pct: agg.difficultySum[k]?.pct || 0,
+    }));
+    svg.innerHTML = _barSvgMG(rows, {h:200, rowH:50});
+  }
+  const hi = document.getElementById('mg-difficulty-highlight');
+  if(hi){
+    const all = order.map(k => ({k, ...(agg.difficultySum[k]||{})})).filter(r => r.count);
+    const best = [...all].sort((a,b)=>(b.pct||0)-(a.pct||0))[0];
+    const weak = [...all].sort((a,b)=>(a.pct||0)-(b.pct||0))[0];
+    if(best && weak){
+      hi.innerHTML = '<p><b>Điểm nổi bật:</b> mức <b>' + _escHtmlMG(best.k) + '</b> đạt ' +
+                     Math.round(best.pct) + '%; mức thấp nhất <b>' + _escHtmlMG(weak.k) + '</b> (' +
+                     Math.round(weak.pct) + '%).</p>';
+    }
+  }
+}
+
 function renderUnitAnalyticsMG(){
   const tbody = document.querySelector('#mg-unit-table tbody');
   if(tbody){
@@ -2253,9 +2475,9 @@ function _setChartA11yMG(svgId, title){
 }
 function renderAnalyticsMG(){
   renderUnitAnalyticsMG();
-  renderAbstractAnalyticsMG();
-  renderChannelAnalyticsMG();
+  renderSupportAnalyticsMG();
   renderBloomAnalyticsMG();
+  renderDifficultyAnalyticsMG();
   // A11y: screen reader friendly labels
   _setChartA11yMG('mg-unit-chart', 'Biểu đồ tỷ lệ đạt theo 5 đơn vị đánh giá A-E');
   _setChartA11yMG('mg-abstract-chart', 'Biểu đồ năng lực theo 3 mức độ trừu tượng');
