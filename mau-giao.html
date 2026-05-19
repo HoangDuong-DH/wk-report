@@ -3365,11 +3365,9 @@ async function importExcelMG(ev){
   const name = f.name.toLowerCase();
   const isCSV = name.endsWith('.csv') || f.type==='text/csv';
   try{
-    let rows;
-    if(isCSV){
-      const text = await f.text();
-      rows = parseCSV_MG(text);
-    } else {
+    // AUTO-DETECT format atomic L3 vs 16 năng lực classic
+    // Nếu là XLSX có sheet với 61 atomic (Mã + Mức) → route sang atomic parser
+    if(!isCSV){
       const ready = await _waitXlsxMG();
       if(!ready){
         _showToastMG('XLSX chưa load được — vui lòng dùng file CSV.', '#d83c2d');
@@ -3377,18 +3375,59 @@ async function importExcelMG(ev){
       }
       const buf = await f.arrayBuffer();
       const wb = XLSX.read(buf, {type:'array', cellDates:true});
+
+      // Detect atomic format: scan tất cả sheets tìm cột "Mã" + "Mức (NHẬP)"
+      // hoặc dữ liệu N.N format ở column B
+      let atomicFound = null;
+      for(const sn of wb.SheetNames){
+        const sht = wb.Sheets[sn];
+        const rows = XLSX.utils.sheet_to_json(sht, {header:1, defval:''});
+        let count = 0;
+        for(const r of rows){
+          if(!r || r.length < 5) continue;
+          const ma = String(r[1] || '').trim();
+          if(/^\d+\.\d+$/.test(ma)){
+            count++;
+            if(count >= 20){ atomicFound = sn; break; }
+          }
+        }
+        if(atomicFound) break;
+      }
+
+      if(atomicFound){
+        // Format atomic L3 — dùng batch parser logic cho 1 file
+        const data = await _parseBatchFileMG(f);
+        if(data){
+          _cleanSlateMG();
+          if(typeof _applyMG_InfoFields === 'function') _applyMG_InfoFields(data.info);
+          __atomicScoresMG = Object.assign({}, data.scores);
+          if(typeof applyAtomicToReportMG === 'function') applyAtomicToReportMG();
+          if(typeof fillCommentsMG === 'function') fillCommentsMG(true);
+          scheduleSaveMG();
+          _showToastMG('Đã nhập ' + Object.keys(data.scores).length + '/61 tiêu chí ATOMIC cho bé ' + (data.name || ''), '#5fb74f');
+          return;
+        } else {
+          _showToastMG('File ATOMIC có nhưng chưa đủ điểm để render (cần ≥20 tiêu chí đã chấm)', '#df5728');
+          return;
+        }
+      }
+
+      // Không phải atomic → fallback parser cũ (16 năng lực + analytics)
       const ws = wb.Sheets[wb.SheetNames[0]];
-      rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
+    } else {
+      const text = await f.text();
+      var rows = parseCSV_MG(text);
     }
+
     const snapshot = typeof captureStateMG === 'function' ? captureStateMG() : null;
-    // Clean slate trước khi fill → tránh residue từ data trước
     _cleanSlateMG();
     const {infoFilled, gradesFilled} = _applyParsedRowsMG(rows);
     const analyticsFilled = _applyAnalyticsRowsMG(rows);
     recomputeAllMG();
     if(gradesFilled === 0 && infoFilled === 0 && analyticsFilled === 0){
       if(snapshot && typeof restoreStateMG === 'function') restoreStateMG(snapshot);
-      _showToastMG('Không nhận diện được dữ liệu trong file. Xem "Mẫu CSV" để biết format.', '#d83c2d');
+      _showToastMG('Không nhận diện được dữ liệu. File hỗ trợ: ATOMIC L3 (61 tiêu chí) hoặc format 16 năng lực.', '#d83c2d');
     } else {
       fillCommentsMG(true);
       scheduleSaveMG();
@@ -3843,7 +3882,8 @@ async function _parseBatchFileMG(file){
     });
   }
 
-  if(Object.keys(scores).length < 20){
+  // Accept file dù chấm 1 tiêu chí — UX linh hoạt cho GV import partial
+  if(Object.keys(scores).length < 1){
     return null;  // Không đủ data, skip
   }
   return {
