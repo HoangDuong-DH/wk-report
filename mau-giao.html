@@ -722,6 +722,8 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
 .kpi.kpi-focus{background:linear-gradient(135deg,#fff0e0 0%,#fdd9b8 100%);border-color:rgba(243,129,31,.4)}
 .kpi.kpi-focus b{color:var(--orange-deep)}
 .ai-summary-panel{margin-top:14px;min-height:0}
+.data-summary-section{padding:0 44px;margin:14px 0 6px}
+.data-summary-section .ai-summary-panel{margin-top:0}
 .ai-summary-panel .kpi-strip{margin-top:0}
 .ai-summary-panel .insight-note{margin-top:12px;max-width:920px}
 .metric-panel .insight-split{grid-template-columns:minmax(480px,1fr) minmax(360px,.9fr)}
@@ -1308,6 +1310,19 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
     </div>
   </div>
 
+  <!-- ─── DATA SUMMARY moved to top — hiển thị insights ngay khi mở báo cáo ─── -->
+  <div class="data-summary-section">
+    <div class="insight-panel ai-summary-panel">
+      <h3><span class="chip">DATA</span>Tóm tắt điểm nổi bật</h3>
+      <div class="kpi-strip">
+        <div class="kpi"><small>Tổng điểm</small><b id="mg-kpi-total">—</b><span class="kpi-sub" id="mg-kpi-total-sub"></span></div>
+        <div class="kpi kpi-strong"><small>Mạnh nhất</small><b id="mg-kpi-best">—</b><span class="kpi-sub" id="mg-kpi-best-sub"></span></div>
+        <div class="kpi kpi-focus"><small>Cần ưu tiên</small><b id="mg-kpi-focus">—</b><span class="kpi-sub" id="mg-kpi-focus-sub"></span></div>
+      </div>
+      <p class="insight-note" id="mg-profile-note"></p>
+    </div>
+  </div>
+
   <!-- ─── SECTION 1: TỔNG QUAN (HERO — cards 2x2 + radar side-by-side) ─── -->
   <div class="sec hero-sec">
     <div class="sec-h"><span class="num">1</span>Tổng quan năng lực tư duy</div>
@@ -1559,15 +1574,6 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
       <div class="nx-block">
         <div class="nx-body" contenteditable="true"><p>Bé <b>Phạm Hoàng Bách</b> đang ở giai đoạn xây dựng nền tảng tư duy. Bé thể hiện <b>khả năng quan sát, ghi nhớ và chú ý ổn định</b>, đặc biệt có điểm sáng ở phần <b>kiểu mẫu và dữ liệu</b> của tư duy toán học.</p><p>Bé cần được hỗ trợ thêm về <b>số và tính toán cơ bản, hình học không gian</b> cùng các năng lực ứng dụng – sáng tạo. Khi được rèn luyện đều đặn qua hoạt động trực quan và trò chơi, bé hoàn toàn có thể tiến bộ rõ rệt trong 1 – 3 tháng tới.</p></div>
       </div>
-    </div>
-    <div class="insight-panel ai-summary-panel">
-      <h3><span class="chip">DATA</span>Tóm tắt điểm nổi bật</h3>
-      <div class="kpi-strip">
-        <div class="kpi"><small>Tổng điểm</small><b id="mg-kpi-total">—</b><span class="kpi-sub" id="mg-kpi-total-sub"></span></div>
-        <div class="kpi kpi-strong"><small>Mạnh nhất</small><b id="mg-kpi-best">—</b><span class="kpi-sub" id="mg-kpi-best-sub"></span></div>
-        <div class="kpi kpi-focus"><small>Cần ưu tiên</small><b id="mg-kpi-focus">—</b><span class="kpi-sub" id="mg-kpi-focus-sub"></span></div>
-      </div>
-      <p class="insight-note" id="mg-profile-note"></p>
     </div>
   </div>
 
