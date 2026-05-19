@@ -95,6 +95,7 @@
   }
   .card.tieu-hoc .icon{background:linear-gradient(135deg,#fff3da,#ffd17a)}
   .card.mau-giao .icon{background:linear-gradient(135deg,#dcecf6,#a6cee8)}
+  .card.mau-giao-l4 .icon{background:linear-gradient(135deg,#e8e3f3,#b6a5d8)}
   .card h2{margin:0 0 6px;font:800 20px/1.2 var(--font-display);color:var(--c-ink)}
   .card .age{
     display:inline-block;font:700 11px/1 var(--font-body);
@@ -103,11 +104,13 @@
     text-transform:uppercase;margin-bottom:14px;
   }
   .card.mau-giao .age{color:#3ea1d3;background:#dcecf6}
+  .card.mau-giao-l4 .age{color:#6a51a8;background:#e8e3f3}
   .card p{margin:0 0 18px;font:500 13.5px/1.55 var(--font-body);color:var(--c-ink-soft)}
   .card ul{margin:0 0 22px;padding:0;list-style:none;font:500 12.5px/1.7 var(--font-body);color:var(--c-ink-soft)}
   .card ul li{padding-left:22px;position:relative}
   .card ul li::before{content:'✓';position:absolute;left:0;top:0;color:var(--c-primary-2);font-weight:800}
   .card.mau-giao ul li::before{color:#3ea1d3}
+  .card.mau-giao-l4 ul li::before{color:#6a51a8}
   .card .btn{
     display:inline-flex;align-items:center;gap:8px;
     background:linear-gradient(135deg,#ffc24a,#e94e1b);color:#fff;
@@ -116,8 +119,10 @@
     transition:transform .15s ease, box-shadow .15s ease;
   }
   .card.mau-giao .btn{background:linear-gradient(135deg,#7cc4e8,#3ea1d3)}
+  .card.mau-giao-l4 .btn{background:linear-gradient(135deg,#a691c8,#6a51a8)}
   .card:hover .btn{transform:translateX(3px);box-shadow:0 6px 14px rgba(233,78,27,.25)}
   .card.mau-giao:hover .btn{box-shadow:0 6px 14px rgba(62,161,211,.3)}
+  .card.mau-giao-l4:hover .btn{box-shadow:0 6px 14px rgba(106,81,168,.3)}
   .footer-note{margin-top:48px;font:500 12px/1.5 var(--font-body);color:var(--c-muted);text-align:center}
   .footer-note a{color:var(--c-primary-2);text-decoration:none;font-weight:600}
   .footer-note a:hover{text-decoration:underline}
@@ -169,16 +174,32 @@
 
       <a href="mau-giao.html" class="card mau-giao">
         <div class="icon">🧸</div>
-        <span class="age">Mầm – Chồi – Lá</span>
-        <h2>Báo cáo Mẫu giáo</h2>
-        <p>Báo cáo đánh giá năng lực tư duy cho trẻ mẫu giáo (3–5 tuổi) — thang điểm S/A/B/C/L.</p>
+        <span class="age">Mầm – Chồi · L3</span>
+        <h2>Báo cáo Mẫu giáo — L3</h2>
+        <p>Báo cáo đánh giá năng lực tư duy cấp độ L3 (3–4 tuổi) — 61 atomic, max 160đ.</p>
         <ul>
-          <li>Đánh giá 4 nhóm năng lực cơ bản</li>
-          <li>Thang điểm S/A/B/C/L trực quan</li>
-          <li>Phù hợp lứa tuổi mầm non</li>
+          <li>14 bài: tập trung, quan sát, ghi nhớ, logic, toán, sáng tạo</li>
+          <li>Thang 6 mức: 5/4/3/2/1/0 — multiplier tuyến tính</li>
+          <li>Import xlsx atomic L3 (Phan Tan Dung format)</li>
           <li>Print PDF đẹp, tối ưu A3 portrait</li>
         </ul>
-        <span class="btn">Mở báo cáo
+        <span class="btn">Mở báo cáo L3
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </a>
+
+      <a href="mau-giao-l4.html" class="card mau-giao-l4">
+        <div class="icon">🎨</div>
+        <span class="age">Lá · L4</span>
+        <h2>Báo cáo Mẫu giáo — L4</h2>
+        <p>Báo cáo đánh giá năng lực tư duy cấp độ L4 (5 tuổi) — 65 atomic, max 102đ, remap theo official.</p>
+        <ul>
+          <li>14 bài, max điểm khớp 100% rubric official</li>
+          <li>Bài 1=4, Bài 2=10, Bài 3=6, Bài 4=6, Bài 5=8…</li>
+          <li>Import xlsx atomic L4 (An Nguyên format)</li>
+          <li>Bài 13–14: 4 dim sáng tạo (trôi chảy/linh hoạt/độc đáo/chính xác)</li>
+        </ul>
+        <span class="btn">Mở báo cáo L4
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </span>
       </a>
