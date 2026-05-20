@@ -1175,9 +1175,208 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
 .batch-progress .bar{height:6px;background:#f3e7c5;border-radius:99px;overflow:hidden;margin-top:5px}
 .batch-progress .bar i{display:block;height:100%;background:var(--orange);transition:width .3s ease}
 @media print{#batch-panel{display:none !important}}
+
+/* ═════ PRODUCTION FEATURES CSS ═════ */
+/* PROD_CSS_INJECTED */
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCTION FEATURES CSS
+   Dark mode, parent mode, mobile responsive, watermark, onboarding
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── ONBOARDING BANNER ─── */
+#onboarding-banner{
+  position:fixed;bottom:24px;right:24px;z-index:99998;
+  max-width:360px;animation:obSlideIn .35s ease;
+}
+#onboarding-banner .ob-inner{
+  background:#fff;border:2px solid var(--c-primary, #f3811f);
+  border-radius:14px;padding:18px 20px;
+  box-shadow:0 16px 40px rgba(0,0,0,.18);
+  font:500 12.5px/1.55 'Be Vietnam Pro', system-ui, sans-serif;
+}
+#onboarding-banner h4{
+  margin:0 0 8px;font:800 16px/1.2 'Fredoka', 'Be Vietnam Pro', sans-serif;
+  color:var(--c-primary, #e94e1b);
+}
+#onboarding-banner p{margin:0 0 6px}
+#onboarding-banner ol{margin:6px 0;padding-left:20px}
+#onboarding-banner li{margin-bottom:3px}
+#onboarding-banner button{
+  margin-top:10px;background:linear-gradient(135deg, #ffc24a, #e94e1b);
+  color:#fff;border:none;padding:8px 14px;border-radius:99px;
+  font:700 12px/1 'Be Vietnam Pro', sans-serif;cursor:pointer;
+}
+#onboarding-banner button:hover{transform:translateY(-1px)}
+@keyframes obSlideIn{
+  from{opacity:0;transform:translateY(20px)}
+  to  {opacity:1;transform:translateY(0)}
+}
+@media print{ #onboarding-banner{display:none !important} }
+
+/* ─── CONFIDENTIALITY FOOTER (always visible) + WATERMARK (print only) ─── */
+.confidentiality-footer{
+  margin:32px auto 0;padding:14px 22px;max-width:920px;
+  border-top:1px dashed #d4b896;text-align:center;
+  font:500 10.5px/1.6 'Be Vietnam Pro', sans-serif;color:#a4886a;
+}
+.confidentiality-footer b{color:#df5728;font-weight:800}
+@media print{
+  .confidentiality-footer{
+    margin-top:18mm;border-top:1px solid #aaa;
+    font-size:9pt;color:#666;
+    page-break-inside:avoid;
+  }
+  /* Diagonal watermark on each printed page */
+  body::after{
+    content:'CONFIDENTIAL — WONDERKIDS INTERNAL ASSESSMENT';
+    position:fixed;top:50%;left:50%;
+    transform:translate(-50%, -50%) rotate(-30deg);
+    font:900 48pt/1 'Be Vietnam Pro', sans-serif;
+    color:rgba(233, 78, 27, 0.07);
+    letter-spacing:.05em;
+    z-index:-1;pointer-events:none;
+    white-space:nowrap;
+  }
+}
+
+/* ─── PRODUCTION TOOLBAR ─── */
+#production-toolbar{
+  position:fixed;top:12px;right:12px;z-index:9000;
+  display:flex;gap:6px;align-items:center;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+  border:1px solid rgba(233,78,27,.2);border-radius:30px;padding:6px 8px;
+  box-shadow:0 4px 16px rgba(233,78,27,.12);
+  font:500 11px/1 'Be Vietnam Pro', sans-serif;
+}
+#production-toolbar button{
+  background:transparent;border:none;cursor:pointer;
+  padding:7px 11px;border-radius:20px;
+  font:600 11.5px/1 'Be Vietnam Pro', sans-serif;color:#6b5a45;
+  transition:all .15s ease;
+}
+#production-toolbar button:hover{background:#fff3da;color:#df5728}
+#production-toolbar button.active{background:#ffd17a;color:#a44400}
+#production-toolbar input[type="file"]{display:none}
+#production-toolbar .sep{
+  width:1px;height:18px;background:rgba(233,78,27,.25);
+}
+@media print{ #production-toolbar{display:none !important} }
+@media (max-width:700px){
+  #production-toolbar{top:6px;right:6px;padding:3px 5px;gap:2px}
+  #production-toolbar button{padding:5px 8px;font-size:10px}
+  #production-toolbar .sep{display:none}
+}
+
+/* ─── DARK MODE ─── */
+body.dark-mode{
+  background:linear-gradient(135deg, #2a2117 0%, #3a2a1d 50%, #4a3522 100%) !important;
+  color:#ffe8c8 !important;
+}
+body.dark-mode .page,
+body.dark-mode .info,
+body.dark-mode .insight-panel,
+body.dark-mode .ability,
+body.dark-mode .s1-card,
+body.dark-mode .s7 .card,
+body.dark-mode .nx-box,
+body.dark-mode .data-summary-section .insight-panel,
+body.dark-mode .hero-radar{
+  background:#3a2a1d !important;color:#ffe8c8 !important;
+  border-color:#5a4a2d !important;
+}
+body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4,
+body.dark-mode .ttl, body.dark-mode .grade-big, body.dark-mode .sec-h{
+  color:#ffd17a !important;
+}
+body.dark-mode .insight-table tbody tr:hover td{background:#4a3522 !important}
+body.dark-mode .insight-table td, body.dark-mode .insight-table th{color:#ffe8c8 !important}
+body.dark-mode .insight-chart, body.dark-mode .autonomy-chart, body.dark-mode .bloom-pyramid-svg{
+  background:#2a2117 !important;
+}
+body.dark-mode #production-toolbar{
+  background:rgba(58,42,29,.95) !important;border-color:#7a5a30 !important;
+}
+body.dark-mode #production-toolbar button{color:#ffe8c8}
+body.dark-mode #production-toolbar button:hover{background:#5a4a2d}
+@media print{ body.dark-mode{background:#fff !important;color:#000 !important} }
+
+/* ─── PARENT MODE — hide technical, simplify display ─── */
+body.parent-mode .au-gauge-tag + text{display:none !important}  /* hide formula */
+body.parent-mode .pyr-empty{display:none}
+body.parent-mode [data-tech="1"]{display:none !important}
+body.parent-mode .insight-help p[style*="10px"]{display:none}  /* hide tech footnotes */
+body.parent-mode #atomic-workspace-wrap{display:none !important}  /* hide atomic UI */
+body.parent-mode .batch-import-section{display:none !important}
+body.parent-mode .info-grid input{pointer-events:none;background:transparent !important;border:none !important}
+body.parent-mode::after{
+  content:'👪 Chế độ phụ huynh — đã ẩn các phần kỹ thuật';
+  position:fixed;bottom:12px;left:12px;z-index:9000;
+  background:#fff3da;color:#a44400;padding:6px 12px;border-radius:99px;
+  font:700 11px/1 'Be Vietnam Pro', sans-serif;
+  border:1px solid #f0c080;
+  pointer-events:none;
+}
+@media print{ body.parent-mode::after{display:none !important} }
+
+/* ─── MOBILE RESPONSIVE ─── */
+@media (max-width:1100px){
+  .page{padding:18px 16px !important;border-radius:14px !important}
+  .hero-grid{grid-template-columns:1fr !important}
+  .hero-radar{margin-top:14px}
+  .s2 .ability{grid-template-columns:1fr !important}
+  .ability table{display:block;overflow-x:auto;font-size:11px}
+  .ability .mini-radar{margin-top:10px}
+  .info-grid{grid-template-columns:repeat(2, 1fr) !important;gap:8px !important}
+  .insight-grid{grid-template-columns:1fr !important}
+  .insight-split{grid-template-columns:1fr !important;gap:14px}
+  .kpi-strip{grid-template-columns:1fr !important}
+  .s7-row{grid-template-columns:1fr !important}
+}
+@media (max-width:700px){
+  .page{padding:12px 10px !important}
+  h1{font-size:20px !important}
+  .sec-h{font-size:16px !important}
+  .info-grid{grid-template-columns:1fr !important}
+  .ability .left{padding:10px !important}
+  .atomic-table{font-size:11px !important}
+  .atomic-table .levels button{min-width:26px !important;padding:5px 7px !important;font-size:11px !important}
+  .autonomy-chart{height:auto !important;max-height:none !important}
+  .bloom-pyramid-svg{max-height:none !important}
+  .data-summary-section{padding:0 10px !important}
+  .data-summary-section .insight-panel{padding:12px !important}
+}
+
+/* ─── VALIDATION WARNING PANEL ─── */
+.validation-panel{
+  background:#fff8e8;border:1.5px solid #f0a050;border-radius:10px;
+  padding:12px 14px;margin:10px 0;
+  font:500 12px/1.55 'Be Vietnam Pro', sans-serif;color:#7a4a10;
+}
+.validation-panel h4{
+  margin:0 0 6px;font-weight:800;color:#df5728;font-size:13px;
+}
+.validation-panel ul{margin:4px 0;padding-left:20px}
+.validation-panel li.error{color:#c41a1a}
+.validation-panel li.warn{color:#a86616}
+.validation-panel li.info{color:#666}
+
 </style>
 </head>
 <body>
+
+<!-- ═════ PRODUCTION TOOLBAR (backup/dark/parent/template/analytics) ═════ -->
+<div id="production-toolbar" data-tech="1">
+  <button id="btn-dark-mode" onclick="__toggleDarkMode()" title="Bật/tắt chế độ tối">🌙</button>
+  <button id="btn-parent-mode" onclick="__toggleParentMode()" title="Chế độ phụ huynh: ẩn phần kỹ thuật">👪 Chế độ phụ huynh</button>
+  <span class="sep"></span>
+  <button onclick="__exportBackupMG()" title="Sao lưu toàn bộ data ra file JSON">💾 Backup</button>
+  <button onclick="document.getElementById('restore-file-input').click()" title="Khôi phục từ file JSON">📂 Restore</button>
+  <input type="file" id="restore-file-input" accept=".json" onchange="if(this.files[0]) __importBackupMG(this.files[0])">
+  <span class="sep"></span>
+  <button onclick="__downloadXlsxTemplate(typeof __ATOMIC_CRITERIA_L3 !== 'undefined' && __ATOMIC_CRITERIA_L3.length === 65 ? 'L4' : 'L3')" title="Tải xlsx template trống">📥 Template</button>
+  <button onclick="__showClassAnalyticsMG()" title="Xem analytics toàn lớp từ batch import">📊 Analytics lớp</button>
+</div>
+
 
 <!-- File input ẩn + Drop overlay full-screen cho kéo-thả import -->
 <input type="file" id="xlsx-input-mg" accept=".csv,.xlsx,.xls" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="importExcelMG(event)"/>
@@ -1447,7 +1646,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
       </div>
       <div class="hero-radar">
         <div class="hero-radar-ttl">🎯 Hình dáng năng lực</div>
-        <svg id="radar-chart" class="radar-chart" viewBox="-80 -35 520 385"></svg>
+        <svg id="radar-chart" class="radar-chart" viewBox="-80 -35 520 385" role="img" aria-label="Biểu đồ radar 4 nhóm năng lực tư duy chính của bé" role="img" aria-label="Biểu đồ radar 4 nhóm năng lực tư duy chính của bé"></svg>
         <div class="radar-legend">
           <span><span class="sw"></span>Năng lực của bé <span data-name>Bách</span></span>
         </div>
@@ -1466,7 +1665,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
       <div class="insight-panel autonomy-panel">
         <h3><span class="chip">TỰ CHỦ</span>Mức độ tự chủ khi thực hiện bài</h3>
         <div class="autonomy-wrap">
-          <svg id="mg-autonomy-chart" class="autonomy-chart" viewBox="0 0 560 300" preserveAspectRatio="xMidYMid meet"></svg>
+          <svg id="mg-autonomy-chart" class="autonomy-chart" viewBox="0 0 560 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Biểu đồ mức độ tự chủ của bé khi làm bài, gauge chỉ số tổng + 5 thanh ladder theo mức hỗ trợ" role="img" aria-label="Biểu đồ mức độ tự chủ của bé khi làm bài, gauge chỉ số tổng + 5 thanh ladder theo mức hỗ trợ"></svg>
           <div class="insight-help" id="mg-support-highlight">
             <p><b>Điểm nổi bật:</b> —</p>
           </div>
@@ -1477,7 +1676,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
       <div class="insight-panel metric-panel bloom-panel">
         <h3><span class="chip">BLOOM</span>Năng lực theo cấp độ Bloom</h3>
         <div class="bloom-pyr-wrap">
-          <svg id="mg-bloom-pyramid" class="bloom-pyramid-svg" viewBox="0 0 540 320" preserveAspectRatio="xMidYMid meet"></svg>
+          <svg id="mg-bloom-pyramid" class="bloom-pyramid-svg" viewBox="0 0 540 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tháp Bloom Taxonomy 5 cấp năng lực nhận thức kèm tỉ lệ % bé đạt mỗi cấp" role="img" aria-label="Tháp Bloom Taxonomy 5 cấp năng lực nhận thức kèm tỉ lệ % bé đạt mỗi cấp"></svg>
           <div class="insight-help" id="mg-bloom-highlight">
             <p><b>Điểm nổi bật:</b> —</p>
           </div>
@@ -1528,7 +1727,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
           </table>
           <div class="mini-radar">
             <div class="mr-ttl">Hình dáng năng lực</div>
-            <svg class="mini-radar-svg" data-mr-idx="0" viewBox="-65 -5 285 145"></svg>
+            <svg class="mini-radar-svg" data-mr-idx="0" viewBox="-65 -5 285 145" role="img" aria-label="Biểu đồ radar chi tiết theo từng kỹ năng" role="img" aria-label="Biểu đồ radar chi tiết theo từng kỹ năng"></svg>
           </div>
         </div>
 
@@ -1553,7 +1752,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
           </table>
           <div class="mini-radar">
             <div class="mr-ttl">Hình dáng năng lực</div>
-            <svg class="mini-radar-svg" data-mr-idx="1" viewBox="-65 -5 285 145"></svg>
+            <svg class="mini-radar-svg" data-mr-idx="1" viewBox="-65 -5 285 145" role="img" aria-label="Biểu đồ radar chi tiết theo từng kỹ năng" role="img" aria-label="Biểu đồ radar chi tiết theo từng kỹ năng"></svg>
           </div>
         </div>
 
@@ -1577,7 +1776,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
           </table>
           <div class="mini-radar">
             <div class="mr-ttl">Hình dáng năng lực</div>
-            <svg class="mini-radar-svg" data-mr-idx="2" viewBox="-65 -5 285 145"></svg>
+            <svg class="mini-radar-svg" data-mr-idx="2" viewBox="-65 -5 285 145" role="img" aria-label="Biểu đồ radar chi tiết theo từng kỹ năng" role="img" aria-label="Biểu đồ radar chi tiết theo từng kỹ năng"></svg>
           </div>
         </div>
 
@@ -1601,7 +1800,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
           </table>
           <div class="mini-radar">
             <div class="mr-ttl">Hình dáng năng lực</div>
-            <svg class="mini-radar-svg" data-mr-idx="3" viewBox="-65 -5 285 145"></svg>
+            <svg class="mini-radar-svg" data-mr-idx="3" viewBox="-65 -5 285 145" role="img" aria-label="Biểu đồ radar chi tiết theo từng kỹ năng" role="img" aria-label="Biểu đồ radar chi tiết theo từng kỹ năng"></svg>
           </div>
         </div>
       </div>
@@ -3776,8 +3975,16 @@ async function importExcelMG(ev){
   const name = f.name.toLowerCase();
   const isCSV = name.endsWith('.csv') || f.type==='text/csv';
   try{
+    // PRE-IMPORT VALIDATION: cảnh báo các vấn đề trước khi import
+    if(!isCSV && typeof __validateAtomicXlsxMG === 'function' && typeof __showValidationWarnings === 'function'){
+      const validation = await __validateAtomicXlsxMG(f);
+      if(!__showValidationWarnings(validation)){
+        if(ev?.target) ev.target.value = '';
+        _endLoadMG();
+        return;
+      }
+    }
     // AUTO-DETECT format atomic L3 vs 16 năng lực classic
-    // Nếu là XLSX có sheet với 61 atomic (Mã + Mức) → route sang atomic parser
     if(!isCSV){
       const ready = await _waitXlsxMG();
       if(!ready){
