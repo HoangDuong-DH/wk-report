@@ -71,6 +71,8 @@ for row in sh.findall('.//' + NS + 'row'):
         weight_raw = 0
     bloom = cells.get('J', '').strip()
     difficulty = cells.get('K', '').strip()
+    # FIX #4: lưu skill từ xlsx (Nhánh Năng Lực col H) để giữ ground truth
+    skill_xlsx = cells.get('H', '').strip()
     try:
         support = int(cells.get('I', '4') or 4)
     except:
@@ -79,6 +81,7 @@ for row in sh.findall('.//' + NS + 'row'):
         'cau': cau, 'ma': ma, 'label': label,
         'weight_raw': weight_raw,
         'bloom': bloom, 'difficulty': difficulty, 'support': support,
+        'skill_xlsx': skill_xlsx,
     })
 
 # Now remap per BAI_MAP
@@ -97,10 +100,16 @@ for r in atomic_rows:
         skill = DIM_MAP.get(ma_idx, 'fluency')
     else:
         skill = primary_skill
+    # FIX #8: Bài 6 L4 — rename 6.2/6.3/6.4/6.5 → 6.1/6.2/6.3/6.4 (xlsx skip 6.1)
+    ma_out = r['ma']
+    if cau == 6:
+        ma_parts = ma_out.split('.')
+        ma_out = ma_parts[0] + '.' + str(int(ma_parts[1]) - 1)
     out.append({
-        'cau': cau, 'ma': r['ma'], 'label': r['label'],
+        'cau': cau, 'ma': ma_out, 'label': r['label'],
         'weight': w, 'skill': skill, 'nhom': nhom,
         'bloom': r['bloom'], 'difficulty': r['difficulty'], 'support': r['support'],
+        'skill_xlsx': r['skill_xlsx'],
     })
 
 # Verify sum per Bai
@@ -118,5 +127,6 @@ print()
 # Output as JS array
 print('const __ATOMIC_CRITERIA_L4 = [')
 for x in out:
-    print(f"  {{cau:{x['cau']}, ma:\"{x['ma']}\", label:\"{x['label']}\", weight:{x['weight']}, skill:\"{x['skill']}\", nhom:\"{x['nhom']}\", bloom:\"{x['bloom']}\", difficulty:\"{x['difficulty']}\", support:{x['support']}}},")
+    sk_x = (x.get('skill_xlsx') or '').replace('"', "'")
+    print(f"  {{cau:{x['cau']}, ma:\"{x['ma']}\", label:\"{x['label']}\", weight:{x['weight']}, skill:\"{x['skill']}\", skill_xlsx:\"{sk_x}\", nhom:\"{x['nhom']}\", bloom:\"{x['bloom']}\", difficulty:\"{x['difficulty']}\", support:{x['support']}}},")
 print('];')

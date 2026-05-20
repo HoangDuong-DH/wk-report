@@ -36,9 +36,9 @@ new_header = '''/* ════════════════════�
      Bài 13=20, Bài 14=20
    Nhom + skill primary remap theo OFFICIAL rubric (mỗi bài 1 skill chuẩn).
    ═══════════════════════════════════════════════════════════════ */'''
-if old_header not in html:
-    print('ERROR: old header block not found'); sys.exit(1)
-html = html.replace(old_header, new_header)
+if old_header in html:
+    html = html.replace(old_header, new_header)
+# else: header already applied (rerun) — idempotent
 
 # 2. Replace ATOMIC_CRITERIA array content
 # Find: const __ATOMIC_CRITERIA_L3 = [ ... ];

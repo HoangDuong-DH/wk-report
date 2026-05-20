@@ -73,6 +73,7 @@ for row in sh.findall('.//' + NS + 'row'):
         weight_raw = 0
     bloom = cells.get('J', '').strip()
     difficulty = cells.get('K', '').strip()
+    skill_xlsx = cells.get('H', '').strip()  # FIX #4: preserve xlsx skill
     try:
         support = int(cells.get('I', '4') or 4)
     except:
@@ -81,6 +82,7 @@ for row in sh.findall('.//' + NS + 'row'):
         'cau': cau, 'ma': ma, 'label': label,
         'weight_raw': weight_raw,
         'bloom': bloom, 'difficulty': difficulty, 'support': support,
+        'skill_xlsx': skill_xlsx,
     })
 
 # Compute sum_weight_raw per Bài for proper scale
@@ -107,6 +109,7 @@ for r in atomic_rows:
         'cau': cau, 'ma': r['ma'], 'label': r['label'],
         'weight': w, 'skill': skill, 'nhom': nhom,
         'bloom': r['bloom'], 'difficulty': r['difficulty'], 'support': r['support'],
+        'skill_xlsx': r['skill_xlsx'],
     })
 
 # Verify
@@ -124,5 +127,6 @@ print()
 
 print('const __ATOMIC_CRITERIA_L3 = [')
 for x in out:
-    print(f"  {{cau:{x['cau']}, ma:\"{x['ma']}\", label:\"{x['label']}\", weight:{x['weight']}, skill:\"{x['skill']}\", nhom:\"{x['nhom']}\", bloom:\"{x['bloom']}\", difficulty:\"{x['difficulty']}\", support:{x['support']}}},")
+    sk_x = (x.get('skill_xlsx') or '').replace('"', "'")
+    print(f"  {{cau:{x['cau']}, ma:\"{x['ma']}\", label:\"{x['label']}\", weight:{x['weight']}, skill:\"{x['skill']}\", skill_xlsx:\"{sk_x}\", nhom:\"{x['nhom']}\", bloom:\"{x['bloom']}\", difficulty:\"{x['difficulty']}\", support:{x['support']}}},")
 print('];')
