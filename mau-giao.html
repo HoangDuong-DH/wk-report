@@ -1245,31 +1245,51 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
   }
 }
 
-/* ─── PRODUCTION TOOLBAR ─── */
+/* ─── PRODUCTION TOOLBAR — góc dưới-phải FAB collapsible ─── */
 #production-toolbar{
-  position:fixed;top:12px;right:12px;z-index:9000;
-  display:flex;gap:6px;align-items:center;
-  background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
-  border:1px solid rgba(233,78,27,.2);border-radius:30px;padding:6px 8px;
-  box-shadow:0 4px 16px rgba(233,78,27,.12);
+  position:fixed;bottom:18px;right:18px;z-index:9000;
+  display:flex;flex-direction:row-reverse;gap:8px;align-items:center;
   font:500 11px/1 'Be Vietnam Pro', sans-serif;
 }
-#production-toolbar button{
+#production-toolbar-fab{
+  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#ffc24a,#e94e1b);color:#fff;
+  font-size:22px;font-weight:300;
+  box-shadow:0 6px 18px rgba(233,78,27,.35);
+  transition:transform .25s ease, box-shadow .2s ease;
+  display:flex;align-items:center;justify-content:center;
+}
+#production-toolbar-fab:hover{transform:scale(1.06);box-shadow:0 8px 22px rgba(233,78,27,.45)}
+#production-toolbar-fab.open{transform:rotate(45deg)}
+#production-toolbar-buttons{
+  display:none;gap:6px;align-items:center;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
+  border:1px solid rgba(233,78,27,.2);border-radius:30px;padding:6px 8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.12);
+  animation:fabSlideIn .25s ease;
+}
+#production-toolbar.open #production-toolbar-buttons{display:flex}
+#production-toolbar button:not(#production-toolbar-fab){
   background:transparent;border:none;cursor:pointer;
   padding:7px 11px;border-radius:20px;
   font:600 11.5px/1 'Be Vietnam Pro', sans-serif;color:#6b5a45;
-  transition:all .15s ease;
+  transition:all .15s ease;white-space:nowrap;
 }
-#production-toolbar button:hover{background:#fff3da;color:#df5728}
+#production-toolbar button:not(#production-toolbar-fab):hover{background:#fff3da;color:#df5728}
 #production-toolbar button.active{background:#ffd17a;color:#a44400}
 #production-toolbar input[type="file"]{display:none}
 #production-toolbar .sep{
   width:1px;height:18px;background:rgba(233,78,27,.25);
 }
+@keyframes fabSlideIn{
+  from{opacity:0;transform:translateX(20px)}
+  to{opacity:1;transform:translateX(0)}
+}
 @media print{ #production-toolbar{display:none !important} }
 @media (max-width:700px){
-  #production-toolbar{top:6px;right:6px;padding:3px 5px;gap:2px}
-  #production-toolbar button{padding:5px 8px;font-size:10px}
+  #production-toolbar{bottom:12px;right:12px}
+  #production-toolbar-fab{width:42px;height:42px;font-size:18px}
+  #production-toolbar button:not(#production-toolbar-fab){padding:5px 8px;font-size:10px}
   #production-toolbar .sep{display:none}
 }
 
@@ -1370,16 +1390,19 @@ body.parent-mode::after{
 </head>
 <body>
 
-<!-- ═════ PRODUCTION TOOLBAR (backup/parent/template/analytics) ═════ -->
+<!-- ═════ PRODUCTION TOOLBAR (FAB collapsible, góc dưới-phải) ═════ -->
 <div id="production-toolbar" data-tech="1">
-  <button id="btn-parent-mode" onclick="__toggleParentMode()" title="Chế độ phụ huynh: ẩn phần kỹ thuật">👪 Chế độ phụ huynh</button>
-  <span class="sep"></span>
-  <button onclick="__exportBackupMG()" title="Sao lưu toàn bộ data ra file JSON">💾 Backup</button>
-  <button onclick="document.getElementById('restore-file-input').click()" title="Khôi phục từ file JSON">📂 Restore</button>
-  <input type="file" id="restore-file-input" accept=".json" onchange="if(this.files[0]) __importBackupMG(this.files[0])">
-  <span class="sep"></span>
-  <button onclick="__downloadXlsxTemplate(typeof __ATOMIC_CRITERIA_L3 !== 'undefined' && __ATOMIC_CRITERIA_L3.length === 65 ? 'L4' : 'L3')" title="Tải xlsx template trống">📥 Template</button>
-  <button onclick="__showClassAnalyticsMG()" title="Xem analytics toàn lớp từ batch import">📊 Analytics lớp</button>
+  <button id="production-toolbar-fab" onclick="document.getElementById('production-toolbar').classList.toggle('open'); this.classList.toggle('open')" title="Mở/đóng công cụ">+</button>
+  <div id="production-toolbar-buttons">
+    <button id="btn-parent-mode" onclick="__toggleParentMode()" title="Chế độ phụ huynh: ẩn phần kỹ thuật">👪 Phụ huynh</button>
+    <span class="sep"></span>
+    <button onclick="__exportBackupMG()" title="Sao lưu toàn bộ data ra file JSON">💾 Backup</button>
+    <button onclick="document.getElementById('restore-file-input').click()" title="Khôi phục từ file JSON">📂 Restore</button>
+    <input type="file" id="restore-file-input" accept=".json" onchange="if(this.files[0]) __importBackupMG(this.files[0])">
+    <span class="sep"></span>
+    <button onclick="__downloadXlsxTemplate(typeof __ATOMIC_CRITERIA_L3 !== 'undefined' && __ATOMIC_CRITERIA_L3.length === 65 ? 'L4' : 'L3')" title="Tải xlsx template trống">📥 Template</button>
+    <button onclick="__showClassAnalyticsMG()" title="Xem analytics toàn lớp từ batch import">📊 Analytics lớp</button>
+  </div>
 </div>
 
 
