@@ -2022,14 +2022,24 @@ body.parent-mode .deduction-section{display:none !important}
   
 <!-- ═════ INTELLIGENCE LAYER — Profile + Insights + Action Plan ═════ -->
 
-<!-- ═════ DEDUCTION PANEL (theo docx official: 6 case trừ điểm) ═════ -->
-<div class="deduction-section">
-  <div id="mg-deduction-panel">
-    <div class="ded-panel-inner">
-      <p style="color:#a4886a;text-align:center;font-style:italic">Đang khởi tạo panel điểm trừ…</p>
-    </div>
-  </div>
-</div>
+<!-- DEDUCTION PANEL removed — không phù hợp với mô hình atomic 0-5 (GV đã tính trừ trong mức) -->
+<script>
+/* Cleanup: zero out deduction state để KPI không hiển thị trừ chuẩn nữa */
+(function cleanupDeductions(){
+  try{ localStorage.removeItem('mg-deductions'); }catch(_){}
+  const reset = setInterval(() => {
+    if(typeof window.__deductionsMG !== 'undefined'){
+      Object.keys(window.__deductionsMG).forEach(k => window.__deductionsMG[k] = 0);
+      // Force KPI refresh
+      if(typeof recomputeAllMG === 'function'){
+        try{ recomputeAllMG(); }catch(_){}
+      }
+      clearInterval(reset);
+    }
+  }, 100);
+  setTimeout(() => clearInterval(reset), 3000);
+})();
+</script>
 
 <div class="intel-panel">
   <div class="sec-h"><span class="num">⭐</span>Phân tích chuyên sâu &amp; Kế hoạch luyện tập</div>
