@@ -2359,17 +2359,23 @@ function renderSupportAnalyticsMG(){
   // FIX #1: chú thích công thức weighted nhỏ dưới tag để user hiểu
   html += `<text x="${cx}" y="${cy+r+40}" text-anchor="middle" font:500 9px/1 var(--font-body) fill="#a4886a" font-size="9">Σ(điểm × mức) / Σ(max × mức)</text>`;
 
-  // ───── 5 ladder rows (phải, cột x=250..540) — FIX #3 thêm mức 0 ─────
+  // ───── 5 ladder rows — phân biệt 3 trạng thái ─────
+  // notInRubric: rubric không có atomic nào ở mức này (vd L3 mức 3 = 0 atomic)
+  // notScored:   có atomic nhưng GV chưa chấm bé này
+  // scored:      bé đã chấm, có dữ liệu thực
   const rowX = 250, rowW = 290, rowStart = 12, rowH = 52;
   [4,3,2,1,0].forEach((lvl, i) => {
     const s = agg.supportSum[lvl] || {score:0, max:0, count:0, filled:0, pct:0};
     const yTop = rowStart + i*rowH;
     const color = ROW_COLORS[lvl];
-    const noData = s.max === 0;
+    const notInRubric = s.max === 0;
+    const notScored   = s.max > 0 && s.filled === 0;
+    const hasData     = s.filled > 0;
 
-    // Level circle (24×24 with số)
+    // Level circle (24×24 với số) — fade nếu không trong rubric
     const cyRow = yTop + 24;
-    html += `<circle cx="${rowX+14}" cy="${cyRow}" r="13" fill="${color}"/>`;
+    const circleFill = notInRubric ? '#d8d2c4' : color;  // grey nếu không có
+    html += `<circle cx="${rowX+14}" cy="${cyRow}" r="13" fill="${circleFill}"/>`;
     html += `<text class="au-row-lvl" x="${rowX+14}" y="${cyRow+1}" text-anchor="middle" dominant-baseline="middle">${lvl}</text>`;
 
     // Description text
@@ -2380,21 +2386,27 @@ function renderSupportAnalyticsMG(){
     const barY = yTop + 40;
     const barH = 10;
     const barX = rowX + 36;
-    const barW = rowW - 36 - 60;  // chừa 60px cho text % bên phải
+    const barW = rowW - 36 - 90;  // chừa 90px cho text status bên phải
     html += `<rect class="au-row-bar-bg" x="${barX}" y="${barY}" width="${barW}" height="${barH}" rx="5"/>`;
-    if(!noData && s.pct > 0){
+    if(hasData && s.pct > 0){
       const fillW = Math.max(4, (s.pct/100) * barW);
       html += `<rect class="au-row-bar-fg" x="${barX}" y="${barY}" width="${fillW}" height="${barH}" fill="${color}"/>`;
     }
 
-    // Pct text right (giữa bar)
-    const pctTxt = noData ? '—' : Math.round(s.pct) + '%';
-    html += `<text class="au-row-pct" x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="${noData ? '#a4886a' : color}">${pctTxt}</text>`;
-    // Score detail (vd 8.5/19.5) — ĐẶT TRÊN bar, anchor=end right, KHÔNG đè desc
-    if(!noData){
+    // Status text right (giữa bar) — 3 trạng thái phân biệt rõ
+    if(hasData){
+      html += `<text class="au-row-pct" x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="${color}">${Math.round(s.pct)}%</text>`;
+      // Score detail trên bar
       const scr = Math.round(s.score * 10) / 10;
       const mx  = Math.round(s.max   * 10) / 10;
       html += `<text class="au-row-desc" x="${rowX+rowW-4}" y="${yTop+12}" text-anchor="end" dominant-baseline="hanging">${scr}/${mx}</text>`;
+    } else if(notScored){
+      html += `<text x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="#a4886a" font-size="10.5" font-style="italic">chưa chấm</text>`;
+      // Hiện số atomic còn lại để biết cần chấm bao nhiêu
+      html += `<text class="au-row-desc" x="${rowX+rowW-4}" y="${yTop+12}" text-anchor="end" dominant-baseline="hanging" font-style="italic">0/${s.count} atomic</text>`;
+    } else {
+      // notInRubric: rubric không có atomic mức này
+      html += `<text x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="#bba897" font-size="10" font-style="italic">không có trong rubric</text>`;
     }
   });
 
@@ -2430,6 +2442,18 @@ function renderSupportAnalyticsMG(){
       let html = '<p><b>Chỉ số tự chủ ' + autonomyIdx + '%</b> — ' + tone + '</p>';
       html += '<p style="margin-top:4px;font-size:10.5px;color:#a4886a"><b>Cách tính:</b> ' + breakdown +
               ', cộng dồn rồi chia tổng trọng số. Mức 4 (tự làm) có trọng số cao nhất, mức 0 (không làm) không tính.</p>';
+      // Data quality: liệt kê mức không có trong rubric
+      const missingLevels = [4,3,2,1,0]
+        .filter(lvl => {
+          const s = agg.supportSum[lvl];
+          return !s || s.max === 0;
+        });
+      if(missingLevels.length > 0){
+        html += '<p style="margin-top:4px;font-size:10px;color:#bba897;font-style:italic">' +
+                '⚠ Rubric L3 không phân loại tiêu chí nào ở: ' +
+                missingLevels.map(l => '<b>Mức ' + l + '</b>').join(', ') +
+                ' — bỏ qua khi tính chỉ số tự chủ.</p>';
+      }
       if(best){
         html += '<p style="margin-top:4px">Mức làm tốt nhất: <b>' + best.lvl + ' (' + _escHtmlMG(ROW_DESC[best.lvl]) +
                 ')</b> ' + Math.round(best.pct) + '%' +

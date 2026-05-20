@@ -2287,42 +2287,44 @@ function renderSupportAnalyticsMG(){
   html += `<text class="au-gauge-tag" x="${cx}" y="${cy+r+24}" text-anchor="middle" fill="${arcColor}">${tag}</text>`;
   html += `<text x="${cx}" y="${cy+r+40}" text-anchor="middle" fill="#a4886a" font-size="9">Σ(điểm × mức) / Σ(max × mức)</text>`;
 
-  // ───── 5 ladder rows (FIX #3 thêm mức 0) ─────
+  // ───── 5 ladder rows — phân biệt 3 trạng thái ─────
   const rowX = 250, rowW = 290, rowStart = 12, rowH = 52;
   [4,3,2,1,0].forEach((lvl, i) => {
     const s = agg.supportSum[lvl] || {score:0, max:0, count:0, filled:0, pct:0};
     const yTop = rowStart + i*rowH;
     const color = ROW_COLORS[lvl];
-    const noData = s.max === 0;
+    const notInRubric = s.max === 0;
+    const notScored   = s.max > 0 && s.filled === 0;
+    const hasData     = s.filled > 0;
 
-    // Level circle (24×24 with số)
     const cyRow = yTop + 24;
-    html += `<circle cx="${rowX+14}" cy="${cyRow}" r="13" fill="${color}"/>`;
+    const circleFill = notInRubric ? '#d8d2c4' : color;
+    html += `<circle cx="${rowX+14}" cy="${cyRow}" r="13" fill="${circleFill}"/>`;
     html += `<text class="au-row-lvl" x="${rowX+14}" y="${cyRow+1}" text-anchor="middle" dominant-baseline="middle">${lvl}</text>`;
 
-    // Description text
     html += `<text class="au-row-name" x="${rowX+36}" y="${yTop+12}" dominant-baseline="hanging">Mức ${lvl}</text>`;
     html += `<text class="au-row-desc" x="${rowX+36}" y="${yTop+27}" dominant-baseline="hanging">${_escHtmlMG(ROW_DESC[lvl])}</text>`;
 
-    // Bar bg + fg
     const barY = yTop + 40;
     const barH = 10;
     const barX = rowX + 36;
-    const barW = rowW - 36 - 60;  // chừa 60px cho text % bên phải
+    const barW = rowW - 36 - 90;
     html += `<rect class="au-row-bar-bg" x="${barX}" y="${barY}" width="${barW}" height="${barH}" rx="5"/>`;
-    if(!noData && s.pct > 0){
+    if(hasData && s.pct > 0){
       const fillW = Math.max(4, (s.pct/100) * barW);
       html += `<rect class="au-row-bar-fg" x="${barX}" y="${barY}" width="${fillW}" height="${barH}" fill="${color}"/>`;
     }
 
-    // Pct text right (giữa bar)
-    const pctTxt = noData ? '—' : Math.round(s.pct) + '%';
-    html += `<text class="au-row-pct" x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="${noData ? '#a4886a' : color}">${pctTxt}</text>`;
-    // Score detail (vd 8.5/19.5) — ĐẶT TRÊN bar, anchor=end right, KHÔNG đè desc
-    if(!noData){
+    if(hasData){
+      html += `<text class="au-row-pct" x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="${color}">${Math.round(s.pct)}%</text>`;
       const scr = Math.round(s.score * 10) / 10;
       const mx  = Math.round(s.max   * 10) / 10;
       html += `<text class="au-row-desc" x="${rowX+rowW-4}" y="${yTop+12}" text-anchor="end" dominant-baseline="hanging">${scr}/${mx}</text>`;
+    } else if(notScored){
+      html += `<text x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="#a4886a" font-size="10.5" font-style="italic">chưa chấm</text>`;
+      html += `<text class="au-row-desc" x="${rowX+rowW-4}" y="${yTop+12}" text-anchor="end" dominant-baseline="hanging" font-style="italic">0/${s.count} atomic</text>`;
+    } else {
+      html += `<text x="${rowX+rowW-4}" y="${barY+barH/2+1}" text-anchor="end" dominant-baseline="middle" fill="#bba897" font-size="10" font-style="italic">không có trong rubric</text>`;
     }
   });
 
@@ -2355,6 +2357,17 @@ function renderSupportAnalyticsMG(){
       let html = '<p><b>Chỉ số tự chủ ' + autonomyIdx + '%</b> — ' + tone + '</p>';
       html += '<p style="margin-top:4px;font-size:10.5px;color:#a4886a"><b>Cách tính:</b> ' + breakdown +
               ', cộng dồn rồi chia tổng trọng số. Mức 4 (tự làm) có trọng số cao nhất, mức 0 (không làm) không tính.</p>';
+      const missingLevels = [4,3,2,1,0]
+        .filter(lvl => {
+          const s = agg.supportSum[lvl];
+          return !s || s.max === 0;
+        });
+      if(missingLevels.length > 0){
+        html += '<p style="margin-top:4px;font-size:10px;color:#bba897;font-style:italic">' +
+                '⚠ Rubric L4 không phân loại tiêu chí nào ở: ' +
+                missingLevels.map(l => '<b>Mức ' + l + '</b>').join(', ') +
+                ' — bỏ qua khi tính chỉ số tự chủ.</p>';
+      }
       if(best){
         html += '<p style="margin-top:4px">Mức làm tốt nhất: <b>' + best.lvl + ' (' + _escHtmlMG(ROW_DESC[best.lvl]) +
                 ')</b> ' + Math.round(best.pct) + '%' +
