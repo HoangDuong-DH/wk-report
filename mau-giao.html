@@ -5631,24 +5631,8 @@ function renderIntelligencePanelMG(){
     html += '</div>';
   }
 
-  // Action plan 4 weeks
-  if(plans.length > 0){
-    html += '<div class="intel-section"><h4>📅 Kế hoạch luyện tập 4 tuần</h4>';
-    html += '<p class="intel-plan-note">Gợi ý cho 2 năng lực cần ưu tiên — phụ huynh áp dụng tại nhà 10-15 phút mỗi ngày.</p>';
-    plans.forEach(plan => {
-      const lbl = skLabels[plan.skill] || plan.skill;
-      html += `<div class="intel-plan">`;
-      html += `<div class="intel-plan-header"><b>🎯 ${_escHtmlMG(plan.title)}</b> <span class="intel-plan-sub">(${_escHtmlMG(lbl)})</span></div>`;
-      html += `<ol class="intel-plan-weeks">`;
-      plan.weeks.forEach((w, i) => {
-        html += `<li><b>Tuần ${i+1}:</b> ${_escHtmlMG(w)}</li>`;
-      });
-      html += `</ol>`;
-      html += `</div>`;
-    });
-    html += '<p class="intel-plan-followup">→ <b>Tái đánh giá sau 4 tuần</b> để đo tiến bộ và điều chỉnh kế hoạch.</p>';
-    html += '</div>';
-  }
+  // [REMOVED] Action plan 4 weeks — user yêu cầu bỏ section này
+  // Giữ logic generateActionPlan để có thể restore nếu cần sau
 
   html += '</div>';
   target.innerHTML = html;
