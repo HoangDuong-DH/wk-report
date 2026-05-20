@@ -501,7 +501,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
   font:700 9.5px/1.2 var(--font-body);color:var(--ink-mute);
   letter-spacing:.08em;text-transform:uppercase;text-align:center;
 }
-.ability .mini-radar svg{width:230px;height:auto;aspect-ratio:235/145;display:block;overflow:visible}
+.ability .mini-radar svg{width:230px;height:auto;aspect-ratio:285/145;display:block;overflow:visible}
 /* Labels: ĐỒNG NHẤT size để tránh shift khi active đổi → tránh clip */
 .ability .mini-radar .mr-axis{
   font:700 10.5px/1 var(--font-body);fill:var(--ink-soft);
@@ -1528,7 +1528,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
           </table>
           <div class="mini-radar">
             <div class="mr-ttl">Hình dáng năng lực</div>
-            <svg class="mini-radar-svg" data-mr-idx="0" viewBox="-50 -5 235 145"></svg>
+            <svg class="mini-radar-svg" data-mr-idx="0" viewBox="-65 -5 285 145"></svg>
           </div>
         </div>
 
@@ -1553,7 +1553,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
           </table>
           <div class="mini-radar">
             <div class="mr-ttl">Hình dáng năng lực</div>
-            <svg class="mini-radar-svg" data-mr-idx="1" viewBox="-50 -5 235 145"></svg>
+            <svg class="mini-radar-svg" data-mr-idx="1" viewBox="-65 -5 285 145"></svg>
           </div>
         </div>
 
@@ -1577,7 +1577,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
           </table>
           <div class="mini-radar">
             <div class="mr-ttl">Hình dáng năng lực</div>
-            <svg class="mini-radar-svg" data-mr-idx="2" viewBox="-50 -5 235 145"></svg>
+            <svg class="mini-radar-svg" data-mr-idx="2" viewBox="-65 -5 285 145"></svg>
           </div>
         </div>
 
@@ -1601,7 +1601,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
           </table>
           <div class="mini-radar">
             <div class="mr-ttl">Hình dáng năng lực</div>
-            <svg class="mini-radar-svg" data-mr-idx="3" viewBox="-50 -5 235 145"></svg>
+            <svg class="mini-radar-svg" data-mr-idx="3" viewBox="-65 -5 285 145"></svg>
           </div>
         </div>
       </div>
@@ -1792,10 +1792,11 @@ const __ABILITY_GROUPS_MG = {
     {key:'synthesis',    label:'B7: Tổng hợp'},
   ]},
   3: { title:'SÁNG TẠO', skills:[
-    {key:'fluency',      label:'B13-14: Trôi chảy'},
-    {key:'flexibility',  label:'B13-14: Linh hoạt'},
-    {key:'originality',  label:'B13-14: Độc đáo'},
-    {key:'precision',    label:'B13-14: Chính xác'},
+    // Sáng tạo: tất cả 4 axes đều B13-14 chung → bỏ prefix tránh label tràn viewBox
+    {key:'fluency',      label:'Trôi chảy'},
+    {key:'flexibility',  label:'Linh hoạt'},
+    {key:'originality',  label:'Độc đáo'},
+    {key:'precision',    label:'Chính xác'},
   ]},
 };
 
