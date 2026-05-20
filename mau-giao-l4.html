@@ -485,10 +485,13 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
 .s2{display:flex;flex-direction:column;gap:14px}
 .ability{
   background:#fff;border:2px solid var(--hair-soft);
-  border-radius:16px;overflow:hidden;
+  border-radius:16px;
+  overflow:visible;
   box-shadow:0 4px 0 #fcecc4;
   display:grid;grid-template-columns:140px 1fr 230px;
 }
+.ability > .left{border-radius:14px 0 0 14px;overflow:hidden}
+.ability > .mini-radar{border-radius:0 14px 14px 0}
 /* Mini radar bên phải mỗi ability — đánh dấu axis hiện tại
    Design: clean shape không có text label (vì ability block đã chỉ rõ nhóm)
    → tối đa không gian cho biểu đồ + active vertex highlight rõ ràng */
@@ -496,6 +499,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
   background:#fffaf0;border-left:1.5px solid var(--hair-soft);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:14px 10px;gap:8px;
+  overflow:visible; /* cho phep SVG label tran ra ngoai */
 }
 .ability .mini-radar .mr-ttl{
   font:700 9.5px/1.2 var(--font-body);color:var(--ink-mute);
