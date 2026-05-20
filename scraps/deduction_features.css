@@ -1,0 +1,82 @@
+/* ═══════════════════════════════════════════════════════════════
+   DEDUCTION PANEL CSS
+   ═══════════════════════════════════════════════════════════════ */
+.deduction-section{
+  padding:0 44px;margin-top:18px;position:relative;
+}
+.ded-panel-inner{
+  background:linear-gradient(135deg,#fff8e8 0%,#fff3da 100%);
+  border:1.5px dashed #f0a050;border-radius:14px;padding:18px 22px;
+}
+.ded-panel-inner h4{
+  margin:0 0 6px;font:800 14px/1.2 'Fredoka','Be Vietnam Pro',sans-serif;
+  color:#a44400;
+}
+.ded-note{
+  margin:0 0 14px;font:500 12px/1.5 'Be Vietnam Pro',sans-serif;
+  color:#7a4a10;
+}
+.ded-note b{color:#df5728}
+.ded-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:10px;
+}
+.ded-item{
+  background:#fff;border-radius:10px;padding:10px 14px;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  border:1px solid #f5d5a8;
+}
+.ded-item label{
+  font:600 12px/1.4 'Be Vietnam Pro',sans-serif;color:#3d2e1f;
+  flex:1;
+}
+.ded-counter{
+  display:flex;align-items:center;gap:4px;
+}
+.ded-counter button{
+  width:26px;height:26px;border-radius:50%;border:1px solid #f0a050;
+  background:#fff;color:#a44400;font-weight:700;cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+}
+.ded-counter button:hover{background:#fff3da}
+.ded-counter input{
+  width:46px;text-align:center;padding:5px;border:1px solid #f0a050;
+  border-radius:6px;font:700 14px/1 'Be Vietnam Pro',sans-serif;
+  color:#a44400;
+}
+.ded-summary{
+  margin-top:14px;padding:10px 14px;background:#fff3da;border-radius:8px;
+  font:600 12.5px/1.5 'Be Vietnam Pro',sans-serif;color:#a44400;
+  text-align:center;border-left:4px solid #df5728;
+}
+.ded-summary b{color:#df5728}
+
+/* Helper button for Bài 13-14 */
+#bai-1314-helper-btn{
+  background:linear-gradient(135deg,#ffd17a,#df5728);color:#fff;
+  border:none;padding:8px 16px;border-radius:99px;cursor:pointer;
+  font:700 11.5px/1 'Be Vietnam Pro',sans-serif;
+  box-shadow:0 4px 12px rgba(233,78,27,.2);
+  display:inline-flex;align-items:center;gap:6px;margin-left:8px;
+}
+#bai-1314-helper-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(233,78,27,.3)}
+
+/* Parent mode hide deduction panel (technical) */
+body.parent-mode .deduction-section{display:none !important}
+
+/* Print: compact */
+@media print{
+  .deduction-section{padding:0 16mm;margin-top:8mm;break-inside:avoid;page-break-inside:avoid}
+  .ded-panel-inner{padding:6mm;background:#fff !important;border:1px solid #ccc}
+  .ded-counter button{display:none}
+  .ded-counter input{border:none;font-size:12pt}
+  .ded-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* Mobile */
+@media (max-width:700px){
+  .deduction-section{padding:0 14px}
+  .ded-panel-inner{padding:14px 16px}
+  .ded-grid{grid-template-columns:1fr}
+  .ded-item{padding:8px 10px}
+}
