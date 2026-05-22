@@ -328,6 +328,58 @@ body{
   }
 }
 
+/* ═════ STUDENT INFO CARD (giống tieu-hoc layout) ═════ */
+.info-card{
+  margin-top:6px;
+  border:2px solid var(--c-line);background:#fffaf0;
+  border-radius:16px;padding:12px 18px;
+  display:grid;grid-template-columns:54px 1fr 1fr 1fr;gap:10px 22px;align-items:center;
+}
+.info-card .avatar-circle{
+  grid-row:span 2;width:48px;height:48px;border-radius:50%;
+  background:var(--c-orange-soft);
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+  transition:background .25s ease;
+}
+.info-card .avatar-circle.female{background:#fde2e8}
+.info-card .field{display:flex;align-items:baseline;gap:8px;min-width:0}
+.info-card .field label{
+  font:800 10px/1 var(--font);color:var(--c-primary);letter-spacing:.06em;
+  white-space:nowrap;flex-shrink:0;text-transform:uppercase;
+}
+.info-card .field .input{
+  flex:1;min-width:0;border:0;border-bottom:1.5px dotted var(--c-mute);
+  background:transparent;outline:none;
+  font:500 12.5px/1.4 var(--font);color:var(--c-ink);padding:2px 2px 3px;
+  appearance:none;cursor:text;
+}
+.info-card .field select.input{cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'><path d='M1 1l3 3 3-3' fill='none' stroke='%23a4886a' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 2px center;padding-right:14px}
+.info-card .field .input:focus{border-bottom-style:solid;border-bottom-color:var(--c-primary);background:#fff}
+
+/* ═════ EDITABLE COMMENTS — inline edit support ═════ */
+[contenteditable="true"].editable{
+  cursor:text;transition:background .15s, outline-offset .15s;
+  outline:1px dashed transparent;outline-offset:2px;border-radius:4px;
+}
+[contenteditable="true"].editable:hover{
+  background:rgba(245,178,35,.05);outline-color:var(--c-line);
+}
+[contenteditable="true"].editable:focus{
+  background:#fffaef;outline:1.5px dashed var(--c-primary);outline-offset:3px;
+}
+.edit-hint{
+  position:fixed;bottom:78px;left:20px;z-index:9000;
+  background:rgba(255,243,218,.95);color:var(--c-primary-2);
+  padding:7px 14px;border-radius:99px;border:1px solid var(--c-line);
+  font:600 10.5px/1 var(--font);box-shadow:0 4px 12px rgba(233,78,27,.1);
+  opacity:0;transform:translateY(10px);transition:all .25s ease;pointer-events:none;
+}
+.edit-hint.show{opacity:1;transform:translateY(0)}
+@media print{
+  [contenteditable="true"].editable{outline:none !important;background:transparent !important}
+  .edit-hint{display:none !important}
+}
+
 /* ═════ WARM YELLOW-ORANGE LAYOUT (theo brand tieu-hoc) ═════ */
 
 /* Body — cream background */
@@ -564,6 +616,10 @@ body.parent-mode #parent-exit-fab{display:inline-flex !important}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
       Làm mới
     </button>
+    <button onclick="resetEdits()" title="Khôi phục nhận xét về auto (mất các chỉnh sửa thủ công)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Reset nhận xét
+    </button>
     <button onclick="toggleParentMode()" id="btn-parent" title="Chế độ phụ huynh: ẩn toolbar + workspace">
       👪 Phụ huynh
     </button>
@@ -598,23 +654,23 @@ body.parent-mode #parent-exit-fab{display:inline-flex !important}
       <h2>L4 – DIAGNOSTIC ASSESSMENT (5 TUỔI)</h2>
     </div>
   </div>
-  <div class="student-info">
-    <div class="student-avatar" id="student-avatar">👦</div>
-    <table>
-      <tr><td class="label">Họ và tên:</td><td class="value"><input id="f-name" value="Hải An"></td></tr>
-      <tr><td class="label">Mã học tập:</td><td class="value"><input id="f-code" placeholder="—"></td></tr>
-      <tr><td class="label">Giới tính:</td><td class="value">
-        <select id="f-gender" onchange="updateAvatar()">
-          <option value="Nam">Nam</option>
-          <option value="Nữ">Nữ</option>
-        </select>
-      </td></tr>
-      <tr><td class="label">Năm sinh:</td><td class="value"><input id="f-dob" value="2020"></td></tr>
-      <tr><td class="label">Ngày kiểm tra:</td><td class="value"><input id="f-date" value="15/05/2025"></td></tr>
-      <tr><td class="label">Lớp:</td><td class="value"><input id="f-class" value="L4"></td></tr>
-    </table>
-  </div>
 </header>
+
+<!-- ═════ STUDENT INFO CARD (grid layout giống tieu-hoc) ═════ -->
+<div class="info-card">
+  <div class="avatar-circle" id="student-avatar">👦</div>
+  <div class="field"><label>HỌ VÀ TÊN:</label><input class="input" id="f-name" value="Hải An"></div>
+  <div class="field"><label>MÃ HỌC TẬP:</label><input class="input" id="f-code" placeholder="—"></div>
+  <div class="field"><label>GIỚI TÍNH:</label>
+    <select class="input" id="f-gender" onchange="updateAvatar()">
+      <option value="Nam">Nam</option>
+      <option value="Nữ">Nữ</option>
+    </select>
+  </div>
+  <div class="field"><label>NĂM SINH:</label><input class="input" id="f-dob" value="2020"></div>
+  <div class="field"><label>NGÀY KIỂM TRA:</label><input class="input" id="f-date" value="15/05/2025"></div>
+  <div class="field"><label>LỚP:</label><input class="input" id="f-class" value="L4"></div>
+</div>
 
 <!-- ═════ ROW 1: MÃ HỌC TẬP + TỔNG ĐIỂM ═════ -->
 <div class="cards-row-1">
@@ -1058,6 +1114,73 @@ function updateAvatar(){
   saveInfo();
 }
 
+/* ═════ EDITABLE COMMENTS — inline edit + persist ═════ */
+const __EDITABLE_IDS = [
+  'strong-list',     // A) Điểm mạnh
+  'weak-list',       // B) Vùng cần phát triển
+  'orient-list',     // C) Định hướng học tập (orient items)
+  'parent-msg',      // Heart message
+  'grade-desc',      // Tổng điểm description
+  'top-code-desc',   // Mã học tập description
+  'muc-ho-tro-desc', // Mức hỗ trợ description
+];
+const __EDIT_OVERRIDES = {};
+
+function _makeAllEditable(){
+  __EDITABLE_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.dataset.editableInit) return;
+    el.dataset.editableInit = '1';
+    el.setAttribute('contenteditable', 'true');
+    el.setAttribute('spellcheck', 'false');
+    el.classList.add('editable');
+    el.addEventListener('blur', () => {
+      __EDIT_OVERRIDES[id] = el.innerHTML;
+      try{ localStorage.setItem('mg-l4v2-edits', JSON.stringify(__EDIT_OVERRIDES)); }catch(_){}
+      _showEditHint('✓ Đã lưu chỉnh sửa "' + (el.dataset.label || id) + '"');
+    });
+    el.addEventListener('focus', () => {
+      _showEditHint('✎ Đang chỉnh sửa — click ra ngoài để lưu');
+    });
+  });
+}
+
+function _showEditHint(msg){
+  let hint = document.getElementById('edit-hint');
+  if(!hint){
+    hint = document.createElement('div');
+    hint.id = 'edit-hint';
+    hint.className = 'edit-hint';
+    document.body.appendChild(hint);
+  }
+  hint.textContent = msg;
+  hint.classList.add('show');
+  clearTimeout(window.__hintTm);
+  window.__hintTm = setTimeout(() => hint.classList.remove('show'), 2500);
+}
+
+function _restoreEdits(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('mg-l4v2-edits') || '{}');
+    Object.assign(__EDIT_OVERRIDES, saved);
+  }catch(_){}
+}
+
+function _applyEditOverride(id, defaultHtml){
+  // Returns saved edit if exists, else default
+  return __EDIT_OVERRIDES[id] || defaultHtml;
+}
+
+function resetEdits(){
+  if(!confirm('Khôi phục tất cả nhận xét về tự động? (Mất các chỉnh sửa thủ công)')) return;
+  Object.keys(__EDIT_OVERRIDES).forEach(k => delete __EDIT_OVERRIDES[k]);
+  try{ localStorage.removeItem('mg-l4v2-edits'); }catch(_){}
+  renderAll();
+  showToast('✓ Đã khôi phục nhận xét tự động');
+}
+window.resetEdits = resetEdits;
+
 /* ─── Aggregation ─── */
 function aggregateL4v2(){
   // Per Bài: điểm đạt × hệ số H = điểm hiệu chỉnh
@@ -1403,10 +1526,21 @@ function renderAll(){
   renderPoints(agg);
   renderOrientation(agg);
   renderMeta();
+  // Apply saved manual edits AFTER render (overrides auto-generated)
+  setTimeout(() => {
+    __EDITABLE_IDS.forEach(id => {
+      if(__EDIT_OVERRIDES[id]){
+        const el = document.getElementById(id);
+        if(el) el.innerHTML = __EDIT_OVERRIDES[id];
+      }
+    });
+    _makeAllEditable();
+  }, 50);
 }
 
 // Initial load
 _restoreState();
+_restoreEdits();
 document.addEventListener('DOMContentLoaded', () => {
   // Restore info first
   try{
