@@ -448,21 +448,7 @@ body.parent-mode #parent-exit-fab{display:inline-flex !important}
   </div>
 </div>
 
-<!-- ═════ MỨC HỖ TRỢ DISTRIBUTION ═════ -->
-<div class="h-dist-section">
-  <div class="h-dist-title">
-    <span>📊 PHÂN BỐ MỨC HỖ TRỢ THEO BÀI</span>
-    <span style="font:500 10px/1 var(--font);color:var(--c-mute)">14 bài</span>
-  </div>
-  <div class="h-dist-bar" id="h-dist-bar"></div>
-  <div class="h-dist-legend">
-    <span><i style="background:#5fb53f"></i> H0 — Tự làm</span>
-    <span><i style="background:#a3c950"></i> H1 — Nhắc lại đề</span>
-    <span><i style="background:#f0a230"></i> H2 — Gợi ý nhẹ</span>
-    <span><i style="background:#df5728"></i> H3 — Hướng dẫn</span>
-    <span><i style="background:#a4886a"></i> H4 — Làm cùng</span>
-  </div>
-</div>
+<!-- Section "Phân bố mức hỗ trợ theo bài" đã bỏ theo yêu cầu -->
 
 <!-- ═════ KẾT QUẢ THEO NHÓM NĂNG LỰC ═════ -->
 <div class="section-title">KẾT QUẢ THEO NHÓM NĂNG LỰC</div>
@@ -1224,7 +1210,6 @@ function renderMeta(){
 function renderAll(){
   const agg = aggregateL4v2();
   renderTopCards(agg);
-  renderHDist(agg);
   renderWKGrid(agg);
   renderBaiTable(agg);
   renderPoints(agg);
