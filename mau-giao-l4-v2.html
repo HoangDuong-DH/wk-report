@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WonderKids L4 v2 — Báo cáo đánh giá năng lực đầu vào</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23ffd166'/><stop offset='1' stop-color='%23f5a623'/></linearGradient></defs><circle cx='32' cy='32' r='30' fill='url(%23g)'/><text x='32' y='42' font-family='Arial' font-size='26' font-weight='900' fill='%23fff' text-anchor='middle'>L4</text></svg>">
+<meta name="theme-color" content="#f5a623">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Fredoka:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --c-wkv:#6ba66b; --c-wkv-bg:#e8f3e3;
+  --c-wkm:#4a8cc4; --c-wkm-bg:#dfeaf5;
+  --c-wkr:#f0a230; --c-wkr-bg:#fdeeda;
+  --c-wkx:#9966cc; --c-wkx-bg:#eee2f7;
+  --c-wkf:#a4886a; --c-wkf-bg:#f0eae0;
+  --c-ink:#2a2117; --c-ink-soft:#5a4a35; --c-mute:#a4886a;
+  --c-bg:#fff8e8; --c-card:#ffffff; --c-line:#e5d9c0;
+  --font:'Be Vietnam Pro',system-ui,sans-serif;
+  --font-d:'Fredoka','Be Vietnam Pro',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:var(--font);color:var(--c-ink);-webkit-font-smoothing:antialiased}
+body{background:linear-gradient(180deg,#fff5e3,#fff);padding:0;min-height:100vh}
+
+.page{max-width:1180px;margin:0 auto;background:#fff;padding:28px 32px 12px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+@media print{
+  body{background:#fff}
+  .page{box-shadow:none;padding:8mm 10mm;max-width:none}
+  @page{size:A4 portrait;margin:8mm}
+}
+
+/* ─── HEADER ─── */
+.report-header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:14px;border-bottom:2px solid var(--c-line)}
+.brand-block{display:flex;gap:16px;align-items:center}
+.l4-logo{
+  width:74px;height:74px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#fff066 0%,#f5a623 70%,#e88c0e 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#fff;font-family:var(--font-d);text-align:center;line-height:1;flex-shrink:0;
+  box-shadow:0 4px 14px rgba(245,166,35,.35);
+}
+.l4-logo .big{font-size:24px;font-weight:800;letter-spacing:1px}
+.l4-logo .small{font-size:7px;font-weight:600;margin-top:2px;letter-spacing:.3px}
+.l4-logo .award{font-size:11px;margin-top:1px}
+.title-block h1{margin:0;font:800 19px/1.2 var(--font-d);letter-spacing:.3px}
+.title-block h2{margin:4px 0 0;font:600 12px/1.2 var(--font);color:var(--c-ink-soft);letter-spacing:.2px}
+.student-info{display:flex;align-items:center;gap:14px;background:#fffaef;padding:10px 16px;border-radius:14px;border:1.5px solid #f5e2b8;font:500 12px/1.5 var(--font)}
+.student-avatar{
+  width:54px;height:54px;border-radius:50%;background:#dcecf6;
+  display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;
+}
+.student-info table{border-collapse:collapse;font-size:11.5px}
+.student-info td{padding:1px 6px 1px 0}
+.student-info td.label{color:var(--c-mute);font-weight:500}
+.student-info td.value{font-weight:700;color:var(--c-ink)}
+.student-info input{border:none;background:transparent;font:inherit;color:inherit;padding:0;width:100px;outline:none}
+.student-info input:focus{background:#fffce8;border-radius:3px;padding:0 3px}
+
+/* ─── TOP CARDS ROW (3 cards) ─── */
+.top-cards{display:grid;grid-template-columns:1.3fr 1.5fr 1fr;gap:14px;margin-top:14px}
+.card{background:var(--c-card);border-radius:14px;padding:16px 18px;box-shadow:0 2px 12px rgba(0,0,0,.04);border:1px solid var(--c-line)}
+.card-head{font:700 10.5px/1 var(--font);color:var(--c-mute);letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 12px;background:#dfeaf5;border-radius:99px;display:inline-block;margin-bottom:10px}
+
+/* Card 1: Mã học tập nổi bật */
+.card-code{display:flex;align-items:center;gap:14px}
+.code-big{
+  background:linear-gradient(135deg,#7ed957,#5fb53f);color:#fff;
+  padding:14px 22px;border-radius:14px;text-align:center;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(95,181,63,.3);
+}
+.code-big .ko{font:800 26px/1 var(--font-d);letter-spacing:1px}
+.code-big .nm{font:600 9.5px/1.2 var(--font);margin-top:4px;opacity:.95;max-width:78px}
+.code-desc{font:500 11.5px/1.5 var(--font);color:var(--c-ink-soft)}
+
+/* Card 2: Tổng điểm hiệu chỉnh */
+.card-total{display:flex;align-items:center;gap:14px}
+.donut-total{width:120px;height:120px;flex-shrink:0;position:relative}
+.donut-total svg{width:100%;height:100%;display:block}
+.donut-total .pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.donut-total .pct b{font:800 28px/1 var(--font-d);color:var(--c-ink)}
+.donut-total .pct small{font:600 10px/1 var(--font);color:var(--c-mute);margin-top:3px}
+.grade-info h3{margin:0 0 4px;font:800 18px/1.2 var(--font-d);color:#4a8cc4}
+.grade-info p{margin:0;font:500 11px/1.5 var(--font);color:var(--c-ink-soft)}
+.grade-info .tag{display:inline-flex;align-items:center;gap:5px;margin-top:6px;background:#e8f3ff;color:#2a6ba8;padding:4px 10px;border-radius:99px;font:700 10px/1 var(--font)}
+
+/* Card 3: Mức nền + Mức hỗ trợ */
+.card-meta{display:flex;flex-direction:column;gap:10px}
+.meta-row{display:flex;align-items:center;gap:10px;background:#fffaef;padding:8px 12px;border-radius:10px;border:1px solid #f5e2b8}
+.meta-row .icon{width:32px;height:32px;border-radius:8px;background:#f5a623;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.meta-row.support .icon{background:#4a8cc4}
+.meta-row .info{flex:1}
+.meta-row .lbl{font:600 9.5px/1 var(--font);color:var(--c-mute);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.meta-row .val{font:700 13px/1.2 var(--font);color:var(--c-ink)}
+.meta-row .stars{color:#f5a623;font-size:12px;letter-spacing:1px;display:inline-block;margin-left:4px}
+.meta-row .sub{font:500 10px/1.3 var(--font);color:var(--c-mute);margin-top:1px}
+
+/* ─── KẾT QUẢ THEO NHÓM ─── */
+.section-title{text-align:center;margin:22px 0 14px;font:800 14px/1 var(--font-d);color:var(--c-ink);letter-spacing:.15em}
+.wk-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.wk-card{background:var(--c-card);border:1px solid var(--c-line);border-radius:14px;padding:14px 12px;text-align:center}
+.wk-card .head{display:flex;align-items:center;justify-content:center;gap:5px;font:800 13px/1.2 var(--font-d);margin-bottom:1px}
+.wk-card .name{font:600 10px/1.3 var(--font);color:var(--c-ink-soft);min-height:26px;margin-bottom:6px}
+.wk-donut{width:96px;height:96px;margin:4px auto 6px;position:relative}
+.wk-donut svg{width:100%;height:100%;display:block}
+.wk-donut .center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 18px/1 var(--font-d);color:var(--c-ink)}
+.wk-card .score{font:700 11.5px/1.2 var(--font);color:var(--c-ink);margin-top:2px}
+.wk-card .cau-list{font:600 10px/1.3 var(--font);margin-top:6px}
+.wk-card .cmt{margin:8px 0 0;font:500 10px/1.45 var(--font);color:var(--c-ink-soft);min-height:42px}
+.wk-card.v .head, .wk-card.v .cau-list{color:var(--c-wkv)}
+.wk-card.m .head, .wk-card.m .cau-list{color:var(--c-wkm)}
+.wk-card.r .head, .wk-card.r .cau-list{color:var(--c-wkr)}
+.wk-card.x .head, .wk-card.x .cau-list{color:var(--c-wkx)}
+.wk-card.f .head, .wk-card.f .cau-list{color:var(--c-wkf)}
+.wk-card.f .wk-donut{display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--c-wkf)}
+
+/* ─── ĐIỂM MẠNH + VÙNG CẦN PHÁT TRIỂN ─── */
+.points-section{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.points-box{background:var(--c-card);border-radius:14px;padding:14px 16px;border:1px solid var(--c-line);display:flex;gap:12px;align-items:flex-start}
+.points-box .ico{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.points-box.strong{background:#f0fbe9}
+.points-box.strong .ico{background:#a5d68a;color:#fff}
+.points-box.weak{background:#fff1e0}
+.points-box.weak .ico{background:#f5a623;color:#fff}
+.points-box .label{font:800 11px/1 var(--font-d);color:var(--c-ink);margin-bottom:6px;letter-spacing:.05em}
+.points-box ul{margin:0;padding:0;list-style:none;font:500 11px/1.55 var(--font);color:var(--c-ink-soft)}
+.points-box li{padding-left:18px;position:relative;margin-bottom:3px}
+.points-box.strong li::before{content:'✓';position:absolute;left:0;color:#5fb53f;font-weight:800}
+.points-box.weak li::before{content:'•';position:absolute;left:6px;color:#f5a623;font-weight:800}
+
+/* ─── ĐỊNH HƯỚNG HỌC TẬP + LỜI NHẮN ─── */
+.orient-section{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:18px;margin-bottom:18px}
+.orient-box{background:var(--c-card);border-radius:14px;padding:16px 18px;border:1px solid var(--c-line)}
+.orient-box h3{margin:0 0 12px;font:800 13px/1 var(--font-d);color:var(--c-ink);letter-spacing:.1em;text-align:center}
+.orient-list{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.orient-item{display:flex;gap:10px;align-items:flex-start}
+.orient-item .ico{width:32px;height:32px;border-radius:8px;background:#e8f3ff;color:#4a8cc4;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.orient-item .text{font:500 10.5px/1.45 var(--font);color:var(--c-ink-soft)}
+.orient-item .text b{display:block;color:var(--c-ink);font:700 11px/1.3 var(--font);margin-bottom:2px}
+.msg-box{background:linear-gradient(135deg,#fffaef,#fff3e0);border-radius:14px;padding:16px 18px;border:1.5px solid #f5e2b8;display:flex;gap:12px;align-items:flex-start}
+.msg-box .ico{font-size:28px;color:#f5a623;flex-shrink:0}
+.msg-box h3{margin:0 0 4px;font:800 12.5px/1 var(--font-d);color:#f5a623}
+.msg-box p{margin:0;font:500 10.5px/1.55 var(--font);color:var(--c-ink-soft)}
+
+/* ─── FOOTER ─── */
+.footer-bar{background:linear-gradient(90deg,#4a8cc4,#5fb53f);color:#fff;padding:10px 24px;border-radius:99px;text-align:center;
+  font:600 11px/1.4 var(--font);margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.footer-bar .star{font-size:14px}
+.footer-bar .l4-mini{background:#fff;color:#f5a623;padding:3px 8px;border-radius:99px;font-weight:800;font-size:9.5px}
+.report-meta{margin-top:8px;display:flex;justify-content:space-between;font:500 9.5px/1.4 var(--font);color:var(--c-mute);padding:0 8px}
+.report-meta .signature{display:inline-block;border-bottom:1px dashed var(--c-mute);min-width:140px}
+
+/* ─── WORKSPACE (GV input — hidden on print) ─── */
+.workspace{margin-top:24px;background:#fffaef;border:2px dashed #f0c080;border-radius:14px;padding:18px 22px}
+.workspace h3{margin:0 0 12px;font:800 14px/1 var(--font-d);color:#a44400}
+.workspace .ws-note{font:500 11px/1.5 var(--font);color:var(--c-mute);margin-bottom:14px}
+.ws-table{width:100%;border-collapse:collapse;font:500 11.5px/1.4 var(--font)}
+.ws-table th{background:#f5e2b8;padding:8px 10px;text-align:left;font:700 11px/1 var(--font);color:#7a4a10}
+.ws-table th.num{text-align:center}
+.ws-table td{padding:6px 10px;border-bottom:1px solid #f0e0c0;background:#fff}
+.ws-table td.num{text-align:center;font-weight:700}
+.ws-table input[type="number"]{width:55px;padding:4px 6px;border:1px solid #f0c080;border-radius:6px;text-align:center;font:700 12px/1 var(--font);color:#a44400}
+.ws-table select{padding:4px 6px;border:1px solid #f0c080;border-radius:6px;font:600 11px/1 var(--font);color:#a44400;background:#fff}
+.ws-table .max{color:var(--c-mute);font-weight:500}
+.ws-table .calc{font-weight:800;color:#5fb53f}
+.ws-total{margin-top:14px;padding:10px 14px;background:#fff3da;border-radius:10px;font:700 12.5px/1 var(--font);color:#a44400;text-align:right}
+.ws-total b{color:#df5728;font-size:15px}
+@media print{.workspace{display:none !important}}
+
+@media (max-width:900px){
+  .top-cards{grid-template-columns:1fr}
+  .wk-grid{grid-template-columns:repeat(2,1fr)}
+  .points-section, .orient-section{grid-template-columns:1fr}
+  .orient-list{grid-template-columns:1fr}
+  .report-header{flex-direction:column;gap:14px}
+}
+
+/* Toolbar (FAB) */
+#fab{position:fixed;bottom:18px;right:18px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#ffd166,#f5a623);
+  color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 6px 18px rgba(245,166,35,.4);z-index:9000}
+#fab:hover{transform:scale(1.06)}
+@media print{#fab{display:none !important}}
+</style>
+</head>
+<body>
+
+<button id="fab" onclick="document.getElementById('workspace').scrollIntoView({behavior:'smooth'})" title="Mở workspace nhập điểm">✎</button>
+
+<div class="page">
+
+<!-- ═════ HEADER ═════ -->
+<header class="report-header">
+  <div class="brand-block">
+    <div class="l4-logo">
+      <span class="big">L4</span>
+      <span class="small">Khai mở tư duy</span>
+      <span class="award">🏆</span>
+    </div>
+    <div class="title-block">
+      <h1>BÁO CÁO ĐÁNH GIÁ NĂNG LỰC ĐẦU VÀO</h1>
+      <h2>L4 – DIAGNOSTIC ASSESSMENT (5 TUỔI)</h2>
+    </div>
+  </div>
+  <div class="student-info">
+    <div class="student-avatar">👦</div>
+    <table>
+      <tr><td class="label">Họ và tên:</td><td class="value"><input id="f-name" value="Bé ABC"></td></tr>
+      <tr><td class="label">Ngày sinh:</td><td class="value"><input id="f-dob" value="01/01/2020"></td></tr>
+      <tr><td class="label">Ngày kiểm tra:</td><td class="value"><input id="f-date" value="15/05/2025"></td></tr>
+      <tr><td class="label">Lớp:</td><td class="value"><input id="f-class" value="L4"></td></tr>
+    </table>
+  </div>
+</header>
+
+<!-- ═════ TOP CARDS ROW ═════ -->
+<div class="top-cards">
+  <!-- Mã học tập nổi bật -->
+  <div class="card">
+    <span class="card-head">🏆 MÃ HỌC TẬP NỔI BẬT</span>
+    <div class="card-code">
+      <div class="code-big">
+        <div class="ko" id="top-code-ko">WK-M</div>
+        <div class="nm" id="top-code-nm">Theo mẫu – Có cấu trúc</div>
+      </div>
+      <p class="code-desc" id="top-code-desc">Đang phân tích…</p>
+    </div>
+  </div>
+
+  <!-- Tổng điểm hiệu chỉnh -->
+  <div class="card">
+    <span class="card-head" style="background:#fff3da;color:#a44400">📊 TỔNG ĐIỂM HIỆU CHỈNH</span>
+    <div class="card-total">
+      <div class="donut-total">
+        <svg viewBox="0 0 100 100" id="donut-total-svg"></svg>
+        <div class="pct"><b id="total-pct">—</b><small id="total-frac">— / 100</small></div>
+      </div>
+      <div class="grade-info">
+        <h3 id="grade-name">XẾP LOẠI: —</h3>
+        <p id="grade-desc">—</p>
+        <span class="tag" id="grade-tag">✨ —</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mức nền + Mức hỗ trợ -->
+  <div class="card card-meta">
+    <div class="meta-row">
+      <div class="icon">📊</div>
+      <div class="info">
+        <div class="lbl">Mức nền</div>
+        <div class="val"><span id="meta-grade">—</span><span class="stars" id="meta-stars">—</span></div>
+      </div>
+    </div>
+    <div class="meta-row support">
+      <div class="icon">🤝</div>
+      <div class="info">
+        <div class="lbl">Mức hỗ trợ</div>
+        <div class="val" id="meta-support">—</div>
+        <div class="sub" id="meta-support-desc">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════ KẾT QUẢ THEO NHÓM NĂNG LỰC ═════ -->
+<div class="section-title">KẾT QUẢ THEO NHÓM NĂNG LỰC</div>
+<div class="wk-grid" id="wk-grid"></div>
+
+<!-- ═════ ĐIỂM MẠNH + VÙNG CẦN PHÁT TRIỂN ═════ -->
+<div class="points-section">
+  <div class="points-box strong">
+    <div class="ico">👍</div>
+    <div>
+      <div class="label">ĐIỂM MẠNH</div>
+      <ul id="strong-list"><li>—</li></ul>
+    </div>
+  </div>
+  <div class="points-box weak">
+    <div class="ico">🎯</div>
+    <div>
+      <div class="label">VÙNG CẦN PHÁT TRIỂN</div>
+      <ul id="weak-list"><li>—</li></ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═════ ĐỊNH HƯỚNG HỌC TẬP + LỜI NHẮN GỬI ═════ -->
+<div class="orient-section">
+  <div class="orient-box">
+    <h3>ĐỊNH HƯỚNG HỌC TẬP</h3>
+    <div class="orient-list" id="orient-list">
+      <div class="orient-item"><div class="ico">📖</div><div class="text"><b>Phương pháp phù hợp</b>—</div></div>
+      <div class="orient-item"><div class="ico">💪</div><div class="text"><b>Rèn luyện tư duy</b>—</div></div>
+      <div class="orient-item"><div class="ico">🌱</div><div class="text"><b>Phát triển sáng tạo</b>—</div></div>
+      <div class="orient-item"><div class="ico">👨‍👩‍👧</div><div class="text"><b>Đồng hành tại nhà</b>—</div></div>
+    </div>
+  </div>
+  <div class="msg-box">
+    <div class="ico">♥</div>
+    <div>
+      <h3>Lời nhắn gửi</h3>
+      <p id="parent-msg">Mỗi bé có tốc độ và cách học riêng. Với sự đồng hành và môi trường học tập tích cực, bé sẽ ngày càng tự tin, tư duy tốt hơn và phát triển toàn diện.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═════ FOOTER BAR ═════ -->
+<div class="footer-bar">
+  <span class="star">★</span>
+  <span>L4 luôn đồng hành cùng ba mẹ trên hành trình khai mở tư duy và phát triển tiềm năng của bé!</span>
+  <span class="l4-mini">L4</span>
+</div>
+<div class="report-meta">
+  <span>* Báo cáo được tổng hợp dựa trên bài kiểm tra đầu vào ngày <b id="meta-date">15/05/2025</b></span>
+  <span>Giáo viên đánh giá <span class="signature">_______________</span></span>
+</div>
+
+<!-- ═════ WORKSPACE — GV input điểm + mức hỗ trợ per bài ═════ -->
+<div class="workspace" id="workspace">
+  <h3>✎ Workspace nhập điểm (14 bài)</h3>
+  <p class="ws-note">GV nhập <b>Điểm đạt</b> + <b>Mức hỗ trợ</b> cho từng bài. Hệ thống tự tính điểm hiệu chỉnh = Điểm đạt × Hệ số(H).</p>
+  <table class="ws-table">
+    <thead>
+      <tr>
+        <th class="num">Bài</th>
+        <th>Nội dung đo</th>
+        <th class="num">Max</th>
+        <th class="num">Điểm đạt</th>
+        <th class="num">Mức hỗ trợ</th>
+        <th class="num">Điểm hiệu chỉnh</th>
+      </tr>
+    </thead>
+    <tbody id="ws-tbody"></tbody>
+  </table>
+  <div class="ws-total">
+    Tổng điểm hiệu chỉnh: <b id="ws-total">— / 100</b>
+  </div>
+</div>
+
+</div><!-- /.page -->
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   L4 v2 — Data Model + Engine
+   ═══════════════════════════════════════════════════════════════ */
+
+// 14 bài: nội dung + max + WK codes (overlap OK)
+const __BAI_L4V2 = [
+  {bai:1,  name:'Sao chép hình khối giống ví dụ',                       max:6, wk:['WK-V'],          rubric:'Đúng cấu trúc khối 3D: 3đ, giữ được cạnh/mặt chính: 2đ, bố cục rõ: 1đ'},
+  {bai:2,  name:'Nối số 1–10 theo thứ tự hình tròn, tam giác, vuông',   max:7, wk:['WK-M'],          rubric:'Nhận diện số: 2đ, đúng thứ tự 1–10: 3đ, đúng quy luật hình: 2đ'},
+  {bai:3,  name:'Nghe số và viết lại xuôi/ngược',                       max:8, wk:['WK-R'],          rubric:'Xuôi 3 dãy đúng: 4đ, ngược 3 dãy đúng: 4đ'},
+  {bai:4,  name:'So sánh hai thẻ theo kích thước, hình dạng, số lượng', max:6, wk:['WK-V','WK-M'],  rubric:'Mỗi tiêu chuẩn đúng: 2đ (kích thước / hình dạng / số lượng)'},
+  {bai:5,  name:'Khoanh hình phù hợp với nhóm bên trái',                max:8, wk:['WK-V','WK-M'],  rubric:'4 hàng × 2đ: nhận ra nhóm 1đ, chọn đúng hình 1đ'},
+  {bai:6,  name:'Ghép mảnh phía trên với hình tạo thành phía dưới',    max:7, wk:['WK-V','WK-R'],  rubric:'Mỗi cặp đúng (ưu tiên khả năng xoay hình và tổng hợp hình ảnh)'},
+  {bai:7,  name:'Hiểu mệnh lệnh vị trí và nối hình đúng',               max:6, wk:['WK-R'],          rubric:'Mỗi vật đúng vị trí: 1.5đ (trên / giữa / bên cạnh)'},
+  {bai:8,  name:'Nối các thẻ để tạo tổng bằng 10',                      max:6, wk:['WK-R'],          rubric:'Mỗi cặp đúng: 1.5đ. Bonus nếu bé loại trừ số không có cặp'},
+  {bai:9,  name:'Ghép khối để tạo hình bên dưới',                       max:7, wk:['WK-V'],          rubric:'Mỗi cặp đúng — đo tư duy không gian + phân tích cấu trúc'},
+  {bai:10, name:'Sắp xếp chìa khóa từ dài nhất đến ngắn nhất',          max:5, wk:['WK-V','WK-M'],  rubric:'Đúng toàn bộ: 5đ, sai 1 vị trí: 3-4đ, chỉ nhận ra dài/ngắn: 2đ'},
+  {bai:11, name:'Nhận diện kiểu mẫu số và chọn số tiếp theo',           max:8, wk:['WK-M','WK-R'],  rubric:'4 dãy × 2đ: nhận ra chu kỳ 1đ, chọn đúng số tiếp 1đ'},
+  {bai:12, name:'Đếm, biểu đồ, xếp thứ tự yêu thích giảm dần',          max:8, wk:['WK-R'],          rubric:'Đếm đúng: 3đ, khoanh biểu đồ đúng: 3đ, xếp hạng giảm dần: 2đ'},
+  {bai:13, name:'Sáng tạo hình từ chữ "S"',                             max:9, wk:['WK-X'],          rubric:'Trôi chảy: 3đ, linh hoạt: 3đ, độc đáo: 2đ, chính xác: 2đ'},
+  {bai:14, name:'Sáng tạo hình từ số "11"',                             max:9, wk:['WK-X'],          rubric:'Trôi chảy: 3đ, linh hoạt: 3đ, độc đáo: 2đ, chính xác: 2đ'},
+];
+
+// 5 mã WK
+const __WK_CODES = {
+  'WK-V': {emoji:'👁', name:'Trực quan – thao tác',  color:'#6ba66b',
+           desc:'Bé tiếp thu tốt khi học qua hình ảnh, vật thật và thao tác trực tiếp. Khi bài học rõ ràng có minh họa cụ thể, bé thường tham gia tốt và xử lý nhiệm vụ ổn định hơn.',
+           strong:['Nhận diện hình ảnh, phân loại và so sánh tốt.','Tiếp thu hiệu quả qua vật thật, tranh ảnh và thao tác trực quan.','Làm tốt các bài ghép hình, phân loại và so sánh.'],
+           weak:['Quan sát kỹ đặc điểm hình ảnh trước khi chọn đáp án.','Rèn thêm kỹ năng so sánh, phân loại và ghép hình trực quan.','Tập đối chiếu với mẫu để tăng độ chính xác khi làm bài.']},
+  'WK-M': {emoji:'📋', name:'Theo mẫu – có cấu trúc', color:'#4a8cc4',
+           desc:'Bé học tốt khi có ví dụ mẫu và từng bước hướng dẫn rõ ràng. Với dạng bài quen thuộc, bé có thể hoàn thành khá ổn, nhưng cần thêm thời gian để tự xử lý bài mới.',
+           strong:['Làm tốt khi có ví dụ mẫu hoặc hướng dẫn rõ ràng.','Biết thực hiện nhiệm vụ theo trình tự ổn định.','Ghi nhớ và áp dụng quy tắc quen thuộc khá tốt.'],
+           weak:['Rèn thói quen quan sát ví dụ mẫu trước khi bắt đầu.','Luyện làm bài theo từng bước để giữ đúng yêu cầu.','Tăng khả năng chuyển từ bài mẫu sang bài tương tự.']},
+  'WK-R': {emoji:'💡', name:'Suy luận từng bước',    color:'#f0a230',
+           desc:'Bé có khả năng suy luận và xử lý bài theo trình tự. Khi được hướng dẫn đúng cách, bé có thể kết nối dữ kiện, nhận ra quy luật và giải quyết nhiệm vụ có nhiều bước.',
+           strong:['Biết kết nối dữ kiện và xử lý bài theo từng bước.','Làm tốt các bài quy luật, trình tự và bài nhiều dữ kiện.','Có khả năng suy nghĩ logic trước khi chọn đáp án.'],
+           weak:['Rèn suy luận từng bước với bài quy luật, trình tự và tạo tổng.','Tăng khả năng xử lý nhiều dữ kiện trước khi chọn đáp án.','Luyện thói quen giải thích ngắn và kiểm tra lại kết quả.']},
+  'WK-X': {emoji:'🚀', name:'Linh hoạt – khám phá',  color:'#9966cc',
+           desc:'Bé có xu hướng linh hoạt, thích khám phá và thử nhiều cách làm. Đây là điểm mạnh tốt, nhưng cần rèn thêm thói quen quan sát kỹ, kiểm tra lại và hoàn thiện nhiệm vụ chính xác hơn.',
+           strong:['Có nhiều ý tưởng khi gặp nhiệm vụ mở.','Biết biến đổi hình gợi ý thành sản phẩm sáng tạo.','Chủ động thử cách làm mới và thể hiện sự tưởng tượng tốt.'],
+           weak:['Khuyến khích bé thử nhiều ý tưởng khác nhau từ cùng một hình gợi ý.','Tăng hoạt động vẽ tiếp hình, kể chuyện từ tranh và đặt tên cho sản phẩm.','Rèn sự tự tin khi trình bày ý tưởng, không chỉ tập trung vào đúng – sai.']},
+  'WK-F': {emoji:'🛡', name:'Cần củng cố nền tảng',  color:'#a4886a',
+           desc:'Bé cần được củng cố thêm nền tảng học tập như hiểu yêu cầu, phân loại, so sánh, ghi nhớ, quy luật và duy trì sự tập trung. Giai đoạn này nên ưu tiên bài học ngắn, trực quan, có hỗ trợ rõ.',
+           strong:[],
+           weak:['Củng cố khả năng hiểu yêu cầu, duy trì chú ý và hoàn thành nhiệm vụ ngắn.','Tăng hoạt động trực quan, vật thật và trò chơi học tập có hướng dẫn rõ.','Luyện từng bước nhỏ để bé ổn định nền học tập trước khi tăng độ khó.']},
+};
+
+// Hệ số mức hỗ trợ
+const __H_MULT = {H0:1.0, H1:0.9, H2:0.75, H3:0.55, H4:0.3};
+const __H_DESC = {
+  H0:'Bé tự hiểu yêu cầu và tự làm',
+  H1:'Giáo viên chỉ nhắc lại đề, không gợi ý cách làm',
+  H2:'Giáo viên gợi ý nhẹ hướng quan sát hoặc bước đầu',
+  H3:'Giáo viên làm mẫu một phần hoặc hướng dẫn từng bước',
+  H4:'Giáo viên phải làm cùng, bé phụ thuộc nhiều',
+};
+
+// State
+const __scoresL4v2 = {};
+__BAI_L4V2.forEach(b => { __scoresL4v2[b.bai] = {diem: 0, h: 'H1'}; });
+
+// Load demo data (matching xlsx Sheet 2)
+const __DEMO = {
+  1:{diem:4,h:'H1'},  2:{diem:6,h:'H1'},  3:{diem:4,h:'H2'},  4:{diem:6,h:'H2'},
+  5:{diem:5,h:'H1'},  6:{diem:2,h:'H1'},  7:{diem:4,h:'H1'},  8:{diem:5,h:'H1'},
+  9:{diem:7,h:'H1'}, 10:{diem:4,h:'H1'}, 11:{diem:8,h:'H1'}, 12:{diem:6,h:'H1'},
+ 13:{diem:3,h:'H1'}, 14:{diem:6,h:'H1'},
+};
+
+function _restoreState(){
+  try{
+    const s = localStorage.getItem('mg-l4v2-scores');
+    if(s){
+      const obj = JSON.parse(s);
+      Object.keys(obj).forEach(k => {
+        if(__scoresL4v2[k]) __scoresL4v2[k] = obj[k];
+      });
+      return true;
+    }
+  }catch(_){}
+  // No saved state -> load demo
+  Object.assign(__scoresL4v2, __DEMO);
+  return false;
+}
+
+function _saveState(){
+  try{ localStorage.setItem('mg-l4v2-scores', JSON.stringify(__scoresL4v2)); }catch(_){}
+}
+
+/* ─── Aggregation ─── */
+function aggregateL4v2(){
+  // Per Bài: điểm đạt × hệ số H = điểm hiệu chỉnh
+  const perBai = {};
+  __BAI_L4V2.forEach(b => {
+    const s = __scoresL4v2[b.bai] || {diem:0, h:'H1'};
+    const diem = Math.min(+s.diem || 0, b.max);
+    const mult = __H_MULT[s.h] || 1;
+    perBai[b.bai] = {
+      diem, h: s.h, mult,
+      adjusted: diem * mult,
+      max: b.max,
+    };
+  });
+
+  // Per WK code: sum
+  const perWK = {};
+  ['WK-V','WK-M','WK-R','WK-X'].forEach(wk => {
+    let sumAdj = 0, sumMax = 0;
+    const cauList = [];
+    __BAI_L4V2.forEach(b => {
+      if(b.wk.includes(wk)){
+        sumAdj += perBai[b.bai].adjusted;
+        sumMax += b.max;
+        cauList.push(b.bai);
+      }
+    });
+    perWK[wk] = {
+      adjusted: sumAdj, max: sumMax,
+      pct: sumMax > 0 ? (sumAdj / sumMax * 100) : 0,
+      cau: cauList,
+    };
+  });
+
+  // Tổng điểm hiệu chỉnh
+  const totalAdj = Object.values(perBai).reduce((a, p) => a + p.adjusted, 0);
+  const totalMax = __BAI_L4V2.reduce((a, b) => a + b.max, 0);
+  const totalPct = totalMax > 0 ? (totalAdj / totalMax * 100) : 0;
+
+  // Average H level
+  const hCounts = {};
+  Object.values(perBai).forEach(p => { hCounts[p.h] = (hCounts[p.h] || 0) + 1; });
+  // Most common H + adjacent (vd "H1-H2")
+  const sortedH = Object.entries(hCounts).sort((a,b) => b[1] - a[1]);
+  const topH = sortedH.slice(0, 2).map(x => x[0]).sort();
+  const supportLabel = topH.length === 1 ? topH[0] : topH[0] + '-' + topH[1];
+
+  // Count H3/H4 → for WK-F check
+  const hHardCount = (hCounts['H3'] || 0) + (hCounts['H4'] || 0);
+
+  // Mức nền (grade name)
+  const grade = totalPct >= 75 ? 'Tốt'
+              : totalPct >= 60 ? 'Khá'
+              : totalPct >= 45 ? 'Trung bình'
+              : 'Cần củng cố';
+  const stars = totalPct >= 75 ? '★★★★' : totalPct >= 60 ? '★★★' : totalPct >= 45 ? '★★' : '★';
+
+  // Select primary code (rule: WK-F first, then highest)
+  let primaryCode;
+  if(totalPct < 45 || hHardCount >= 3){
+    primaryCode = 'WK-F';
+  } else {
+    const sortedWK = Object.entries(perWK).sort((a,b) => b[1].pct - a[1].pct);
+    primaryCode = sortedWK[0][0];
+  }
+
+  return {
+    perBai, perWK,
+    totalAdj, totalMax, totalPct,
+    supportLabel, hCounts,
+    grade, stars,
+    primaryCode,
+  };
+}
+
+/* ─── Render workspace ─── */
+function renderWorkspace(){
+  const tb = document.getElementById('ws-tbody');
+  if(!tb) return;
+  let html = '';
+  __BAI_L4V2.forEach(b => {
+    const s = __scoresL4v2[b.bai];
+    const adj = (s.diem || 0) * (__H_MULT[s.h] || 1);
+    html += '<tr>';
+    html += '<td class="num">' + b.bai + '</td>';
+    html += '<td>' + b.name + '<br><span style="font-size:10px;color:#999">' + b.rubric + '</span></td>';
+    html += '<td class="num max">' + b.max + '</td>';
+    html += '<td class="num"><input type="number" min="0" max="' + b.max + '" step="0.5" value="' + (s.diem || 0) + '" onchange="_updateScore(' + b.bai + ', \'diem\', this.value)"></td>';
+    html += '<td class="num"><select onchange="_updateScore(' + b.bai + ', \'h\', this.value)">';
+    ['H0','H1','H2','H3','H4'].forEach(h => {
+      const sel = s.h === h ? ' selected' : '';
+      html += '<option value="' + h + '"' + sel + '>' + h + ' (' + (__H_MULT[h]*100) + '%)</option>';
+    });
+    html += '</select></td>';
+    html += '<td class="num calc">' + (Math.round(adj * 10) / 10) + '</td>';
+    html += '</tr>';
+  });
+  tb.innerHTML = html;
+  const total = Object.values(__scoresL4v2).reduce((a, s) => {
+    const b = __BAI_L4V2.find(x => x.bai == _findBaiKey(s));
+    return a;
+  }, 0);
+  // Actually compute total from aggregate
+  const agg = aggregateL4v2();
+  document.getElementById('ws-total').textContent =
+    (Math.round(agg.totalAdj * 10) / 10) + ' / ' + agg.totalMax;
+}
+
+function _findBaiKey(scoreObj){
+  for(const k in __scoresL4v2){
+    if(__scoresL4v2[k] === scoreObj) return k;
+  }
+}
+
+window._updateScore = function(bai, field, value){
+  if(!__scoresL4v2[bai]) __scoresL4v2[bai] = {diem:0, h:'H1'};
+  if(field === 'diem') __scoresL4v2[bai].diem = Math.max(0, +value || 0);
+  else __scoresL4v2[bai].h = value;
+  _saveState();
+  renderAll();
+};
+
+/* ─── Render donut SVG ─── */
+function _donutSVG(pct, color, size){
+  size = size || 100;
+  const r = 38, cx = 50, cy = 50;
+  const C = 2 * Math.PI * r;
+  const dashLen = (pct / 100) * C;
+  return `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#f0e8d8" stroke-width="9"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="9"
+      stroke-dasharray="${dashLen} ${C}" stroke-dashoffset="0"
+      transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>
+  `;
+}
+
+/* ─── Render WK grid (5 cards) ─── */
+function renderWKGrid(agg){
+  const grid = document.getElementById('wk-grid');
+  if(!grid) return;
+  const codes = [
+    {key:'WK-V', cls:'v'},
+    {key:'WK-M', cls:'m'},
+    {key:'WK-R', cls:'r'},
+    {key:'WK-X', cls:'x'},
+    {key:'WK-F', cls:'f'},
+  ];
+  let html = '';
+  codes.forEach(({key, cls}) => {
+    const cfg = __WK_CODES[key];
+    if(key === 'WK-F'){
+      const isFallback = agg.primaryCode === 'WK-F';
+      html += '<div class="wk-card f">';
+      html += '<div class="head">' + cfg.emoji + ' ' + key + '</div>';
+      html += '<div class="name">' + cfg.name + '</div>';
+      html += '<div class="wk-donut">' + (isFallback ? '⚠' : '🛡') + '</div>';
+      html += '<div class="cmt">' + (isFallback ? 'Bé thuộc nhóm cần củng cố nền tảng.' : 'Bé chưa rơi vào nhóm cần củng cố nền tảng. Hãy tiếp tục duy trì và phát triển.') + '</div>';
+      html += '</div>';
+      return;
+    }
+    const d = agg.perWK[key];
+    const pct = Math.round(d.pct * 10) / 10;
+    const adj = Math.round(d.adjusted * 10) / 10;
+    html += `<div class="wk-card ${cls}">`;
+    html += `<div class="head">${cfg.emoji} ${key}</div>`;
+    html += `<div class="name">${cfg.name}</div>`;
+    html += `<div class="wk-donut"><svg viewBox="0 0 100 100">${_donutSVG(d.pct, cfg.color, 96)}</svg><div class="center">${pct}%</div></div>`;
+    html += `<div class="score">${adj} / ${d.max} điểm</div>`;
+    html += `<div class="cau-list">Các câu: ${d.cau.join(', ')}</div>`;
+    html += `<div class="cmt">${_genWKComment(key, d.pct)}</div>`;
+    html += `</div>`;
+  });
+  grid.innerHTML = html;
+}
+
+function _genWKComment(key, pct){
+  const lvl = pct >= 75 ? 'tốt' : pct >= 60 ? 'khá' : pct >= 45 ? 'trung bình' : 'cần luyện thêm';
+  const short = {
+    'WK-V':'quan sát và thao tác trực quan',
+    'WK-M':'làm theo mẫu và quy trình',
+    'WK-R':'suy luận từng bước và xử lý nhiều dữ kiện',
+    'WK-X':'sáng tạo và mở rộng ý tưởng',
+  };
+  return 'Khả năng ' + short[key] + ' ở mức <b>' + lvl + '</b>.';
+}
+
+/* ─── Render top cards ─── */
+function renderTopCards(agg){
+  // Primary code
+  const code = agg.primaryCode;
+  const cfg = __WK_CODES[code];
+  document.getElementById('top-code-ko').textContent = code;
+  document.getElementById('top-code-nm').textContent = cfg.name;
+  document.getElementById('top-code-desc').textContent = cfg.desc;
+  // Change color of code-big based on code
+  const cb = document.querySelector('.code-big');
+  if(cb){
+    const gradient = {
+      'WK-V':'linear-gradient(135deg,#7ed957,#5fb53f)',
+      'WK-M':'linear-gradient(135deg,#7cc4e8,#4a8cc4)',
+      'WK-R':'linear-gradient(135deg,#ffd166,#f0a230)',
+      'WK-X':'linear-gradient(135deg,#c4a4e0,#9966cc)',
+      'WK-F':'linear-gradient(135deg,#c9b58c,#a4886a)',
+    };
+    cb.style.background = gradient[code] || gradient['WK-M'];
+  }
+
+  // Total
+  const totalPct = Math.round(agg.totalPct * 10) / 10;
+  const totalAdj = Math.round(agg.totalAdj * 10) / 10;
+  document.getElementById('total-pct').textContent = totalPct.toFixed(1).replace('.', ',');
+  document.getElementById('total-frac').textContent = totalAdj + ' / ' + agg.totalMax;
+  const totalColor = totalPct >= 75 ? '#5fb53f' : totalPct >= 60 ? '#4a8cc4' : totalPct >= 45 ? '#f5a623' : '#df5728';
+  document.getElementById('donut-total-svg').innerHTML = _donutSVG(totalPct, totalColor, 120);
+  document.getElementById('grade-name').textContent = 'XẾP LOẠI: ' + agg.grade.toUpperCase();
+  document.getElementById('grade-name').style.color = totalColor;
+  const desc = totalPct >= 75
+    ? 'Bé có nền tảng học tập rất tốt. Tiếp tục duy trì và phát triển toàn diện.'
+    : totalPct >= 60
+    ? 'Bé có nền tảng học tập tốt. Cần rèn thêm khả năng suy luận độc lập và sáng tạo linh hoạt để phát huy tối đa tiềm năng.'
+    : totalPct >= 45
+    ? 'Bé đang trong giai đoạn hình thành nền tảng. Cần kiên trì luyện tập thêm với bài học ngắn và trực quan.'
+    : 'Bé cần được củng cố nền tảng học tập ngay. Ưu tiên bài học đơn giản, có hỗ trợ rõ ràng.';
+  document.getElementById('grade-desc').textContent = desc;
+  const tag = totalPct >= 75 ? '✨ Phát triển tốt – Có thể thử thách cao hơn'
+            : totalPct >= 60 ? '✨ Nền tảng tốt – Tiềm năng phát triển cao'
+            : totalPct >= 45 ? '🌱 Đang phát triển – Cần đồng hành'
+            : '🛡 Cần củng cố nền tảng';
+  document.getElementById('grade-tag').textContent = tag;
+
+  // Meta
+  document.getElementById('meta-grade').textContent = agg.grade;
+  document.getElementById('meta-stars').textContent = agg.stars;
+  document.getElementById('meta-support').textContent = agg.supportLabel;
+  const supportDesc = agg.supportLabel.includes('-')
+    ? __H_DESC[agg.supportLabel.split('-')[0]] + ' / ' + __H_DESC[agg.supportLabel.split('-')[1]].toLowerCase()
+    : __H_DESC[agg.supportLabel];
+  document.getElementById('meta-support-desc').textContent = supportDesc;
+}
+
+/* ─── Render strong/weak lists ─── */
+function renderPoints(agg){
+  const primary = __WK_CODES[agg.primaryCode];
+  // Strong: bullets from primary + top 2 WK codes
+  const sortedWK = Object.entries(agg.perWK).sort((a,b) => b[1].pct - a[1].pct);
+  const strongBullets = new Set();
+  sortedWK.slice(0, 2).forEach(([k]) => {
+    __WK_CODES[k].strong.slice(0, 2).forEach(s => strongBullets.add(s));
+  });
+  if(strongBullets.size === 0){
+    strongBullets.add('Nền tảng toán học cơ bản phù hợp độ tuổi.');
+  }
+  document.getElementById('strong-list').innerHTML =
+    [...strongBullets].slice(0, 4).map(s => '<li>' + s + '</li>').join('');
+
+  // Weak: bullets from weakest 2 WK codes
+  const weakBullets = new Set();
+  sortedWK.slice(-2).forEach(([k]) => {
+    __WK_CODES[k].weak.slice(0, 2).forEach(w => weakBullets.add(w));
+  });
+  document.getElementById('weak-list').innerHTML =
+    [...weakBullets].slice(0, 4).map(w => '<li>' + w + '</li>').join('');
+}
+
+/* ─── Render định hướng học tập ─── */
+function renderOrientation(agg){
+  const code = agg.primaryCode;
+  const orientList = document.getElementById('orient-list');
+  if(!orientList) return;
+  const methodMap = {
+    'WK-V':{phuong:'Ưu tiên bài học có vật thật, hình ảnh minh hoạ, thao tác trực tiếp.',
+            tu_duy:'Tăng bài quan sát, so sánh, phân loại để rèn xử lý chính xác.',
+            sang_tao:'Khuyến khích bé vẽ, kể chuyện theo tranh, tạo hình từ vật liệu sẵn có.',
+            dong_hanh:'Ba mẹ có thể cùng bé chơi ghép hình, sắp xếp, đố vui hình ảnh.'},
+    'WK-M':{phuong:'Ưu tiên bài học có ví dụ mẫu, hình ảnh minh hoạ, cấu trúc rõ ràng, sau đó tăng dần độ mở.',
+            tu_duy:'Tăng bài suy luận, quy luật, giải quyết vấn đề nhiều bước bằng các tình huống gần gũi.',
+            sang_tao:'Khuyến khích bé vẽ, kể chuyện, mô tả hình, biến đổi ý tưởng từ các hình đơn giản.',
+            dong_hanh:'Ba mẹ có thể cùng bé chơi trò ghép hình, sắp xếp, tìm quy luật, đọc truyện và đặt câu hỏi gợi mở.'},
+    'WK-R':{phuong:'Ưu tiên bài có nhiều bước, có dữ kiện rõ, khuyến khích bé giải thích cách làm.',
+            tu_duy:'Tăng bài quy luật, trình tự, bài toán có lời văn nhiều bước.',
+            sang_tao:'Khuyến khích bé tự đặt câu hỏi "vì sao" và thử nhiều cách giải.',
+            dong_hanh:'Ba mẹ có thể cùng bé đố vui logic, kể chuyện ngược, giải đố nhiều bước.'},
+    'WK-X':{phuong:'Ưu tiên bài mở để bé thử nhiều cách, kết hợp với bài có cấu trúc để rèn chính xác.',
+            tu_duy:'Tăng bài quan sát kỹ và kiểm tra lại kết quả trước khi nộp.',
+            sang_tao:'Khuyến khích bé phát triển nhiều ý tưởng từ 1 hình gợi ý, đặt tên cho sản phẩm.',
+            dong_hanh:'Ba mẹ tham gia trò chơi sáng tạo, hỏi "còn cách nào khác?" sau mỗi câu trả lời.'},
+    'WK-F':{phuong:'Ưu tiên bài học ngắn, đơn giản, có hỗ trợ rõ. Tăng dần độ khó từng bước.',
+            tu_duy:'Củng cố hiểu yêu cầu, duy trì chú ý, làm theo hướng dẫn.',
+            sang_tao:'Khuyến khích bé vẽ, tô màu, kể chuyện đơn giản theo gợi ý.',
+            dong_hanh:'Ba mẹ kiên trì cùng bé, ưu tiên niềm vui hơn kết quả, ghi nhận từng tiến bộ nhỏ.'},
+  };
+  const m = methodMap[code] || methodMap['WK-M'];
+  orientList.innerHTML = `
+    <div class="orient-item"><div class="ico">📖</div><div class="text"><b>Phương pháp phù hợp</b>${m.phuong}</div></div>
+    <div class="orient-item"><div class="ico">💪</div><div class="text"><b>Rèn luyện tư duy</b>${m.tu_duy}</div></div>
+    <div class="orient-item"><div class="ico">🌱</div><div class="text"><b>Phát triển sáng tạo</b>${m.sang_tao}</div></div>
+    <div class="orient-item"><div class="ico">👨‍👩‍👧</div><div class="text"><b>Đồng hành tại nhà</b>${m.dong_hanh}</div></div>
+  `;
+}
+
+/* ─── Render meta date ─── */
+function renderMeta(){
+  const dateEl = document.getElementById('meta-date');
+  const inDate = document.getElementById('f-date');
+  if(dateEl && inDate) dateEl.textContent = inDate.value;
+}
+
+/* ─── Main render orchestrator ─── */
+function renderAll(){
+  const agg = aggregateL4v2();
+  renderTopCards(agg);
+  renderWKGrid(agg);
+  renderPoints(agg);
+  renderOrientation(agg);
+  renderMeta();
+  renderWorkspace();
+}
+
+// Initial load
+_restoreState();
+document.addEventListener('DOMContentLoaded', () => {
+  renderAll();
+  // Auto-save info fields on change
+  ['f-name','f-dob','f-date','f-class'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', () => {
+      try{
+        localStorage.setItem('mg-l4v2-info', JSON.stringify({
+          name: document.getElementById('f-name').value,
+          dob: document.getElementById('f-dob').value,
+          date: document.getElementById('f-date').value,
+          class: document.getElementById('f-class').value,
+        }));
+      }catch(_){}
+      renderMeta();
+    });
+  });
+  // Restore info
+  try{
+    const inf = JSON.parse(localStorage.getItem('mg-l4v2-info') || '{}');
+    if(inf.name) document.getElementById('f-name').value = inf.name;
+    if(inf.dob) document.getElementById('f-dob').value = inf.dob;
+    if(inf.date) document.getElementById('f-date').value = inf.date;
+    if(inf.class) document.getElementById('f-class').value = inf.class;
+    renderMeta();
+  }catch(_){}
+});
+</script>
+</body>
+</html>
