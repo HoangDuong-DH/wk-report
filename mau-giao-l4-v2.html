@@ -72,7 +72,10 @@ body{background:linear-gradient(180deg,#fff5e3,#fff);padding:0;min-height:100vh}
 .student-avatar{
   width:54px;height:54px;border-radius:50%;background:#dcecf6;
   display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;
+  transition:background .25s ease;
 }
+.student-avatar.female{background:#fde2e8}
+.student-avatar.male{background:#dcecf6}
 .student-info table{border-collapse:collapse;font-size:11.5px}
 .student-info td{padding:1px 6px 1px 0}
 .student-info td.label{color:var(--c-mute);font-weight:500}
@@ -385,9 +388,16 @@ body.parent-mode #parent-exit-fab{display:inline-flex !important}
     </div>
   </div>
   <div class="student-info">
-    <div class="student-avatar">👦</div>
+    <div class="student-avatar" id="student-avatar">👦</div>
     <table>
       <tr><td class="label">Họ và tên:</td><td class="value"><input id="f-name" value="Bé ABC"></td></tr>
+      <tr><td class="label">Mã học tập:</td><td class="value"><input id="f-code" placeholder="(để trống nếu chưa có)"></td></tr>
+      <tr><td class="label">Giới tính:</td><td class="value">
+        <select id="f-gender" onchange="updateAvatar()" style="border:none;background:transparent;font:inherit;color:inherit;padding:0;outline:none;cursor:pointer">
+          <option value="Nam">Nam</option>
+          <option value="Nữ">Nữ</option>
+        </select>
+      </td></tr>
       <tr><td class="label">Ngày sinh:</td><td class="value"><input id="f-dob" value="01/01/2020"></td></tr>
       <tr><td class="label">Ngày kiểm tra:</td><td class="value"><input id="f-date" value="15/05/2025"></td></tr>
       <tr><td class="label">Lớp:</td><td class="value"><input id="f-class" value="L4"></td></tr>
@@ -615,7 +625,7 @@ const __DEMO = {
   9:{diem:7,h:'H1'}, 10:{diem:4,h:'H1'}, 11:{diem:8,h:'H1'}, 12:{diem:6,h:'H1'},
  13:{diem:3,h:'H1'}, 14:{diem:6,h:'H1'},
 };
-const __DEMO_INFO = {name:'An Nguyên', dob:'01/01/2020', date:'15/05/2025', class:'L4'};
+const __DEMO_INFO = {name:'An Nguyên', code:'', gender:'Nam', dob:'01/01/2020', date:'15/05/2025', class:'L4'};
 
 /* ─── Toast notification ─── */
 function showToast(msg, color){
@@ -808,11 +818,11 @@ function importBackup(ev){
       if(!confirm('Khôi phục data từ backup (' + obj.exportedAt + ')?\nDữ liệu hiện tại sẽ bị ghi đè.')) return;
       Object.assign(__scoresL4v2, obj.scores);
       if(obj.info){
-        ['name','dob','date','class'].forEach(k => {
+        ['name','code','gender','dob','date','class'].forEach(k => {
           const el = document.getElementById('f-' + k);
-          if(el && obj.info[k]) el.value = obj.info[k];
+          if(el && obj.info[k] != null) el.value = obj.info[k];
         });
-        saveInfo();
+        updateAvatar();
       }
       _saveState();
       renderAll();
@@ -830,11 +840,11 @@ function resetData(){
   if(!confirm('Xóa data hiện tại và reset về demo "An Nguyên"?\n\nNếu cần giữ data, bấm Backup trước.')) return;
   try{ localStorage.removeItem('mg-l4v2-scores'); localStorage.removeItem('mg-l4v2-info'); }catch(_){}
   Object.assign(__scoresL4v2, __DEMO);
-  ['name','dob','date','class'].forEach(k => {
+  ['name','code','gender','dob','date','class'].forEach(k => {
     const el = document.getElementById('f-' + k);
     if(el) el.value = __DEMO_INFO[k] || '';
   });
-  saveInfo();
+  updateAvatar();
   renderAll();
   showToast('✓ Đã reset về demo data');
 }
@@ -853,12 +863,29 @@ function saveInfo(){
   try{
     localStorage.setItem('mg-l4v2-info', JSON.stringify({
       name: document.getElementById('f-name').value,
+      code: document.getElementById('f-code').value,
+      gender: document.getElementById('f-gender').value,
       dob: document.getElementById('f-dob').value,
       date: document.getElementById('f-date').value,
       class: document.getElementById('f-class').value,
     }));
     _markSaved();
   }catch(_){}
+}
+
+/* Update avatar emoji + background theo giới tính */
+function updateAvatar(){
+  const g = document.getElementById('f-gender').value;
+  const av = document.getElementById('student-avatar');
+  if(!av) return;
+  if(g === 'Nữ'){
+    av.textContent = '👧';
+    av.classList.remove('male'); av.classList.add('female');
+  } else {
+    av.textContent = '👦';
+    av.classList.remove('female'); av.classList.add('male');
+  }
+  saveInfo();
 }
 
 /* ─── Aggregation ─── */
@@ -1223,20 +1250,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // Restore info first
   try{
     const inf = JSON.parse(localStorage.getItem('mg-l4v2-info') || '{}');
-    if(inf.name) document.getElementById('f-name').value = inf.name;
-    if(inf.dob) document.getElementById('f-dob').value = inf.dob;
-    if(inf.date) document.getElementById('f-date').value = inf.date;
-    if(inf.class) document.getElementById('f-class').value = inf.class;
+    ['name','code','gender','dob','date','class'].forEach(k => {
+      const el = document.getElementById('f-' + k);
+      if(el && inf[k] != null) el.value = inf[k];
+    });
   }catch(_){}
 
   // Apply demo info if no saved (first load) — set defaults
   if(!localStorage.getItem('mg-l4v2-info')){
-    document.getElementById('f-name').value = __DEMO_INFO.name;
-    document.getElementById('f-dob').value = __DEMO_INFO.dob;
-    document.getElementById('f-date').value = __DEMO_INFO.date;
-    document.getElementById('f-class').value = __DEMO_INFO.class;
+    ['name','code','gender','dob','date','class'].forEach(k => {
+      const el = document.getElementById('f-' + k);
+      if(el) el.value = __DEMO_INFO[k] || '';
+    });
     saveInfo();
   }
+  // Update avatar based on gender
+  updateAvatar();
 
   // Restore parent mode
   if(localStorage.getItem('mg-l4v2-parent') === '1'){
