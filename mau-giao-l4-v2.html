@@ -1305,12 +1305,14 @@ function renderWKGrid(agg){
   codes.forEach(({key, cls}) => {
     const cfg = __WK_CODES[key];
     if(key === 'WK-F'){
+      // Dynamic: chỉ hiện WK-F khi bé THỰC SỰ thuộc nhóm cần củng cố (primary)
       const isFallback = agg.primaryCode === 'WK-F';
+      if(!isFallback) return; // Skip render khi bé không cần củng cố
       html += '<div class="wk-card f">';
       html += '<div class="head">' + cfg.emoji + ' ' + key + '</div>';
       html += '<div class="name">' + cfg.name + '</div>';
-      html += '<div class="wk-donut">' + (isFallback ? '⚠' : '🛡') + '</div>';
-      html += '<div class="cmt">' + (isFallback ? 'Bé thuộc nhóm cần củng cố nền tảng.' : 'Bé chưa rơi vào nhóm cần củng cố nền tảng. Hãy tiếp tục duy trì và phát triển.') + '</div>';
+      html += '<div class="wk-donut">⚠</div>';
+      html += '<div class="cmt">Bé thuộc nhóm cần củng cố nền tảng — cần được đồng hành nhiều hơn ở các hoạt động ngắn, có hỗ trợ rõ.</div>';
       html += '</div>';
       return;
     }
@@ -1324,6 +1326,9 @@ function renderWKGrid(agg){
     html += `</div>`;
   });
   grid.innerHTML = html;
+  // Dynamic columns: WK-F ẩn → 4 cards thay vì 5 — chỉnh grid auto
+  const visibleCount = grid.querySelectorAll('.wk-card').length;
+  grid.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
 }
 
 function _genWKComment(key, pct){
