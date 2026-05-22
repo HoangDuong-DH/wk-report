@@ -809,22 +809,24 @@ body.parent-mode #parent-exit-fab{display:inline-flex !important}
    L4 v2 — Data Model + Engine
    ═══════════════════════════════════════════════════════════════ */
 
-// 14 bài: nội dung + max + WK codes (overlap OK)
+// 14 bài: nội dung + max + WK codes — L3 official (4 tuổi)
+// Tổng max=100. WK shared OK (b2,b6,b7,b11 đếm 2 WK).
+// WK-V=33 (1,2,5,9,10), WK-M=37 (2,3,6,7,11), WK-R=44 (4,6,7,8,11,12), WK-X=16 (13,14)
 const __BAI_L4V2 = [
-  {bai:1,  name:'Sao chép hình khối giống ví dụ',                       max:6, wk:['WK-V'],          rubric:'Đúng cấu trúc khối 3D: 3đ, giữ được cạnh/mặt chính: 2đ, bố cục rõ: 1đ'},
-  {bai:2,  name:'Nối số 1–10 theo thứ tự hình tròn, tam giác, vuông',   max:7, wk:['WK-M'],          rubric:'Nhận diện số: 2đ, đúng thứ tự 1–10: 3đ, đúng quy luật hình: 2đ'},
-  {bai:3,  name:'Nghe số và viết lại xuôi/ngược',                       max:8, wk:['WK-R'],          rubric:'Xuôi 3 dãy đúng: 4đ, ngược 3 dãy đúng: 4đ'},
-  {bai:4,  name:'So sánh hai thẻ theo kích thước, hình dạng, số lượng', max:6, wk:['WK-V','WK-M'],  rubric:'Mỗi tiêu chuẩn đúng: 2đ (kích thước / hình dạng / số lượng)'},
-  {bai:5,  name:'Khoanh hình phù hợp với nhóm bên trái',                max:8, wk:['WK-V','WK-M'],  rubric:'4 hàng × 2đ: nhận ra nhóm 1đ, chọn đúng hình 1đ'},
-  {bai:6,  name:'Ghép mảnh phía trên với hình tạo thành phía dưới',    max:7, wk:['WK-V','WK-R'],  rubric:'Mỗi cặp đúng (ưu tiên khả năng xoay hình và tổng hợp hình ảnh)'},
-  {bai:7,  name:'Hiểu mệnh lệnh vị trí và nối hình đúng',               max:6, wk:['WK-R'],          rubric:'Mỗi vật đúng vị trí: 1.5đ (trên / giữa / bên cạnh)'},
-  {bai:8,  name:'Nối các thẻ để tạo tổng bằng 10',                      max:6, wk:['WK-R'],          rubric:'Mỗi cặp đúng: 1.5đ. Bonus nếu bé loại trừ số không có cặp'},
-  {bai:9,  name:'Ghép khối để tạo hình bên dưới',                       max:7, wk:['WK-V'],          rubric:'Mỗi cặp đúng — đo tư duy không gian + phân tích cấu trúc'},
-  {bai:10, name:'Sắp xếp chìa khóa từ dài nhất đến ngắn nhất',          max:5, wk:['WK-V','WK-M'],  rubric:'Đúng toàn bộ: 5đ, sai 1 vị trí: 3-4đ, chỉ nhận ra dài/ngắn: 2đ'},
-  {bai:11, name:'Nhận diện kiểu mẫu số và chọn số tiếp theo',           max:8, wk:['WK-M','WK-R'],  rubric:'4 dãy × 2đ: nhận ra chu kỳ 1đ, chọn đúng số tiếp 1đ'},
-  {bai:12, name:'Đếm, biểu đồ, xếp thứ tự yêu thích giảm dần',          max:8, wk:['WK-R'],          rubric:'Đếm đúng: 3đ, khoanh biểu đồ đúng: 3đ, xếp hạng giảm dần: 2đ'},
-  {bai:13, name:'Sáng tạo hình từ chữ "S"',                             max:9, wk:['WK-X'],          rubric:'Trôi chảy: 3đ, linh hoạt: 3đ, độc đáo: 2đ, chính xác: 2đ'},
-  {bai:14, name:'Sáng tạo hình từ số "11"',                             max:9, wk:['WK-X'],          rubric:'Trôi chảy: 3đ, linh hoạt: 3đ, độc đáo: 2đ, chính xác: 2đ'},
+  {bai:1,  name:'Vẽ lại hình giống mẫu',                                            max:6, wk:['WK-V'],          rubric:'Đúng hình tổng thể 3đ, khép kín và đúng số cạnh tương đối 2đ, nét vẽ rõ và bố cục ổn 1đ'},
+  {bai:2,  name:'Nối hình dạng với số theo mẫu đã cho',                              max:7, wk:['WK-V','WK-M'],  rubric:'Nhận diện số 1–10: 2đ, nối đúng hình theo mẫu: 4đ, làm đủ và không bỏ sót: 1đ'},
+  {bai:3,  name:'Nghe số, từ ngữ và khoanh đúng hình/số tương ứng',                  max:7, wk:['WK-M'],          rubric:'Nghe đúng thông tin: 3đ, khoanh đúng đối tượng: 3đ, duy trì chú ý qua nhiều lượt: 1đ'},
+  {bai:4,  name:'Phân loại người tuyết vào vùng phù hợp theo đặc điểm mũ/tay',       max:7, wk:['WK-R'],          rubric:'Phân loại đúng từng hình: 4đ, hiểu nhóm giao nhau hoặc nhiều đặc điểm: 2đ, nối rõ ràng: 1đ'},
+  {bai:5,  name:'Xếp hình vào giỏ theo đặc điểm chung',                              max:7, wk:['WK-V'],          rubric:'Nhận ra đặc điểm chung: 2đ, xếp đúng từng hình: 4đ, giải thích hoặc phản ứng hợp lý: 1đ'},
+  {bai:6,  name:'Sắp xếp trình tự sự việc từ 1 đến 4',                               max:7, wk:['WK-M','WK-R'],  rubric:'Hiểu nội dung chủ đề tranh: 1đ, đúng thứ tự tranh 1 & 4: 3đ, đúng thứ tự tranh 2 & 3: 3đ'},
+  {bai:7,  name:'Nối đồ vật vào vị trí phù hợp trong tủ lạnh theo gợi ý',            max:7, wk:['WK-M','WK-R'],  rubric:'Hiểu vị trí trên/dưới/cuối cùng: 3đ, nối đúng từng vật: 3đ, không nhầm vị trí tương quan: 1đ'},
+  {bai:8,  name:'Nối 2 thẻ để tạo tổng bằng 6',                                      max:6, wk:['WK-R'],          rubric:'Mỗi cặp đúng: 2đ. Ưu tiên bé hiểu số lượng qua cả chữ số và hình ảnh'},
+  {bai:9,  name:'Chọn mảnh ghép phù hợp để hoàn thiện hình kín',                     max:7, wk:['WK-V'],          rubric:'Chọn đúng mảnh: 4đ, giải thích lý do chọn thẻ: 3đ'},
+  {bai:10, name:'So sánh chiều cao chồng cỏ với mẫu',                                max:6, wk:['WK-V'],          rubric:'Đánh dấu đúng cao hơn/thấp hơn: 4đ, phân biệt đúng với mẫu: 1đ, làm theo đúng ký hiệu tròn/tam giác: 1đ'},
+  {bai:11, name:'Tìm quy luật hình ảnh và khoanh hình tiếp theo',                    max:9, wk:['WK-M','WK-R'],  rubric:'Nhận diện được quy luật 5 dãy: 5đ, khoanh đúng 5 dãy: 4đ'},
+  {bai:12, name:'Đếm số lượng từng loại bánh, vẽ biểu đồ và xác định loại nhiều nhất',max:8, wk:['WK-R'],          rubric:'Đếm đúng 4 loại: 3đ, vẽ số vòng tròn đúng: 3đ, xác định loại nhiều nhất: 2đ'},
+  {bai:13, name:'Sáng tạo hình từ chữ "S"',                                          max:8, wk:['WK-X'],          rubric:'Số ô vẽ thành hình: 3đ, số nhóm chủ đề: 3đ, độc đáo: 2đ, chính xác: 2đ'},
+  {bai:14, name:'Sáng tạo hình từ số "11"',                                          max:8, wk:['WK-X'],          rubric:'Số ô vẽ thành hình: 3đ, số nhóm chủ đề: 3đ, độc đáo: 2đ, chính xác: 2đ'},
 ];
 
 // 5 mã WK — toàn bộ field từ CSV official L4 (warm yellow-orange theme)
@@ -834,7 +836,7 @@ const __WK_MAX_L3 = { 'WK-V': 33, 'WK-M': 37, 'WK-R': 44, 'WK-X': 16 };
 
 const __WK_CODES = {
   'WK-V': {
-    emoji:'👁', name:'Quan sát trực quan & thao tác', color:'#5cb83e', maxSum:33,
+    emoji:'👁', name:'Trực quan – thao tác', color:'#5cb83e', maxSum:33,
     bieuHieu:'Bé làm tốt các câu hình ảnh, phân loại, ghép hình, so sánh, nhưng yếu hơn ở bài nghe số hoặc suy luận.',
     desc:'Bé tiếp thu tốt khi học qua hình ảnh, vật thật và thao tác trực tiếp. Khi bài học rõ ràng có minh họa cụ thể, bé thường tham gia tốt và xử lý nhiệm vụ ổn định hơn.',
     hoatDong:'quan sát, so sánh và đối chiếu hình ảnh để xử lý chính xác hơn các bài ghép hình, phân loại và nhận diện đặc điểm.',
@@ -889,12 +891,13 @@ const __H_DESC = {
 const __scoresL4v2 = {};
 __BAI_L4V2.forEach(b => { __scoresL4v2[b.bai] = {diem: 0, h: 'H1'}; });
 
-// Demo data — Bé An Nguyên (từ file xlsx user cung cấp)
+// Demo data — bộ điểm tham chiếu L3 (Tấn Dũng) từ xlsx official
+// Tổng điều chỉnh = 70.8. WK%: V=79% (26.1/33), M=68% (25.2/37), R=59% (25.8/44), X=90% (14.4/16)
 const __DEMO = {
-  1:{diem:4,h:'H1'},  2:{diem:6,h:'H1'},  3:{diem:4,h:'H2'},  4:{diem:6,h:'H2'},
-  5:{diem:5,h:'H1'},  6:{diem:2,h:'H1'},  7:{diem:4,h:'H1'},  8:{diem:5,h:'H1'},
-  9:{diem:7,h:'H1'}, 10:{diem:4,h:'H1'}, 11:{diem:8,h:'H1'}, 12:{diem:6,h:'H1'},
- 13:{diem:3,h:'H1'}, 14:{diem:6,h:'H1'},
+  1:{diem:6,h:'H1'},  2:{diem:6,h:'H1'},  3:{diem:6,h:'H2'},  4:{diem:6,h:'H3'},
+  5:{diem:7,h:'H1'},  6:{diem:1,h:'H1'},  7:{diem:7,h:'H1'},  8:{diem:0,h:'H1'},
+  9:{diem:7,h:'H1'}, 10:{diem:3,h:'H1'}, 11:{diem:9,h:'H1'}, 12:{diem:8,h:'H1'},
+ 13:{diem:8,h:'H1'}, 14:{diem:8,h:'H1'},
 };
 const __DEMO_INFO = {name:'Hải An', code:'', gender:'Nam', dob:'01/01/2021', date:'15/05/2025', class:'L3'};
 
