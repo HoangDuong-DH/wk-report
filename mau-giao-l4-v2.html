@@ -464,20 +464,7 @@ body.parent-mode #parent-exit-fab{display:inline-flex !important}
 <div class="section-title">KẾT QUẢ THEO NHÓM NĂNG LỰC</div>
 <div class="wk-grid" id="wk-grid"></div>
 
-<!-- ═════ CHI TIẾT THEO BÀI (compact 2-col table) ═════ -->
-<div class="bai-table-section">
-  <div class="section-title" style="margin-bottom:10px">CHI TIẾT KẾT QUẢ TỪNG BÀI</div>
-  <div class="bai-table">
-    <div class="bai-table-col">
-      <div class="bai-table-header"><span>#</span><span>Nội dung đo</span><span>Đạt/Max</span><span>H</span><span>Điểm</span></div>
-      <div id="bai-table-left"></div>
-    </div>
-    <div class="bai-table-col">
-      <div class="bai-table-header"><span>#</span><span>Nội dung đo</span><span>Đạt/Max</span><span>H</span><span>Điểm</span></div>
-      <div id="bai-table-right"></div>
-    </div>
-  </div>
-</div>
+<!-- Section "Chi tiết từng bài" đã bỏ theo yêu cầu -->
 
 <!-- ═════ ĐIỂM MẠNH + VÙNG CẦN PHÁT TRIỂN ═════ -->
 <div class="points-section">
@@ -1238,7 +1225,6 @@ function renderAll(){
   const agg = aggregateL4v2();
   renderTopCards(agg);
   renderWKGrid(agg);
-  renderBaiTable(agg);
   renderPoints(agg);
   renderOrientation(agg);
   renderMeta();
