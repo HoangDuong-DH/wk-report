@@ -328,6 +328,129 @@ body{
   }
 }
 
+/* ═════ NEW PASTEL LAYOUT (theo design ref L3 mockup) ═════ */
+
+/* Body — clean off-white background */
+body{background:#f1f4f8 !important}
+.page{border-radius:20px !important;border:1px solid #e8edf5 !important;box-shadow:0 6px 32px rgba(94,138,204,.08) !important}
+
+/* Header */
+.report-header{border-bottom:none !important;padding-bottom:0 !important}
+.title-block h1{color:#1a3a6e !important}
+.student-info{background:#fff !important;border:1.5px solid #d8e0eb !important}
+.student-info input, .student-info select{color:#1a3a6e !important}
+
+/* Row 1 — 2 cards (Mã + Tổng) */
+.cards-row-1{display:grid;grid-template-columns:1fr 1.2fr;gap:14px;margin-top:14px}
+.card-highlight{border-radius:18px;padding:16px 20px;position:relative;overflow:hidden}
+.card-highlight.purple{background:linear-gradient(135deg,#f7f1ff,#ece1fa);border:1.5px solid var(--br-purple)}
+.card-highlight.blue{background:linear-gradient(135deg,#f1f8ff,#dde9f8);border:1.5px solid var(--br-blue)}
+.card-chip{display:inline-flex;gap:6px;align-items:center;padding:5px 14px;background:rgba(255,255,255,.85);border-radius:99px;font:700 11px var(--font);color:#4a5878;border:1px solid rgba(0,0,0,.05);margin-bottom:14px;backdrop-filter:blur(4px)}
+.card-highlight.purple .card-chip{color:var(--tx-purple)}
+.card-highlight.blue .card-chip{color:var(--tx-blue)}
+.chip-star{font-size:11px}
+.card-highlight-body{display:flex;gap:14px;align-items:center}
+.card-highlight-body.center{justify-content:flex-start}
+.rocket-deco{font-size:58px;line-height:1;flex-shrink:0;filter:drop-shadow(0 4px 8px rgba(126,87,194,.25))}
+.code-display{flex:1;text-align:center}
+.code-big{font:800 32px/1 var(--font-d);color:var(--tx-purple);letter-spacing:1px}
+.code-name{font:600 13px/1.3 var(--font);color:var(--tx-purple);margin-top:6px;opacity:.85}
+.card-desc{margin:10px 0 0;font:500 11.5px/1.5 var(--font);color:#4a5878;text-align:center}
+.secondary-pill{margin-top:10px;padding:5px 14px;background:#fff;border-radius:99px;font:600 10.5px var(--font);color:var(--tx-purple);text-align:center;display:inline-block;border:1px solid var(--br-purple);box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.secondary-pill b{font-weight:800}
+
+/* Donut total - blue theme override */
+.cards-row-1 .donut-total{width:128px;height:128px;flex-shrink:0;position:relative}
+.cards-row-1 .donut-total svg{width:100%;height:100%}
+.cards-row-1 .donut-total .pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cards-row-1 .donut-total .pct b{font:800 32px/1 var(--font-d);color:#2a3c5a}
+.cards-row-1 .donut-total .pct small{font:600 11px var(--font);color:#5a6878;margin-top:2px}
+.cards-row-1 .grade-info{flex:1}
+.cards-row-1 .grade-info h3{margin:0 0 6px;font:800 17px/1.2 var(--font-d);color:#2a3c5a;background:none;padding:0}
+.cards-row-1 .grade-info h3 span{color:var(--tx-blue)}
+.cards-row-1 .grade-info p{margin:0;font:500 11.5px/1.5 var(--font);color:#4a5878}
+.cards-row-1 .grade-info .tag{display:none}
+
+/* Row 2 — Mức nền + Mức hỗ trợ */
+.cards-row-2{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;margin-top:12px}
+.card-mini{border-radius:18px;padding:13px 18px;display:flex;gap:14px;align-items:center}
+.card-mini.mint{background:linear-gradient(135deg,#eef9f2,#dcf0e1);border:1.5px solid var(--br-mint)}
+.card-mini.pink{background:linear-gradient(135deg,#fdedf1,#facfd9);border:1.5px solid var(--br-pink)}
+.mini-icon{width:48px;height:48px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.mini-body{flex:1}
+.mini-label{font:700 10px var(--font);color:#7a8590;letter-spacing:.14em;margin-bottom:3px}
+.card-mini.mint .mini-label{color:var(--tx-mint)}
+.card-mini.pink .mini-label{color:var(--tx-pink)}
+.mini-value{display:flex;align-items:center;gap:10px}
+.mini-value b{font:800 18px var(--font-d);color:var(--tx-mint)}
+.mini-value .stars{font-size:13px;color:var(--tx-mint);letter-spacing:2px}
+.mini-value-h b{font:800 18px var(--font-d);color:var(--tx-pink)}
+.mini-desc{font:500 11px/1.4 var(--font);color:#5a4a55;margin-top:2px}
+
+/* Section title with dots */
+.section-title-deco{text-align:center;margin:22px 0 14px;font:800 13px var(--font-d);color:#2a3c5a;letter-spacing:.18em;display:flex;justify-content:center;align-items:center;gap:14px}
+.section-title-deco .dot{color:var(--c-mute);font-size:22px;line-height:0}
+
+/* WK grid override — pastel theme */
+.wk-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.wk-card{background:#fff;border:1.5px solid #e8edf5;border-radius:16px;padding:14px 10px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.wk-card .head{font:800 14px var(--font-d);letter-spacing:.3px}
+.wk-card .name{font:500 11px var(--font);color:#5a6878;margin:2px 0 6px;min-height:28px}
+.wk-card .wk-donut{margin:6px auto}
+.wk-card .center{font:800 18px var(--font-d);color:#2a3c5a}
+.wk-card .cmt{margin:8px 0 0;font:500 10.5px/1.5 var(--font);color:#5a6878;min-height:40px}
+.wk-card .cmt b{color:#2a3c5a}
+.wk-card.f .wk-donut{display:flex;align-items:center;justify-content:center;font-size:34px;color:#9aa5b8;background:#f5f7fa;border-radius:50%;border:2px solid #e0e4ed}
+
+/* A/B/C 3-column */
+.abc-row{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:12px;margin-top:18px}
+.abc-section{border-radius:16px;padding:14px 16px}
+.section-A{background:linear-gradient(135deg,#eef5fb,#dceaf6);border:1.5px solid var(--br-blue)}
+.section-B{background:linear-gradient(135deg,#fdedf1,#f9d6dd);border:1.5px solid var(--br-pink)}
+.section-C{background:linear-gradient(135deg,#fff8e8,#fbecc8);border:1.5px solid var(--br-cream)}
+.abc-header{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.abc-emoji{font-size:22px;line-height:1}
+.abc-title{font:800 12.5px var(--font-d);letter-spacing:.04em}
+.section-A .abc-title{color:var(--tx-blue)}
+.section-B .abc-title{color:var(--tx-pink)}
+.section-C .abc-title{color:var(--tx-cream)}
+.abc-section ul{margin:0;padding:0;list-style:none;font:500 11.5px/1.5 var(--font);color:#3d4a5a}
+.abc-section li{padding-left:14px;position:relative;margin-bottom:6px}
+.abc-section li::before{content:'•';position:absolute;left:2px;font-weight:800;font-size:14px;line-height:1.2}
+.section-A li::before{color:var(--tx-blue)}
+.section-B li::before{color:var(--tx-pink)}
+.section-C .orient-list{display:flex;flex-direction:column;gap:8px}
+.section-C .orient-item{display:flex;gap:8px;align-items:flex-start}
+.section-C .orient-item .ico{font-size:16px;flex-shrink:0;margin-top:1px}
+.section-C .orient-item .text{font:500 11px/1.4 var(--font);color:#5a4a35}
+.section-C .orient-item .text b{display:inline;font-weight:700;color:#2a3c5a;margin-right:3px}
+
+/* Heart message */
+.heart-msg{background:linear-gradient(90deg,#fff8e8,#fde9d2);border:1.5px solid #f5d9a8;border-radius:18px;padding:13px 20px;display:flex;gap:14px;align-items:center;margin-top:14px;position:relative}
+.heart-icon{width:46px;height:46px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;box-shadow:0 2px 8px rgba(245,166,35,.15)}
+.heart-msg p{margin:0;flex:1;font:500 12px/1.55 var(--font);color:#5a4a35}
+.heart-msg p b{color:#2a3c5a;font-weight:700}
+.star-deco{font-size:30px;flex-shrink:0;color:#f5b223;filter:drop-shadow(0 2px 4px rgba(245,178,35,.3))}
+
+/* Brand bar (rainbow accent) */
+.brand-bar-deco{background:linear-gradient(90deg,#5c8acc,#7e57c2);color:#fff;border-radius:99px;padding:10px 22px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;font:600 11.5px var(--font);box-shadow:0 4px 14px rgba(94,138,204,.25)}
+.brand-bar-content{display:flex;align-items:center;gap:10px}
+.heart-mini{font-size:14px}
+.rainbow-deco{font-size:18px;letter-spacing:2px}
+
+/* Footer note */
+.footer-note{font:500 10px var(--font);color:var(--c-mute);padding:8px 4px 0;text-align:left}
+
+/* Print fidelity — force colors */
+@media print{
+  body{background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{box-shadow:none !important;border:none !important;border-radius:0 !important;padding:6mm 8mm !important}
+  .card-highlight, .card-mini, .abc-section, .heart-msg, .brand-bar-deco, .wk-card{
+    -webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;
+  }
+  @page{size:A4 portrait;margin:6mm}
+}
+
 /* Parent mode: hide technical details */
 body.parent-mode .workspace, body.parent-mode .top-toolbar{display:none !important}
 body.parent-mode .student-info input{pointer-events:none;border-color:transparent}
@@ -424,135 +547,114 @@ body.parent-mode #parent-exit-fab{display:inline-flex !important}
     <div class="student-avatar" id="student-avatar">👦</div>
     <table>
       <tr><td class="label">Họ và tên:</td><td class="value"><input id="f-name" value="Bé ABC"></td></tr>
-      <tr><td class="label">Mã học tập:</td><td class="value"><input id="f-code" placeholder="(để trống nếu chưa có)"></td></tr>
+      <tr><td class="label">Mã học tập:</td><td class="value"><input id="f-code" placeholder="—"></td></tr>
       <tr><td class="label">Giới tính:</td><td class="value">
-        <select id="f-gender" onchange="updateAvatar()" style="border:none;background:transparent;font:inherit;color:inherit;padding:0;outline:none;cursor:pointer">
+        <select id="f-gender" onchange="updateAvatar()">
           <option value="Nam">Nam</option>
           <option value="Nữ">Nữ</option>
         </select>
       </td></tr>
-      <tr><td class="label">Ngày sinh:</td><td class="value"><input id="f-dob" value="01/01/2020"></td></tr>
+      <tr><td class="label">Năm sinh:</td><td class="value"><input id="f-dob" value="2020"></td></tr>
       <tr><td class="label">Ngày kiểm tra:</td><td class="value"><input id="f-date" value="15/05/2025"></td></tr>
       <tr><td class="label">Lớp:</td><td class="value"><input id="f-class" value="L4"></td></tr>
     </table>
   </div>
 </header>
 
-<!-- ═════ TOP CARDS ROW ═════ -->
-<div class="top-cards">
-  <!-- Mã học tập nổi bật -->
-  <div class="card">
-    <span class="card-head">🏆 MÃ HỌC TẬP NỔI BẬT</span>
-    <div class="card-code">
-      <div class="code-big">
-        <div class="ko" id="top-code-ko">WK-M</div>
-        <div class="nm" id="top-code-nm">Theo mẫu – Có cấu trúc</div>
+<!-- ═════ ROW 1: MÃ HỌC TẬP + TỔNG ĐIỂM ═════ -->
+<div class="cards-row-1">
+  <div class="card-highlight purple">
+    <span class="card-chip"><span class="chip-star">⭐</span> MÃ HỌC TẬP NỔI BẬT</span>
+    <div class="card-highlight-body">
+      <div class="rocket-deco">🚀</div>
+      <div class="code-display">
+        <div class="code-big" id="top-code-ko">WK-X</div>
+        <div class="code-name" id="top-code-nm">Linh hoạt – khám phá</div>
       </div>
-      <p class="code-desc" id="top-code-desc">Đang phân tích…</p>
+    </div>
+    <p class="card-desc" id="top-code-desc">Bé nổi bật ở khả năng sáng tạo, linh hoạt và mở rộng ý tưởng.</p>
+    <div class="secondary-pill" id="secondary-pill" style="display:none">
+      <span>🔍 Xu hướng phụ: <b id="secondary-text"></b></span>
     </div>
   </div>
 
-  <!-- Tổng điểm hiệu chỉnh -->
-  <div class="card">
-    <span class="card-head" style="background:#fff3da;color:#a44400">📊 TỔNG ĐIỂM HIỆU CHỈNH</span>
-    <div class="card-total">
+  <div class="card-highlight blue">
+    <span class="card-chip"><span class="chip-star">🏆</span> TỔNG ĐIỂM HIỆU CHỈNH</span>
+    <div class="card-highlight-body center">
       <div class="donut-total">
         <svg viewBox="0 0 100 100" id="donut-total-svg"></svg>
-        <div class="pct"><b id="total-pct">—</b><small id="total-frac">— / 100</small></div>
+        <div class="pct"><b id="total-pct">—</b><small id="total-frac">/100</small></div>
       </div>
       <div class="grade-info">
-        <h3 id="grade-name">XẾP LOẠI: —</h3>
+        <h3>XẾP LOẠI: <span id="grade-name">—</span></h3>
         <p id="grade-desc">—</p>
-        <span class="tag" id="grade-tag">✨ —</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tỷ lệ tự chủ + Mức hỗ trợ -->
-  <div class="card card-meta">
-    <div class="meta-row">
-      <div class="tu-chu-mini">
-        <svg viewBox="0 0 100 100" id="tu-chu-svg"></svg>
-        <div class="pct" id="tu-chu-pct">—</div>
-      </div>
-      <div class="info">
-        <div class="lbl">Tỷ lệ tự chủ (H0–H1)</div>
-        <div class="val"><span id="meta-grade">—</span><span class="stars" id="meta-stars">—</span></div>
-      </div>
-    </div>
-    <div class="meta-row support">
-      <div class="icon">🤝</div>
-      <div class="info">
-        <div class="lbl">Mức hỗ trợ chính</div>
-        <div class="val" id="meta-support">—</div>
-        <div class="sub" id="meta-support-desc">—</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Section "Phân bố mức hỗ trợ theo bài" đã bỏ theo yêu cầu -->
+<!-- ═════ ROW 2: MỨC NỀN + MỨC HỖ TRỢ ═════ -->
+<div class="cards-row-2">
+  <div class="card-mini mint">
+    <div class="mini-icon">📊</div>
+    <div class="mini-body">
+      <div class="mini-label">MỨC NỀN</div>
+      <div class="mini-value"><b id="muc-nen-val">—</b><span class="stars" id="muc-nen-stars">—</span></div>
+    </div>
+  </div>
+  <div class="card-mini pink">
+    <div class="mini-icon">🤝</div>
+    <div class="mini-body">
+      <div class="mini-label">MỨC HỖ TRỢ</div>
+      <div class="mini-value-h"><b id="muc-ho-tro-val">—</b></div>
+      <div class="mini-desc" id="muc-ho-tro-desc">—</div>
+    </div>
+  </div>
+</div>
 
 <!-- ═════ KẾT QUẢ THEO NHÓM NĂNG LỰC ═════ -->
-<div class="section-title">KẾT QUẢ THEO NHÓM NĂNG LỰC</div>
+<div class="section-title-deco">
+  <span class="dot">•</span>
+  <span class="title-text">KẾT QUẢ THEO NHÓM NĂNG LỰC</span>
+  <span class="dot">•</span>
+</div>
 <div class="wk-grid" id="wk-grid"></div>
 
-<!-- Section "Chi tiết từng bài" đã bỏ theo yêu cầu -->
-
-<!-- ═════ ĐIỂM MẠNH + VÙNG CẦN PHÁT TRIỂN ═════ -->
-<div class="points-section">
-  <div class="points-box strong">
-    <div class="ico">👍</div>
-    <div>
-      <div class="label">ĐIỂM MẠNH</div>
-      <ul id="strong-list"><li>—</li></ul>
-    </div>
+<!-- ═════ A) ĐIỂM MẠNH + B) VÙNG CẦN PHÁT TRIỂN + C) ĐỊNH HƯỚNG ═════ -->
+<div class="abc-row">
+  <div class="abc-section section-A">
+    <div class="abc-header"><span class="abc-emoji">👍</span><span class="abc-title">A) ĐIỂM MẠNH</span></div>
+    <ul id="strong-list"><li>—</li></ul>
   </div>
-  <div class="points-box weak">
-    <div class="ico">🎯</div>
-    <div>
-      <div class="label">VÙNG CẦN PHÁT TRIỂN</div>
-      <ul id="weak-list"><li>—</li></ul>
-    </div>
+  <div class="abc-section section-B">
+    <div class="abc-header"><span class="abc-emoji">🎯</span><span class="abc-title">B) VÙNG CẦN PHÁT TRIỂN</span></div>
+    <ul id="weak-list"><li>—</li></ul>
+  </div>
+  <div class="abc-section section-C">
+    <div class="abc-header"><span class="abc-emoji">📖</span><span class="abc-title">C) ĐỊNH HƯỚNG HỌC TẬP</span></div>
+    <div class="orient-list" id="orient-list"></div>
   </div>
 </div>
 
-<!-- ═════ ĐỊNH HƯỚNG HỌC TẬP + LỜI NHẮN GỬI ═════ -->
-<div class="orient-section">
-  <div class="orient-box">
-    <h3>ĐỊNH HƯỚNG HỌC TẬP</h3>
-    <div class="orient-list" id="orient-list">
-      <div class="orient-item"><div class="ico">📖</div><div class="text"><b>Phương pháp phù hợp</b>—</div></div>
-      <div class="orient-item"><div class="ico">💪</div><div class="text"><b>Rèn luyện tư duy</b>—</div></div>
-      <div class="orient-item"><div class="ico">🌱</div><div class="text"><b>Phát triển sáng tạo</b>—</div></div>
-      <div class="orient-item"><div class="ico">👨‍👩‍👧</div><div class="text"><b>Đồng hành tại nhà</b>—</div></div>
-    </div>
-  </div>
-  <div class="msg-box">
-    <div class="ico">♥</div>
-    <div>
-      <h3>Lời nhắn gửi</h3>
-      <p id="parent-msg">Mỗi bé có tốc độ và cách học riêng. Với sự đồng hành và môi trường học tập tích cực, bé sẽ ngày càng tự tin, tư duy tốt hơn và phát triển toàn diện.</p>
-    </div>
-  </div>
+<!-- ═════ HEART MESSAGE ═════ -->
+<div class="heart-msg">
+  <div class="heart-icon">💗</div>
+  <p id="parent-msg">Mỗi bé có tốc độ phát triển riêng. Với môi trường học tập tích cực và phương pháp phù hợp, bé sẽ tiếp tục phát huy điểm mạnh và phát triển toàn diện hơn.</p>
+  <div class="star-deco">⭐</div>
 </div>
 
-<!-- ═════ CONFIDENTIALITY NOTICE ═════ -->
-<div class="confidential-bar">
-  <b>⚠ CONFIDENTIAL — Đánh giá nội bộ WonderKids Edu.</b>
-  Báo cáo chứa thông tin cá nhân trẻ em — không chia sẻ ngoài phạm vi GV-Phụ huynh.
-  Tuân thủ <b>NĐ 13/2023/NĐ-CP</b> về bảo mật dữ liệu cá nhân.
+<!-- ═════ BRAND BAR ═════ -->
+<div class="brand-bar-deco">
+  <div class="brand-bar-content">
+    <span class="heart-mini">❤️</span>
+    <span>L4 đồng hành cùng ba mẹ trên hành trình phát triển tư duy cho bé</span>
+  </div>
+  <div class="rainbow-deco">🌈 ☁️</div>
 </div>
 
-<!-- ═════ FOOTER BAR ═════ -->
-<div class="footer-bar">
-  <span class="star">★</span>
-  <span>L4 luôn đồng hành cùng ba mẹ trên hành trình khai mở tư duy và phát triển tiềm năng của bé!</span>
-  <span class="l4-mini">L4</span>
-</div>
-<div class="report-meta">
-  <span>* Báo cáo được tổng hợp dựa trên bài kiểm tra đầu vào ngày <b id="meta-date">15/05/2025</b></span>
-  <span>Giáo viên đánh giá <span class="signature">_______________</span></span>
+<!-- ═════ FOOTER NOTE ═════ -->
+<div class="footer-note">
+  * Báo cáo được tổng hợp từ bài kiểm tra đầu vào ngày <b id="meta-date">—</b>
 </div>
 
 </div><!-- /.page -->
@@ -1064,77 +1166,71 @@ function _genWKComment(key, pct){
   return 'Khả năng ' + short[key] + ' ở mức <b>' + lvl + '</b>.';
 }
 
-/* ─── Render top cards ─── */
+/* ─── Render top cards (new pastel layout) ─── */
 function renderTopCards(agg){
-  // Primary code + secondary (nếu có)
+  // Primary code + secondary
   const code = agg.primaryCode;
   const cfg = __WK_CODES[code];
   document.getElementById('top-code-ko').textContent = code;
-  // Tên + xu hướng phụ
-  let nameText = cfg.name;
-  if(agg.secondaryCode){
-    nameText += ' (+' + agg.secondaryCode + ')';
+  document.getElementById('top-code-nm').textContent = cfg.name;
+  // Desc: DIỄN GIẢI
+  document.getElementById('top-code-desc').textContent = cfg.desc;
+  // Secondary pill
+  const secEl = document.getElementById('secondary-pill');
+  if(secEl){
+    if(agg.secondaryCode){
+      const secCfg = __WK_CODES[agg.secondaryCode];
+      document.getElementById('secondary-text').textContent = agg.secondaryCode + ' – ' + secCfg.name;
+      secEl.style.display = 'inline-block';
+    } else {
+      secEl.style.display = 'none';
+    }
   }
-  document.getElementById('top-code-nm').textContent = nameText;
-  // Desc: DIỄN GIẢI + Biểu hiệu in italic small
-  document.getElementById('top-code-desc').innerHTML =
-    cfg.desc + '<br><em style="display:block;margin-top:6px;font-size:10.5px;color:#6b5a45">📌 ' + cfg.bieuHieu + '</em>';
-  // Change color of code-big based on code
-  const cb = document.querySelector('.code-big');
-  if(cb){
-    // Soften WK code gradients to fit warm theme (giữ tone phân biệt nhưng warmer)
-    const gradient = {
-      'WK-V':'linear-gradient(135deg,#7dd462,#5cb83e)',
-      'WK-M':'linear-gradient(135deg,#6dbae8,#3a9bdc)',
-      'WK-R':'linear-gradient(135deg,#ffc24a,#f3811f)',
-      'WK-X':'linear-gradient(135deg,#c4a4e0,#a26ad8)',
-      'WK-F':'linear-gradient(135deg,#c9b58c,#a4886a)',
-    };
-    cb.style.background = gradient[code] || gradient['WK-M'];
+  // Update code-big text color theo profile
+  const cb = document.getElementById('top-code-ko');
+  const nm = document.getElementById('top-code-nm');
+  const codeColors = {
+    'WK-V': '#3da062', 'WK-M': '#3a7fc4', 'WK-R': '#d68a3c',
+    'WK-X': '#7e57c2', 'WK-F': '#7a8590',
+  };
+  if(cb) cb.style.color = codeColors[code] || codeColors['WK-X'];
+  if(nm) nm.style.color = codeColors[code] || codeColors['WK-X'];
+  // Card BG class
+  const card = document.querySelector('.card-highlight.purple');
+  if(card){
+    // Hot-swap class based on primary (V→mint, M→blue, R→cream, X→purple, F→gray)
+    card.className = 'card-highlight purple'; // keep purple for highlight effect
   }
 
-  // Total
+  // Total — donut blue
   const totalPct = Math.round(agg.totalPct * 10) / 10;
-  const totalAdj = Math.round(agg.totalAdj * 10) / 10;
   document.getElementById('total-pct').textContent = totalPct.toFixed(1).replace('.', ',');
-  document.getElementById('total-frac').textContent = totalAdj + ' / ' + agg.totalMax;
-  const totalColor = totalPct >= 75 ? '#5cb83e' : totalPct >= 60 ? '#f3811f' : totalPct >= 45 ? '#f5b223' : '#e94e1b';
-  document.getElementById('donut-total-svg').innerHTML = _donutSVG(totalPct, totalColor, 120);
-  document.getElementById('grade-name').textContent = 'XẾP LOẠI: ' + agg.grade.toUpperCase();
+  document.getElementById('total-frac').textContent = '/100';
+  const totalColor = totalPct >= 75 ? '#3da062' : totalPct >= 60 ? '#3a7fc4' : totalPct >= 45 ? '#f5a020' : '#d05a72';
+  document.getElementById('donut-total-svg').innerHTML = _donutSVG(totalPct, totalColor, 128);
+  document.getElementById('grade-name').textContent = agg.grade.toUpperCase();
   document.getElementById('grade-name').style.color = totalColor;
   const desc = totalPct >= 75
     ? 'Bé có nền tảng học tập rất tốt. Tiếp tục duy trì và phát triển toàn diện.'
     : totalPct >= 60
-    ? 'Bé có nền tảng học tập tốt. Cần rèn thêm khả năng suy luận độc lập và sáng tạo linh hoạt để phát huy tối đa tiềm năng.'
+    ? 'Bé có nền học tập khá, tiếp thu tốt ở các hoạt động trực quan và sáng tạo. Cần rèn thêm suy luận từng bước để phát triển cân bằng hơn.'
     : totalPct >= 45
-    ? 'Bé đang trong giai đoạn hình thành nền tảng. Cần kiên trì luyện tập thêm với bài học ngắn và trực quan.'
+    ? 'Bé đang trong giai đoạn hình thành nền tảng. Cần kiên trì luyện tập với bài học ngắn và trực quan.'
     : 'Bé cần được củng cố nền tảng học tập ngay. Ưu tiên bài học đơn giản, có hỗ trợ rõ ràng.';
   document.getElementById('grade-desc').textContent = desc;
-  const tag = totalPct >= 75 ? '✨ Phát triển tốt – Có thể thử thách cao hơn'
-            : totalPct >= 60 ? '✨ Nền tảng tốt – Tiềm năng phát triển cao'
-            : totalPct >= 45 ? '🌱 Đang phát triển – Cần đồng hành'
-            : '🛡 Cần củng cố nền tảng';
-  document.getElementById('grade-tag').textContent = tag;
 
-  // Meta — Card 3 với tự chủ donut visual
-  const autoCount = (agg.hCounts['H0'] || 0) + (agg.hCounts['H1'] || 0);
-  const autoTotal = Object.values(agg.hCounts).reduce((a,b)=>a+b, 0) || 14;
-  const autoPct = Math.round(autoCount / autoTotal * 100);
-  const autoColor = autoPct >= 75 ? '#5cb83e' : autoPct >= 60 ? '#f3811f' : autoPct >= 45 ? '#f5b223' : '#e94e1b';
-  // Tự chủ donut visual
-  const tuSvg = document.getElementById('tu-chu-svg');
-  if(tuSvg) tuSvg.innerHTML = _donutSVG(autoPct, autoColor, 46);
-  const tuPctEl = document.getElementById('tu-chu-pct');
-  if(tuPctEl){ tuPctEl.textContent = autoPct + '%'; tuPctEl.style.color = autoColor; }
-  // Label + stars (kept)
-  document.getElementById('meta-grade').textContent = autoCount + '/' + autoTotal + ' bài';
-  const stars = autoPct >= 75 ? '★★★★' : autoPct >= 60 ? '★★★' : autoPct >= 45 ? '★★' : '★';
-  document.getElementById('meta-stars').textContent = stars;
-  document.getElementById('meta-support').textContent = agg.supportLabel;
+  // Mức nền (Card row 2, mint)
+  const mucNen = totalPct >= 75 ? 'Tốt' : totalPct >= 60 ? 'Khá' : totalPct >= 45 ? 'Trung bình' : 'Cần củng cố';
+  document.getElementById('muc-nen-val').textContent = mucNen;
+  const stars = totalPct >= 75 ? '★★★★★' : totalPct >= 60 ? '★★★★☆' : totalPct >= 45 ? '★★★☆☆' : '★★☆☆☆';
+  document.getElementById('muc-nen-stars').textContent = stars;
+
+  // Mức hỗ trợ (Card row 2, pink)
+  document.getElementById('muc-ho-tro-val').textContent = agg.supportLabel;
   const supportDesc = agg.supportLabel.includes('-')
-    ? __H_DESC[agg.supportLabel.split('-')[0]] + ' / ' + __H_DESC[agg.supportLabel.split('-')[1]].toLowerCase()
-    : __H_DESC[agg.supportLabel];
-  document.getElementById('meta-support-desc').textContent = supportDesc;
+    ? 'Chủ yếu cần nhắc lại yêu cầu hoặc gợi ý nhẹ.'
+    : (__H_DESC[agg.supportLabel] || '—');
+  document.getElementById('muc-ho-tro-desc').textContent = supportDesc;
 }
 
 /* ─── Render per-Bài compact table ─── */
@@ -1224,10 +1320,10 @@ function renderOrientation(agg){
   const dongHanh = dongHanhMap[code] || dongHanhMap['WK-M'];
 
   orientList.innerHTML = `
-    <div class="orient-item"><div class="ico">🎯</div><div class="text"><b>Hướng phát triển chính</b>Khuyến khích bé ${cfg.hoatDong}</div></div>
-    <div class="orient-item"><div class="ico">✨</div><div class="text"><b>Phát huy điểm mạnh</b>${phatHuy}</div></div>
-    <div class="orient-item"><div class="ico">🌱</div><div class="text"><b>Cần rèn thêm</b>${canRen}</div></div>
-    <div class="orient-item"><div class="ico">👨‍👩‍👧</div><div class="text"><b>Đồng hành tại nhà</b>${dongHanh}</div></div>
+    <div class="orient-item"><div class="ico">💡</div><div class="text"><b>Phát huy sáng tạo:</b>${phatHuy}</div></div>
+    <div class="orient-item"><div class="ico">🔍</div><div class="text"><b>Duy trì trực quan:</b>Tăng bài ghép hình, phân loại, so sánh và trò chơi với vật thật.</div></div>
+    <div class="orient-item"><div class="ico">🧩</div><div class="text"><b>Rèn suy luận:</b>${canRen}</div></div>
+    <div class="orient-item"><div class="ico">🏠</div><div class="text"><b>Đồng hành tại nhà:</b>${dongHanh}</div></div>
   `;
 
   // Update parent message với template CSV row 25
