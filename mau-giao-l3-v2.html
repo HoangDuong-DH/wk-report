@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WonderKids L3 v2 — Báo cáo đánh giá năng lực đầu vào</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23ffc24a'/><stop offset='1' stop-color='%23e94e1b'/></linearGradient></defs><circle cx='32' cy='32' r='30' fill='url(%23g)'/><text x='32' y='42' font-family='Arial' font-size='26' font-weight='900' fill='%23fff' text-anchor='middle'>L3</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23ffc24a'/><stop offset='1' stop-color='%23e94e1b'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='url(%23g)'/><text x='32' y='42' font-family='Arial' font-size='26' font-weight='900' fill='%23fff' text-anchor='middle'>L3</text></svg>">
+<meta name="theme-color" content="#e94e1b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Fredoka:wght@500;600;700;800&display=swap" rel="stylesheet">
+<!-- XLSX library với 3 CDN fallback -->
+<script>
+(function(){
+  window.__xlsxStatus='loading';
+  const cdns=[
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
+  ];
+  let i=0;
+  function tryNext(){
+    if(i>=cdns.length){window.__xlsxStatus='failed';return;}
+    const s=document.createElement('script');
+    s.src=cdns[i++];
+    s.onload=()=>{window.__xlsxStatus='ready';};
+    s.onerror=tryNext;
+    document.head.appendChild(s);
+  }
+  tryNext();
+})();
+</script>
+<style>
+:root{
+  /* PASTEL palette — friendly + modern theo design ref */
+  --c-ink:#2a3c5a; --c-ink-soft:#4a5878; --c-mute:#7a8090;
+  --c-card:#ffffff; --c-line:#e8edf5;
+  /* Pastel section backgrounds */
+  --bg-purple:#f5f0ff; --br-purple:#d9c8f0; --tx-purple:#7e57c2;
+  --bg-blue:#f0f7ff;   --br-blue:#c8dcf2;   --tx-blue:#3a7fc4;
+  --bg-mint:#eaf7ee;   --br-mint:#bee3c6;   --tx-mint:#3da062;
+  --bg-pink:#fdecf0;   --br-pink:#f5c9d3;   --tx-pink:#d05a72;
+  --bg-cream:#fff5e3;  --br-cream:#f5d9a8;  --tx-cream:#d68a3c;
+  /* WK codes — soft saturated */
+  --c-wkv:#5fb74f; --c-wkv-bg:#e8f5e1;
+  --c-wkm:#3a8cd4; --c-wkm-bg:#dfeaf8;
+  --c-wkr:#f5a020; --c-wkr-bg:#fde8ce;
+  --c-wkx:#9966cc; --c-wkx-bg:#ebe0f5;
+  --c-wkf:#9aa5b8; --c-wkf-bg:#edeff3;
+  /* Brand (giữ L4 orange cho logo) */
+  --c-brand:#f3811f; --c-brand-2:#e94e1b;
+  /* Aliases để giữ tương thích các CSS rules cũ */
+  --c-primary:#f3811f; --c-primary-2:#e94e1b;
+  --c-yellow:#f5b223; --c-yellow-soft:#fce5b6;
+  --c-orange-soft:#ffe6cc; --c-cream:#fff8ec; --c-cream-2:#fff3e0;
+  --c-pill-bg:#ffe9d1; --c-line-soft:#fbe5c4;
+  --font:'Be Vietnam Pro',system-ui,sans-serif;
+  --font-d:'Fredoka','Be Vietnam Pro',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:var(--font);color:var(--c-ink);-webkit-font-smoothing:antialiased}
+body{
+  background:#f1e4cf;
+  background:
+    radial-gradient(ellipse 800px 600px at 20% 0%, #fff3da 0%, transparent 55%),
+    radial-gradient(ellipse 700px 500px at 100% 100%, #ffe7c8 0%, transparent 55%),
+    linear-gradient(180deg, #fff8ec, #fff3e0);
+  padding:0;min-height:100vh;
+}
+
+.page{
+  max-width:1180px;margin:0 auto;background:#fff;
+  padding:28px 32px 16px;border-radius:18px;
+  box-shadow:0 6px 32px rgba(233,78,27,.08);
+  border:1px solid var(--c-line-soft);
+}
+@media print{
+  body{background:#fff}
+  .page{box-shadow:none;padding:8mm 10mm;max-width:none}
+  @page{size:A4 portrait;margin:8mm}
+}
+
+/* ─── HEADER ─── */
+.report-header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:14px;border-bottom:2px solid var(--c-line)}
+.brand-block{display:flex;gap:16px;align-items:center}
+.l4-logo{
+  width:74px;height:74px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #ffc24a 0%, var(--c-primary) 65%, var(--c-primary-2) 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#fff;font-family:var(--font-d);text-align:center;line-height:1;flex-shrink:0;
+  box-shadow:0 6px 18px rgba(233,78,27,.32);
+}
+.l4-logo .big{font-size:24px;font-weight:800;letter-spacing:1px}
+.l4-logo .small{font-size:7px;font-weight:600;margin-top:2px;letter-spacing:.3px}
+.l4-logo .award{font-size:11px;margin-top:1px}
+.title-block h1{margin:0;font:800 19px/1.2 var(--font-d);letter-spacing:.3px;color:var(--c-primary-2)}
+.title-block h2{margin:4px 0 0;font:600 12px/1.2 var(--font);color:var(--c-ink-soft);letter-spacing:.2px}
+.student-info{display:flex;align-items:center;gap:14px;background:var(--c-cream);padding:10px 16px;border-radius:14px;border:1.5px solid var(--c-line);font:500 12px/1.5 var(--font)}
+.student-avatar{
+  width:54px;height:54px;border-radius:50%;background:var(--c-orange-soft);
+  display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;
+  transition:background .25s ease;
+}
+.student-avatar.female{background:#fde2e8}
+.student-avatar.male{background:var(--c-orange-soft)}
+.student-info table{border-collapse:collapse;font-size:11.5px}
+.student-info td{padding:1px 6px 1px 0}
+.student-info td.label{color:var(--c-mute);font-weight:500}
+.student-info td.value{font-weight:700;color:var(--c-ink)}
+.student-info input{border:none;background:transparent;font:inherit;color:inherit;padding:0;width:100px;outline:none}
+.student-info input:focus{background:#fff;border-radius:3px;padding:0 3px;outline:1.5px solid var(--c-primary)}
+
+/* ─── TOP CARDS ROW (3 cards) ─── */
+.top-cards{display:grid;grid-template-columns:1.3fr 1.5fr 1fr;gap:14px;margin-top:14px}
+.card{background:var(--c-card);border-radius:14px;padding:16px 18px;box-shadow:0 4px 16px rgba(233,78,27,.06);border:1.5px solid var(--c-line)}
+.card-head{font:700 10.5px/1 var(--font);color:var(--c-primary-2);letter-spacing:.12em;text-transform:uppercase;
+  padding:6px 14px;background:var(--c-pill-bg);border-radius:99px;display:inline-block;margin-bottom:10px;border:1px solid var(--c-line-soft)}
+
+/* Card 1: Mã học tập nổi bật */
+.card-code{display:flex;align-items:center;gap:14px}
+.code-big{
+  background:linear-gradient(135deg,#7ed957,#5fb53f);color:#fff;
+  padding:14px 22px;border-radius:14px;text-align:center;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(95,181,63,.3);
+}
+.code-big .ko{font:800 26px/1 var(--font-d);letter-spacing:1px}
+.code-big .nm{font:600 9.5px/1.2 var(--font);margin-top:4px;opacity:.95;max-width:78px}
+.code-desc{font:500 11.5px/1.5 var(--font);color:var(--c-ink-soft)}
+
+/* Card 2: Tổng điểm hiệu chỉnh */
+.card-total{display:flex;align-items:center;gap:14px}
+.donut-total{width:120px;height:120px;flex-shrink:0;position:relative}
+.donut-total svg{width:100%;height:100%;display:block}
+.donut-total .pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.donut-total .pct b{font:800 28px/1 var(--font-d);color:var(--c-ink)}
+.donut-total .pct small{font:600 10px/1 var(--font);color:var(--c-mute);margin-top:3px}
+.grade-info h3{margin:0 0 4px;font:800 18px/1.2 var(--font-d);color:var(--c-primary-2)}
+.grade-info p{margin:0;font:500 11px/1.5 var(--font);color:var(--c-ink-soft)}
+.grade-info .tag{display:inline-flex;align-items:center;gap:5px;margin-top:6px;background:var(--c-pill-bg);color:var(--c-primary-2);padding:4px 10px;border-radius:99px;font:700 10px/1 var(--font);border:1px solid var(--c-line-soft)}
+
+/* Card 3: Mức nền + Mức hỗ trợ */
+.card-meta{display:flex;flex-direction:column;gap:10px}
+.meta-row{display:flex;align-items:center;gap:10px;background:var(--c-cream);padding:8px 12px;border-radius:10px;border:1px solid var(--c-line-soft)}
+.meta-row .icon{width:32px;height:32px;border-radius:8px;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.meta-row.support .icon{background:var(--c-yellow)}
+.meta-row .info{flex:1}
+.meta-row .lbl{font:600 9.5px/1 var(--font);color:var(--c-mute);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.meta-row .val{font:700 13px/1.2 var(--font);color:var(--c-ink)}
+.meta-row .stars{color:var(--c-yellow);font-size:12px;letter-spacing:1px;display:inline-block;margin-left:4px}
+.meta-row .sub{font:500 10px/1.3 var(--font);color:var(--c-mute);margin-top:1px}
+
+/* ─── KẾT QUẢ THEO NHÓM ─── */
+.section-title{text-align:center;margin:22px 0 14px;font:800 14px/1 var(--font-d);color:var(--c-primary-2);letter-spacing:.15em}
+.wk-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.wk-card{background:var(--c-card);border:1.5px solid var(--c-line-soft);border-radius:14px;padding:14px 12px;text-align:center;box-shadow:0 2px 8px rgba(233,78,27,.04)}
+.wk-card .head{display:flex;align-items:center;justify-content:center;gap:5px;font:800 13px/1.2 var(--font-d);margin-bottom:1px}
+.wk-card .name{font:600 10px/1.3 var(--font);color:var(--c-ink-soft);min-height:26px;margin-bottom:6px}
+.wk-donut{width:96px;height:96px;margin:4px auto 6px;position:relative}
+.wk-donut svg{width:100%;height:100%;display:block}
+.wk-donut .center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 18px/1 var(--font-d);color:var(--c-ink)}
+.wk-card .score{font:700 11.5px/1.2 var(--font);color:var(--c-ink);margin-top:2px}
+.wk-card .cau-list{font:600 10px/1.3 var(--font);margin-top:6px}
+.wk-card .cmt{margin:8px 0 0;font:500 10px/1.45 var(--font);color:var(--c-ink-soft);min-height:42px}
+.wk-card.v .head, .wk-card.v .cau-list{color:var(--c-wkv)}
+.wk-card.m .head, .wk-card.m .cau-list{color:var(--c-wkm)}
+.wk-card.r .head, .wk-card.r .cau-list{color:var(--c-wkr)}
+.wk-card.x .head, .wk-card.x .cau-list{color:var(--c-wkx)}
+.wk-card.f .head, .wk-card.f .cau-list{color:var(--c-wkf)}
+.wk-card.f .wk-donut{display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--c-wkf)}
+
+/* ─── ĐIỂM MẠNH + VÙNG CẦN PHÁT TRIỂN ─── */
+.points-section{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.points-box{background:var(--c-card);border-radius:14px;padding:14px 16px;border:1.5px solid var(--c-line-soft);display:flex;gap:12px;align-items:flex-start}
+.points-box .ico{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.points-box.strong{background:#f3fbe8;border-color:#cce8a5}
+.points-box.strong .ico{background:var(--c-wkv);color:#fff}
+.points-box.weak{background:var(--c-cream-2);border-color:var(--c-line)}
+.points-box.weak .ico{background:var(--c-primary);color:#fff}
+.points-box .label{font:800 11px/1 var(--font-d);color:var(--c-ink);margin-bottom:6px;letter-spacing:.05em}
+.points-box ul{margin:0;padding:0;list-style:none;font:500 11px/1.55 var(--font);color:var(--c-ink-soft)}
+.points-box li{padding-left:18px;position:relative;margin-bottom:3px}
+.points-box.strong li::before{content:'✓';position:absolute;left:0;color:var(--c-wkv);font-weight:800}
+.points-box.weak li::before{content:'•';position:absolute;left:6px;color:var(--c-primary);font-weight:800;font-size:14px;line-height:1}
+
+/* ─── ĐỊNH HƯỚNG HỌC TẬP + LỜI NHẮN ─── */
+.orient-section{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:18px;margin-bottom:18px}
+.orient-box{background:var(--c-card);border-radius:14px;padding:16px 18px;border:1.5px solid var(--c-line-soft)}
+.orient-box h3{margin:0 0 12px;font:800 13px/1 var(--font-d);color:var(--c-primary-2);letter-spacing:.1em;text-align:center}
+.orient-list{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.orient-item{display:flex;gap:10px;align-items:flex-start}
+.orient-item .ico{width:32px;height:32px;border-radius:8px;background:var(--c-pill-bg);color:var(--c-primary);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:1px solid var(--c-line-soft)}
+.orient-item .text{font:500 10.5px/1.45 var(--font);color:var(--c-ink-soft)}
+.orient-item .text b{display:block;color:var(--c-ink);font:700 11px/1.3 var(--font);margin-bottom:2px}
+.msg-box{background:linear-gradient(135deg, var(--c-cream), var(--c-orange-soft));border-radius:14px;padding:16px 18px;border:1.5px solid var(--c-line);display:flex;gap:12px;align-items:flex-start}
+.msg-box .ico{font-size:28px;color:var(--c-primary-2);flex-shrink:0}
+.msg-box h3{margin:0 0 4px;font:800 12.5px/1 var(--font-d);color:var(--c-primary-2)}
+.msg-box p{margin:0;font:500 10.5px/1.55 var(--font);color:var(--c-ink-soft)}
+
+/* ─── FOOTER ─── */
+.footer-bar{
+  background:linear-gradient(90deg, var(--c-yellow), var(--c-primary), var(--c-primary-2));
+  color:#fff;padding:10px 24px;border-radius:99px;text-align:center;
+  font:600 11px/1.4 var(--font);margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  box-shadow:0 4px 14px rgba(233,78,27,.2);
+}
+.footer-bar .star{font-size:14px}
+.footer-bar .l4-mini{background:#fff;color:var(--c-primary-2);padding:3px 9px;border-radius:99px;font-weight:800;font-size:9.5px;letter-spacing:.5px}
+.report-meta{margin-top:8px;display:flex;justify-content:space-between;font:500 9.5px/1.4 var(--font);color:var(--c-mute);padding:0 8px}
+.report-meta .signature{display:inline-block;border-bottom:1px dashed var(--c-mute);min-width:140px}
+
+/* ─── WORKSPACE (GV input — hidden on print) ─── */
+.workspace{margin-top:24px;background:#fffaef;border:2px dashed #f0c080;border-radius:14px;padding:18px 22px}
+.workspace h3{margin:0 0 12px;font:800 14px/1 var(--font-d);color:#a44400}
+.workspace .ws-note{font:500 11px/1.5 var(--font);color:var(--c-mute);margin-bottom:14px}
+.ws-table{width:100%;border-collapse:collapse;font:500 11.5px/1.4 var(--font)}
+.ws-table th{background:#f5e2b8;padding:8px 10px;text-align:left;font:700 11px/1 var(--font);color:#7a4a10}
+.ws-table th.num{text-align:center}
+.ws-table td{padding:6px 10px;border-bottom:1px solid #f0e0c0;background:#fff}
+.ws-table td.num{text-align:center;font-weight:700}
+.ws-table input[type="number"]{width:55px;padding:4px 6px;border:1px solid #f0c080;border-radius:6px;text-align:center;font:700 12px/1 var(--font);color:#a44400}
+.ws-table select{padding:4px 6px;border:1px solid #f0c080;border-radius:6px;font:600 11px/1 var(--font);color:#a44400;background:#fff}
+.ws-table .max{color:var(--c-mute);font-weight:500}
+.ws-table .calc{font-weight:800;color:#5fb53f}
+.ws-total{margin-top:14px;padding:10px 14px;background:#fff3da;border-radius:10px;font:700 12.5px/1 var(--font);color:#a44400;text-align:right}
+.ws-total b{color:#df5728;font-size:15px}
+@media print{.workspace{display:none !important}}
+
+@media (max-width:900px){
+  .top-cards{grid-template-columns:1fr}
+  .wk-grid{grid-template-columns:repeat(2,1fr)}
+  .points-section, .orient-section{grid-template-columns:1fr}
+  .orient-list{grid-template-columns:1fr}
+  .report-header{flex-direction:column;gap:14px}
+}
+
+/* ─── Production toolbar (top bar) ─── */
+.top-toolbar{
+  position:sticky;top:0;background:rgba(255,248,236,.95);backdrop-filter:blur(8px);
+  border-bottom:1.5px solid var(--c-line);
+  padding:10px 32px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:100;
+  box-shadow:0 2px 12px rgba(233,78,27,.08);
+}
+.top-toolbar .group{display:flex;gap:4px;align-items:center}
+.top-toolbar .sep{width:1px;height:20px;background:var(--c-line);margin:0 4px}
+.top-toolbar button, .top-toolbar label{
+  background:transparent;border:1px solid transparent;cursor:pointer;
+  padding:7px 12px;border-radius:8px;
+  font:600 11.5px/1 var(--font);color:var(--c-ink-soft);
+  transition:all .15s ease;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+}
+.top-toolbar button:hover, .top-toolbar label:hover{background:var(--c-pill-bg);color:var(--c-primary-2);border-color:var(--c-line-soft)}
+.top-toolbar button.primary{background:linear-gradient(135deg, var(--c-primary), var(--c-primary-2));color:#fff;font-weight:800}
+.top-toolbar button.primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(233,78,27,.3);background:linear-gradient(135deg, var(--c-primary-2), var(--c-primary))}
+.top-toolbar input[type="file"]{display:none}
+.top-toolbar .save-pill{
+  font:600 10.5px/1 var(--font);color:var(--c-mute);
+  padding:5px 9px;background:var(--c-cream);border-radius:99px;border:1px solid var(--c-line-soft);
+}
+.top-toolbar .save-pill.saved{color:var(--c-wkv);background:#f3fbe8;border-color:#cce8a5}
+.top-toolbar a.home{color:var(--c-primary)}
+.top-toolbar a.home:hover{color:var(--c-primary-2)}
+
+/* Toast notification */
+#toast{position:fixed;bottom:80px;right:20px;background:var(--c-primary);color:#fff;padding:12px 18px;
+  border-radius:10px;font:600 12px/1.4 var(--font);box-shadow:0 8px 22px rgba(233,78,27,.28);
+  z-index:10000;opacity:0;transform:translateY(20px);transition:all .25s ease;pointer-events:none;max-width:340px}
+#toast.show{opacity:1;transform:translateY(0)}
+
+@media print{
+  .top-toolbar{display:none !important}
+  #toast{display:none !important}
+}
+@media (max-width:700px){
+  .top-toolbar{padding:8px 12px}
+  .top-toolbar button, .top-toolbar label{padding:6px 8px;font-size:10.5px}
+  .top-toolbar .sep{display:none}
+}
+
+/* ─── Per-Bài compact table ─── */
+.bai-table-section{margin-top:18px}
+.bai-table{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#fff;border-radius:12px;padding:14px 16px;border:1px solid var(--c-line)}
+.bai-table-col{display:flex;flex-direction:column;gap:3px}
+.bai-row{display:grid;grid-template-columns:22px 1fr 44px 30px 42px;gap:5px;align-items:center;padding:5px 6px;border-radius:6px;font:500 10.5px/1.3 var(--font);transition:background .15s}
+.bai-row:hover{background:#fffaef}
+.bai-row .num{font-weight:800;color:var(--c-mute);text-align:center}
+.bai-row .name{color:var(--c-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bai-row .frac{text-align:right;font-weight:600;color:var(--c-ink-soft);font-size:10px;white-space:nowrap}
+.bai-row .h-tag{text-align:center;padding:2px 3px;border-radius:4px;font:700 9.5px/1 var(--font);color:#fff;white-space:nowrap}
+.bai-row .h-H0{background:#5cb83e}
+.bai-row .h-H1{background:#a3c950}
+.bai-row .h-H2{background:#f3811f}
+.bai-row .h-H3{background:#e94e1b}
+.bai-row .h-H4{background:#a4886a}
+.bai-row .adj{text-align:right;font:700 11px/1 var(--font);white-space:nowrap}
+.bai-table-header{display:grid;grid-template-columns:22px 1fr 44px 30px 42px;gap:5px;padding:5px 6px;font:700 9.5px/1 var(--font);color:var(--c-mute);letter-spacing:.02em;text-transform:uppercase;border-bottom:1px solid var(--c-line);margin-bottom:3px;white-space:nowrap}
+.bai-table-header > span:nth-child(3),
+.bai-table-header > span:nth-child(5){text-align:right}
+.bai-table-header > span:nth-child(4){text-align:center}
+
+/* ─── Tự chủ mini donut (Card 3) ─── */
+.tu-chu-mini{width:46px;height:46px;flex-shrink:0;position:relative}
+.tu-chu-mini svg{width:100%;height:100%}
+.tu-chu-mini .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 11px/1 var(--font-d)}
+
+/* ─── Mức hỗ trợ distribution bar ─── */
+.h-dist-section{background:#fff;border-radius:12px;padding:14px 16px;border:1px solid var(--c-line);margin-top:18px}
+.h-dist-title{font:800 11px/1 var(--font-d);color:var(--c-ink);letter-spacing:.08em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.h-dist-bar{display:flex;height:24px;border-radius:6px;overflow:hidden;background:#f0e8d8}
+.h-dist-seg{display:flex;align-items:center;justify-content:center;color:#fff;font:700 10px/1 var(--font);min-width:24px;transition:width .35s ease}
+.h-dist-legend{display:flex;gap:10px;margin-top:6px;font:500 9.5px/1.3 var(--font);color:var(--c-mute);flex-wrap:wrap}
+.h-dist-legend span{display:inline-flex;align-items:center;gap:4px}
+.h-dist-legend i{display:inline-block;width:9px;height:9px;border-radius:50%}
+
+/* ─── Confidentiality footer ─── */
+.confidential-bar{
+  margin:14px 0 0;padding:10px 14px;background:var(--c-cream);border:1px dashed var(--c-line);border-radius:10px;
+  font:500 9.5px/1.5 var(--font);color:var(--c-ink-soft);text-align:center;
+}
+.confidential-bar b{color:var(--c-primary-2)}
+@media print{
+  /* Watermark diagonal */
+  body::after{
+    content:'CONFIDENTIAL — WONDERKIDS L3';
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);
+    font:900 56pt/1 var(--font-d);color:rgba(243,129,31,.06);
+    z-index:-1;pointer-events:none;white-space:nowrap;letter-spacing:.04em;
+  }
+}
+
+/* ═════ STUDENT INFO CARD (giống tieu-hoc layout) ═════ */
+.info-card{
+  margin-top:6px;
+  border:2px solid var(--c-line);background:#fffaf0;
+  border-radius:16px;padding:12px 18px;
+  display:grid;grid-template-columns:54px 1fr 1fr 1fr;gap:10px 22px;align-items:center;
+}
+.info-card .avatar-circle{
+  grid-row:span 2;width:48px;height:48px;border-radius:50%;
+  background:var(--c-orange-soft);
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+  transition:background .25s ease;
+}
+.info-card .avatar-circle.female{background:#fde2e8}
+.info-card .field{display:flex;align-items:baseline;gap:8px;min-width:0}
+.info-card .field label{
+  font:800 10px/1 var(--font);color:var(--c-primary);letter-spacing:.06em;
+  white-space:nowrap;flex-shrink:0;text-transform:uppercase;
+}
+.info-card .field .input{
+  flex:1;min-width:0;border:0;border-bottom:1.5px dotted var(--c-mute);
+  background:transparent;outline:none;
+  font:500 12.5px/1.4 var(--font);color:var(--c-ink);padding:2px 2px 3px;
+  appearance:none;cursor:text;
+}
+.info-card .field select.input{cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'><path d='M1 1l3 3 3-3' fill='none' stroke='%23a4886a' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 2px center;padding-right:14px}
+.info-card .field .input:focus{border-bottom-style:solid;border-bottom-color:var(--c-primary);background:#fff}
+
+/* ═════ EDITABLE COMMENTS — inline edit support ═════ */
+[contenteditable="true"].editable{
+  cursor:text;transition:background .15s, outline-offset .15s;
+  outline:1px dashed transparent;outline-offset:2px;border-radius:4px;
+}
+[contenteditable="true"].editable:hover{
+  background:rgba(245,178,35,.05);outline-color:var(--c-line);
+}
+[contenteditable="true"].editable:focus{
+  background:#fffaef;outline:1.5px dashed var(--c-primary);outline-offset:3px;
+}
+.edit-hint{
+  position:fixed;bottom:78px;left:20px;z-index:9000;
+  background:rgba(255,243,218,.95);color:var(--c-primary-2);
+  padding:7px 14px;border-radius:99px;border:1px solid var(--c-line);
+  font:600 10.5px/1 var(--font);box-shadow:0 4px 12px rgba(233,78,27,.1);
+  opacity:0;transform:translateY(10px);transition:all .25s ease;pointer-events:none;
+}
+.edit-hint.show{opacity:1;transform:translateY(0)}
+@media print{
+  [contenteditable="true"].editable{outline:none !important;background:transparent !important}
+  .edit-hint{display:none !important}
+}
+
+/* ═════ WARM YELLOW-ORANGE LAYOUT (theo brand tieu-hoc) ═════ */
+
+/* Body — cream background */
+body{
+  background:#f1e4cf !important;
+  background:
+    radial-gradient(ellipse 800px 600px at 20% 0%, #fff3da 0%, transparent 55%),
+    radial-gradient(ellipse 700px 500px at 100% 100%, #ffe7c8 0%, transparent 55%),
+    linear-gradient(180deg, #fff8ec, #fff3e0) !important;
+}
+.page{border-radius:20px !important;border:1px solid #f4cf9e !important;box-shadow:0 6px 32px rgba(233,78,27,.08) !important}
+
+/* Header */
+.report-header{border-bottom:none !important;padding-bottom:0 !important}
+.title-block h1{color:var(--c-primary-2) !important}
+.student-info{background:#fff8ec !important;border:1.5px solid #f4cf9e !important}
+.student-info input, .student-info select{color:#2a2117 !important}
+.student-info input:focus{outline:1.5px solid var(--c-primary) !important;background:#fff !important}
+
+/* Row 1 — 2 cards (Mã + Tổng) — vang cam tone */
+.cards-row-1{display:grid;grid-template-columns:1fr 1.2fr;gap:14px;margin-top:14px}
+.card-highlight{border-radius:18px;padding:16px 20px;position:relative;overflow:hidden}
+.card-highlight.purple{background:linear-gradient(135deg,#fff8ec,#ffe6cc);border:1.5px solid #f5d9a8}
+.card-highlight.blue{background:linear-gradient(135deg,#fff3da,#ffe1a8);border:1.5px solid var(--c-yellow)}
+.card-chip{display:inline-flex;gap:6px;align-items:center;padding:5px 14px;background:rgba(255,255,255,.92);border-radius:99px;font:700 11px var(--font);color:var(--c-primary-2);border:1px solid var(--c-line-soft);margin-bottom:14px}
+.card-highlight.purple .card-chip{color:var(--c-primary-2)}
+.card-highlight.blue .card-chip{color:#a44400}
+.chip-star{font-size:11px}
+.card-highlight-body{display:flex;gap:14px;align-items:center}
+.card-highlight-body.center{justify-content:flex-start}
+.rocket-deco{font-size:58px;line-height:1;flex-shrink:0;filter:drop-shadow(0 4px 8px rgba(233,78,27,.25))}
+.code-display{flex:1;text-align:center}
+.code-big{
+  font:800 32px/1 var(--font-d);color:#fff;letter-spacing:1.5px;
+  background:var(--c-primary);padding:10px 24px;border-radius:14px;display:inline-block;
+  box-shadow:0 4px 14px rgba(243,129,31,.3);
+  text-shadow:0 1px 2px rgba(0,0,0,.12);
+}
+.code-name{font:600 13px/1.3 var(--font);color:var(--c-primary-2);margin-top:6px;opacity:.85}
+.card-desc{margin:10px 0 0;font:500 11.5px/1.5 var(--font);color:#6b5a45;text-align:center}
+.secondary-pill{margin-top:10px;padding:5px 14px;background:#fff;border-radius:99px;font:600 10.5px var(--font);color:var(--c-primary-2);text-align:center;display:inline-block;border:1px solid var(--c-line);box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.secondary-pill b{font-weight:800}
+
+/* Donut total — orange theme override */
+.cards-row-1 .donut-total{width:128px;height:128px;flex-shrink:0;position:relative}
+.cards-row-1 .donut-total svg{width:100%;height:100%}
+.cards-row-1 .donut-total .pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cards-row-1 .donut-total .pct b{font:800 32px/1 var(--font-d);color:var(--c-ink)}
+.cards-row-1 .donut-total .pct small{font:600 11px var(--font);color:var(--c-mute);margin-top:2px}
+.cards-row-1 .grade-info{flex:1}
+.cards-row-1 .grade-info h3{margin:0 0 6px;font:800 17px/1.2 var(--font-d);color:var(--c-ink);background:none;padding:0}
+.cards-row-1 .grade-info h3 span{color:var(--c-primary-2)}
+.cards-row-1 .grade-info p{margin:0;font:500 11.5px/1.5 var(--font);color:#6b5a45}
+.cards-row-1 .grade-info .tag{display:none}
+
+/* Row 2 — Mức nền + Mức hỗ trợ (cream tone, vang/cam accent) */
+.cards-row-2{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;margin-top:12px}
+.card-mini{border-radius:18px;padding:13px 18px;display:flex;gap:14px;align-items:center}
+.card-mini.mint{background:linear-gradient(135deg,#fffaef,#fce5b6);border:1.5px solid var(--c-yellow)}
+.card-mini.pink{background:linear-gradient(135deg,#fff3e0,#ffd5b8);border:1.5px solid var(--c-primary)}
+.mini-icon{width:48px;height:48px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 2px 8px rgba(233,78,27,.08)}
+.mini-body{flex:1}
+.mini-label{font:700 10px var(--font);color:var(--c-mute);letter-spacing:.14em;margin-bottom:3px}
+.card-mini.mint .mini-label{color:#a4881f}
+.card-mini.pink .mini-label{color:var(--c-primary-2)}
+.mini-value{display:flex;align-items:center;gap:10px}
+.mini-value b{font:800 18px var(--font-d);color:#a44400}
+.mini-value .stars{font-size:13px;color:var(--c-yellow);letter-spacing:2px}
+.mini-value-h b{font:800 18px var(--font-d);color:var(--c-primary-2)}
+.mini-desc{font:500 11px/1.4 var(--font);color:#6b5a45;margin-top:2px}
+
+/* Section title with dots */
+.section-title-deco{text-align:center;margin:22px 0 14px;font:800 13px var(--font-d);color:var(--c-primary-2);letter-spacing:.18em;display:flex;justify-content:center;align-items:center;gap:14px}
+.section-title-deco .dot{color:var(--c-primary);font-size:22px;line-height:0}
+
+/* WK grid override — warm theme */
+.wk-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.wk-card{background:#fff;border:1.5px solid #f4cf9e;border-radius:16px;padding:14px 10px;text-align:center;box-shadow:0 2px 8px rgba(233,78,27,.04)}
+.wk-card .head{font:800 14px var(--font-d);letter-spacing:.3px}
+.wk-card .name{font:500 11px var(--font);color:#6b5a45;margin:2px 0 6px;min-height:28px}
+.wk-card .wk-donut{margin:6px auto}
+.wk-card .center{font:800 18px var(--font-d);color:var(--c-ink)}
+.wk-card .cmt{margin:8px 0 0;font:500 10.5px/1.5 var(--font);color:#6b5a45;min-height:40px}
+.wk-card .cmt b{color:var(--c-ink)}
+.wk-card.f .wk-donut{display:flex;align-items:center;justify-content:center;font-size:34px;color:#a4886a;background:#fffaf0;border-radius:50%;border:2px solid var(--c-line-soft)}
+
+/* A/B/C 3-column — warm tones (yellow / orange / cream) */
+.abc-row{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:12px;margin-top:18px}
+.abc-section{border-radius:16px;padding:14px 16px}
+.section-A{background:linear-gradient(135deg,#fffaef,#fce5b6);border:1.5px solid var(--c-yellow)}
+.section-B{background:linear-gradient(135deg,#fff3e0,#ffd5b8);border:1.5px solid var(--c-primary)}
+.section-C{background:linear-gradient(135deg,#fff8ec,#fbecc8);border:1.5px solid #f4cf9e}
+.abc-header{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.abc-emoji{font-size:22px;line-height:1}
+.abc-title{font:800 12.5px var(--font-d);letter-spacing:.04em}
+.section-A .abc-title{color:#a4881f}
+.section-B .abc-title{color:var(--c-primary-2)}
+.section-C .abc-title{color:#a44400}
+.abc-section ul{margin:0;padding:0;list-style:none;font:500 11.5px/1.5 var(--font);color:#3d2e1f}
+.abc-section li{padding-left:14px;position:relative;margin-bottom:6px}
+.abc-section li::before{content:'•';position:absolute;left:2px;font-weight:800;font-size:14px;line-height:1.2}
+.section-A li::before{color:#a4881f}
+.section-B li::before{color:var(--c-primary)}
+.section-C .orient-list{display:flex;flex-direction:column;gap:8px}
+.section-C .orient-item{display:flex;gap:8px;align-items:flex-start}
+.section-C .orient-item .ico{font-size:16px;flex-shrink:0;margin-top:1px}
+.section-C .orient-item .text{font:500 11px/1.4 var(--font);color:#5a4a35}
+.section-C .orient-item .text b{display:inline;font-weight:700;color:var(--c-primary-2);margin-right:3px}
+
+/* Heart message — warm gold */
+.heart-msg{background:linear-gradient(90deg,#fff8ec,#fde9d2);border:1.5px solid var(--c-line);border-radius:18px;padding:13px 20px;display:flex;gap:14px;align-items:center;margin-top:14px;position:relative}
+.heart-icon{width:46px;height:46px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;box-shadow:0 2px 8px rgba(233,78,27,.15)}
+.heart-msg p{margin:0;flex:1;font:500 12px/1.55 var(--font);color:#5a4a35}
+.heart-msg p b{color:var(--c-primary-2);font-weight:700}
+.star-deco{font-size:30px;flex-shrink:0;color:var(--c-yellow);filter:drop-shadow(0 2px 4px rgba(245,178,35,.3))}
+
+/* Footer note */
+.footer-note{font:500 10px var(--font);color:var(--c-mute);padding:8px 4px 0;text-align:left}
+
+/* Print fidelity — force colors + smart page breaks */
+@media print{
+  body{background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{box-shadow:none !important;border:none !important;border-radius:0 !important;padding:5mm 7mm !important}
+
+  /* Force background colors print */
+  .card-highlight, .card-mini, .abc-section, .heart-msg, .brand-bar-deco, .wk-card,
+  .section-A, .section-B, .section-C, .l4-logo, .mini-icon, .student-info{
+    -webkit-print-color-adjust:exact !important;
+    print-color-adjust:exact !important;
+    color-adjust:exact !important;
+  }
+
+  /* SMART PAGE BREAKS: KHÔNG cắt giữa block logic */
+  .card-highlight, .card-mini, .wk-card, .abc-section,
+  .heart-msg, .brand-bar-deco, .student-info, .report-header{
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+  }
+
+  /* GROUP related rows together */
+  .cards-row-1, .cards-row-2{
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+  }
+  /* WK grid: cho phép break giữa các card nhưng không cắt 1 card */
+  .wk-grid{
+    break-inside:auto;
+    page-break-inside:auto;
+  }
+  /* A/B/C row: ƯU TIÊN cùng trang. Nếu không vừa → break trước section */
+  .abc-row{
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+    break-before:auto;
+  }
+
+  /* Section title không tách khỏi nội dung */
+  .section-title-deco{
+    break-after:avoid !important;
+    page-break-after:avoid !important;
+  }
+
+  /* Heart + brand bar + footer GIỮ CÙNG NHAU */
+  .heart-msg, .brand-bar-deco, .footer-note{
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+  }
+  .heart-msg{break-before:avoid !important;page-break-before:avoid !important}
+  .brand-bar-deco{break-before:avoid !important;page-break-before:avoid !important}
+
+  /* Compact print sizing */
+  .card-highlight{padding:12px 16px !important}
+  .card-mini{padding:10px 14px !important}
+  .wk-card{padding:10px 8px !important}
+  .abc-section{padding:11px 14px !important}
+  .heart-msg{padding:11px 16px !important}
+  .brand-bar-deco{padding:8px 18px !important}
+  .cards-row-1, .cards-row-2, .abc-row{gap:8px !important;margin-top:8px !important}
+  .section-title-deco{margin:12px 0 8px !important}
+
+  @page{size:A4 portrait;margin:6mm}
+}
+
+/* Parent mode: hide technical details */
+body.parent-mode .workspace, body.parent-mode .top-toolbar{display:none !important}
+body.parent-mode .student-info input{pointer-events:none;border-color:transparent}
+
+/* Parent mode exit FAB */
+#parent-exit-fab{
+  display:none;position:fixed;bottom:20px;right:20px;z-index:9001;
+  background:linear-gradient(135deg, var(--c-primary), var(--c-primary-2));color:#fff;border:none;
+  padding:12px 20px;border-radius:99px;cursor:pointer;
+  font:700 12px/1 var(--font);
+  box-shadow:0 8px 24px rgba(233,78,27,.4);
+  display:none;align-items:center;gap:6px;
+}
+body.parent-mode #parent-exit-fab{display:inline-flex !important}
+#parent-exit-fab:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(233,78,27,.5)}
+@media print{#parent-exit-fab{display:none !important}}
+</style>
+</head>
+<body>
+
+<!-- ═════ TOP TOOLBAR (production features) ═════ -->
+<div class="top-toolbar">
+  <a href="index.html" class="home" title="Quay về trang chính">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Trang chính
+  </a>
+  <span class="sep"></span>
+  <div class="group">
+    <label for="xlsx-input" title="Import file xlsx chứa điểm chấm (format 14 bài + mức hỗ trợ H)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Nhập Excel
+    </label>
+    <input type="file" id="xlsx-input" accept=".xlsx,.xls" onchange="importXlsxL4v2(event)">
+    <button onclick="downloadXlsxTemplate()" title="Tải template xlsx trống để GV chấm điểm">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Template
+    </button>
+  </div>
+  <span class="sep"></span>
+  <span id="save-pill" class="save-pill">● Chưa lưu</span>
+  <span class="sep"></span>
+  <div class="group">
+    <button onclick="exportBackup()" title="Sao lưu data ra JSON">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+      Backup
+    </button>
+    <label for="restore-input" title="Khôi phục từ file JSON">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Restore
+    </label>
+    <input type="file" id="restore-input" accept=".json" onchange="importBackup(event)">
+  </div>
+  <span class="sep"></span>
+  <div class="group">
+    <button onclick="resetData()" title="Xóa dữ liệu và reset về mặc định">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      Làm mới
+    </button>
+    <button onclick="resetEdits()" title="Khôi phục nhận xét về auto (mất các chỉnh sửa thủ công)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Reset nhận xét
+    </button>
+    <button onclick="toggleParentMode()" id="btn-parent" title="Chế độ phụ huynh: ẩn toolbar + workspace">
+      👪 Phụ huynh
+    </button>
+  </div>
+  <span class="sep"></span>
+  <button class="primary" onclick="window.print()" title="In/Xuất PDF A4 portrait">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    In PDF
+  </button>
+</div>
+
+<div id="toast"></div>
+
+<!-- Exit parent mode FAB — chỉ visible khi đang ở chế độ phụ huynh -->
+<button id="parent-exit-fab" onclick="toggleParentMode()" title="Quay về chế độ Giáo viên">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+  Thoát chế độ phụ huynh
+</button>
+
+<div class="page">
+
+<!-- ═════ HEADER ═════ -->
+<header class="report-header">
+  <div class="brand-block">
+    <div class="l4-logo">
+      <span class="big">L3</span>
+      <span class="small">Khai mở tư duy</span>
+      <span class="award">🏆</span>
+    </div>
+    <div class="title-block">
+      <h1>BÁO CÁO ĐÁNH GIÁ NĂNG LỰC ĐẦU VÀO</h1>
+      <h2>L3 – DIAGNOSTIC ASSESSMENT (4 TUỔI)</h2>
+    </div>
+  </div>
+</header>
+
+<!-- ═════ STUDENT INFO CARD (grid layout giống tieu-hoc) ═════ -->
+<div class="info-card">
+  <div class="avatar-circle" id="student-avatar">👦</div>
+  <div class="field"><label>HỌ VÀ TÊN:</label><input class="input" id="f-name" value="Hải An"></div>
+  <div class="field"><label>MÃ HỌC TẬP:</label><input class="input" id="f-code" placeholder="—"></div>
+  <div class="field"><label>GIỚI TÍNH:</label>
+    <select class="input" id="f-gender" onchange="updateAvatar()">
+      <option value="Nam">Nam</option>
+      <option value="Nữ">Nữ</option>
+    </select>
+  </div>
+  <div class="field"><label>NĂM SINH:</label><input class="input" id="f-dob" value="2021"></div>
+  <div class="field"><label>NGÀY KIỂM TRA:</label><input class="input" id="f-date" value="15/05/2025"></div>
+  <div class="field"><label>LỚP:</label><input class="input" id="f-class" value="L3"></div>
+</div>
+
+<!-- ═════ ROW 1: MÃ HỌC TẬP + TỔNG ĐIỂM ═════ -->
+<div class="cards-row-1">
+  <div class="card-highlight purple">
+    <span class="card-chip"><span class="chip-star">⭐</span> MÃ HỌC TẬP NỔI BẬT</span>
+    <div class="card-highlight-body">
+      <div class="rocket-deco">🚀</div>
+      <div class="code-display">
+        <div class="code-big" id="top-code-ko">WK-X</div>
+        <div class="code-name" id="top-code-nm">Linh hoạt – khám phá</div>
+      </div>
+    </div>
+    <p class="card-desc" id="top-code-desc">Bé nổi bật ở khả năng sáng tạo, linh hoạt và mở rộng ý tưởng.</p>
+    <div class="secondary-pill" id="secondary-pill" style="display:none">
+      <span>🔍 Xu hướng phụ: <b id="secondary-text"></b></span>
+    </div>
+  </div>
+
+  <div class="card-highlight blue">
+    <span class="card-chip"><span class="chip-star">🏆</span> TỔNG ĐIỂM HIỆU CHỈNH</span>
+    <div class="card-highlight-body center">
+      <div class="donut-total">
+        <svg viewBox="0 0 100 100" id="donut-total-svg"></svg>
+        <div class="pct"><b id="total-pct">—</b><small id="total-frac">/100</small></div>
+      </div>
+      <div class="grade-info">
+        <h3>XẾP LOẠI: <span id="grade-name">—</span></h3>
+        <p id="grade-desc">—</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════ ROW 2: MỨC NỀN + MỨC HỖ TRỢ ═════ -->
+<div class="cards-row-2">
+  <div class="card-mini mint">
+    <div class="mini-icon">📊</div>
+    <div class="mini-body">
+      <div class="mini-label">MỨC NỀN</div>
+      <div class="mini-value"><b id="muc-nen-val">—</b><span class="stars" id="muc-nen-stars">—</span></div>
+    </div>
+  </div>
+  <div class="card-mini pink">
+    <div class="mini-icon">🤝</div>
+    <div class="mini-body">
+      <div class="mini-label">MỨC HỖ TRỢ</div>
+      <div class="mini-value-h"><b id="muc-ho-tro-val">—</b></div>
+      <div class="mini-desc" id="muc-ho-tro-desc">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════ KẾT QUẢ THEO NHÓM NĂNG LỰC ═════ -->
+<div class="section-title-deco">
+  <span class="dot">•</span>
+  <span class="title-text">KẾT QUẢ THEO NHÓM NĂNG LỰC</span>
+  <span class="dot">•</span>
+</div>
+<div class="wk-grid" id="wk-grid"></div>
+
+<!-- ═════ A) ĐIỂM MẠNH + B) VÙNG CẦN PHÁT TRIỂN + C) ĐỊNH HƯỚNG ═════ -->
+<div class="abc-row">
+  <div class="abc-section section-A">
+    <div class="abc-header"><span class="abc-emoji">👍</span><span class="abc-title">A) ĐIỂM MẠNH</span></div>
+    <ul id="strong-list"><li>—</li></ul>
+  </div>
+  <div class="abc-section section-B">
+    <div class="abc-header"><span class="abc-emoji">🎯</span><span class="abc-title">B) VÙNG CẦN PHÁT TRIỂN</span></div>
+    <ul id="weak-list"><li>—</li></ul>
+  </div>
+  <div class="abc-section section-C">
+    <div class="abc-header"><span class="abc-emoji">📖</span><span class="abc-title">C) ĐỊNH HƯỚNG HỌC TẬP</span></div>
+    <div class="orient-list" id="orient-list"></div>
+  </div>
+</div>
+
+<!-- ═════ HEART MESSAGE ═════ -->
+<div class="heart-msg">
+  <div class="heart-icon">💗</div>
+  <p id="parent-msg">Mỗi bé có tốc độ phát triển riêng. Với môi trường học tập tích cực và phương pháp phù hợp, bé sẽ tiếp tục phát huy điểm mạnh và phát triển toàn diện hơn.</p>
+  <div class="star-deco">⭐</div>
+</div>
+
+<!-- Brand bar "L4 đồng hành..." đã bỏ theo yêu cầu -->
+
+<!-- ═════ FOOTER NOTE ═════ -->
+<div class="footer-note">
+  * Báo cáo được tổng hợp từ bài kiểm tra đầu vào ngày <b id="meta-date">—</b>
+</div>
+
+</div><!-- /.page -->
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   L4 v2 — Data Model + Engine
+   ═══════════════════════════════════════════════════════════════ */
+
+// 14 bài: nội dung + max + WK codes (overlap OK)
+const __BAI_L4V2 = [
+  {bai:1,  name:'Sao chép hình khối giống ví dụ',                       max:6, wk:['WK-V'],          rubric:'Đúng cấu trúc khối 3D: 3đ, giữ được cạnh/mặt chính: 2đ, bố cục rõ: 1đ'},
+  {bai:2,  name:'Nối số 1–10 theo thứ tự hình tròn, tam giác, vuông',   max:7, wk:['WK-M'],          rubric:'Nhận diện số: 2đ, đúng thứ tự 1–10: 3đ, đúng quy luật hình: 2đ'},
+  {bai:3,  name:'Nghe số và viết lại xuôi/ngược',                       max:8, wk:['WK-R'],          rubric:'Xuôi 3 dãy đúng: 4đ, ngược 3 dãy đúng: 4đ'},
+  {bai:4,  name:'So sánh hai thẻ theo kích thước, hình dạng, số lượng', max:6, wk:['WK-V','WK-M'],  rubric:'Mỗi tiêu chuẩn đúng: 2đ (kích thước / hình dạng / số lượng)'},
+  {bai:5,  name:'Khoanh hình phù hợp với nhóm bên trái',                max:8, wk:['WK-V','WK-M'],  rubric:'4 hàng × 2đ: nhận ra nhóm 1đ, chọn đúng hình 1đ'},
+  {bai:6,  name:'Ghép mảnh phía trên với hình tạo thành phía dưới',    max:7, wk:['WK-V','WK-R'],  rubric:'Mỗi cặp đúng (ưu tiên khả năng xoay hình và tổng hợp hình ảnh)'},
+  {bai:7,  name:'Hiểu mệnh lệnh vị trí và nối hình đúng',               max:6, wk:['WK-R'],          rubric:'Mỗi vật đúng vị trí: 1.5đ (trên / giữa / bên cạnh)'},
+  {bai:8,  name:'Nối các thẻ để tạo tổng bằng 10',                      max:6, wk:['WK-R'],          rubric:'Mỗi cặp đúng: 1.5đ. Bonus nếu bé loại trừ số không có cặp'},
+  {bai:9,  name:'Ghép khối để tạo hình bên dưới',                       max:7, wk:['WK-V'],          rubric:'Mỗi cặp đúng — đo tư duy không gian + phân tích cấu trúc'},
+  {bai:10, name:'Sắp xếp chìa khóa từ dài nhất đến ngắn nhất',          max:5, wk:['WK-V','WK-M'],  rubric:'Đúng toàn bộ: 5đ, sai 1 vị trí: 3-4đ, chỉ nhận ra dài/ngắn: 2đ'},
+  {bai:11, name:'Nhận diện kiểu mẫu số và chọn số tiếp theo',           max:8, wk:['WK-M','WK-R'],  rubric:'4 dãy × 2đ: nhận ra chu kỳ 1đ, chọn đúng số tiếp 1đ'},
+  {bai:12, name:'Đếm, biểu đồ, xếp thứ tự yêu thích giảm dần',          max:8, wk:['WK-R'],          rubric:'Đếm đúng: 3đ, khoanh biểu đồ đúng: 3đ, xếp hạng giảm dần: 2đ'},
+  {bai:13, name:'Sáng tạo hình từ chữ "S"',                             max:9, wk:['WK-X'],          rubric:'Trôi chảy: 3đ, linh hoạt: 3đ, độc đáo: 2đ, chính xác: 2đ'},
+  {bai:14, name:'Sáng tạo hình từ số "11"',                             max:9, wk:['WK-X'],          rubric:'Trôi chảy: 3đ, linh hoạt: 3đ, độc đáo: 2đ, chính xác: 2đ'},
+];
+
+// 5 mã WK — toàn bộ field từ CSV official L4 (warm yellow-orange theme)
+const __WK_CODES = {
+  'WK-V': {
+    emoji:'👁', name:'Trực quan – thao tác', color:'#5cb83e',
+    bieuHieu:'Bé làm tốt các câu hình ảnh, phân loại, ghép hình, so sánh, nhưng yếu hơn ở bài nghe số hoặc suy luận.',
+    desc:'Bé tiếp thu tốt khi học qua hình ảnh, vật thật và thao tác trực tiếp. Khi bài học rõ ràng có minh họa cụ thể, bé thường tham gia tốt và xử lý nhiệm vụ ổn định hơn.',
+    hoatDong:'quan sát, so sánh và đối chiếu hình ảnh để xử lý chính xác hơn các bài ghép hình, phân loại và nhận diện đặc điểm.',
+    strong:['Nhận diện hình ảnh, phân loại và so sánh tốt.','Tiếp thu hiệu quả qua vật thật, tranh ảnh và thao tác trực quan.','Làm tốt các bài ghép hình, phân loại và so sánh.'],
+    weak:['Quan sát kỹ đặc điểm hình ảnh trước khi chọn đáp án.','Rèn thêm kỹ năng so sánh, phân loại và ghép hình trực quan.','Tập đối chiếu với mẫu để tăng độ chính xác khi làm bài.'],
+  },
+  'WK-M': {
+    emoji:'📋', name:'Theo mẫu – có cấu trúc', color:'#f5b223',
+    bieuHieu:'Bé làm tốt khi có ví dụ, nhưng lúng túng khi yêu cầu thay đổi hoặc không có mẫu.',
+    desc:'Bé học tốt khi có ví dụ mẫu và từng bước hướng dẫn rõ ràng. Với dạng bài quen thuộc, bé có thể hoàn thành khá ổn, nhưng cần thêm thời gian để tự xử lý bài mới.',
+    hoatDong:'quan sát mẫu, ghi nhớ yêu cầu và làm bài theo từng bước để tăng sự ổn định khi gặp nhiệm vụ mới.',
+    strong:['Làm tốt khi có ví dụ mẫu hoặc hướng dẫn rõ ràng.','Biết thực hiện nhiệm vụ theo trình tự ổn định.','Ghi nhớ và áp dụng quy tắc quen thuộc khá tốt.'],
+    weak:['Rèn thói quen quan sát ví dụ mẫu trước khi bắt đầu.','Luyện làm bài theo từng bước để giữ đúng yêu cầu.','Tăng khả năng chuyển từ bài mẫu sang bài tương tự.'],
+  },
+  'WK-R': {
+    emoji:'💡', name:'Suy luận từng bước', color:'#f3811f',
+    bieuHieu:'Bé làm tốt quy luật, tổng 10, trình tự, bài nhiều bước, có thể giải thích cách làm.',
+    desc:'Bé có khả năng suy luận và xử lý bài theo trình tự. Khi được hướng dẫn đúng cách, bé có thể kết nối dữ kiện, nhận ra quy luật và giải quyết nhiệm vụ có nhiều bước.',
+    hoatDong:'suy luận từng bước, đặc biệt ở các bài quy luật, trình tự, tạo tổng và xử lý nhiều dữ kiện.',
+    strong:['Biết kết nối dữ kiện và xử lý bài theo từng bước.','Làm tốt các bài quy luật, trình tự và bài nhiều dữ kiện.','Có khả năng suy nghĩ logic trước khi chọn đáp án.'],
+    weak:['Rèn suy luận từng bước với bài quy luật, trình tự và tạo tổng.','Tăng khả năng xử lý nhiều dữ kiện trước khi chọn đáp án.','Luyện thói quen giải thích ngắn và kiểm tra lại kết quả.'],
+  },
+  'WK-X': {
+    emoji:'🚀', name:'Linh hoạt – khám phá', color:'#e94e1b',
+    bieuHieu:'Bé sáng tạo tốt, thử nhiều cách, phản ứng nhanh, nhưng đôi khi thiếu kiểm tra lại.',
+    desc:'Bé có xu hướng linh hoạt, thích khám phá và thử nhiều cách làm. Đây là điểm mạnh tốt, nhưng cần rèn thêm thói quen quan sát kỹ, kiểm tra lại và hoàn thiện nhiệm vụ chính xác hơn.',
+    hoatDong:'khuyến khích mở rộng ý tưởng, thử nhiều cách làm và diễn đạt sản phẩm sáng tạo rõ ràng hơn.',
+    strong:['Có nhiều ý tưởng khi gặp nhiệm vụ mở.','Biết biến đổi hình gợi ý thành sản phẩm sáng tạo.','Chủ động thử cách làm mới và thể hiện sự tưởng tượng tốt.'],
+    weak:['Khuyến khích bé thử nhiều ý tưởng khác nhau từ cùng một hình gợi ý.','Tăng hoạt động vẽ tiếp hình, kể chuyện từ tranh và đặt tên cho sản phẩm.','Rèn sự tự tin khi trình bày ý tưởng, không chỉ tập trung vào đúng – sai.'],
+  },
+  'WK-F': {
+    emoji:'🛡', name:'Cần củng cố nền tảng', color:'#a4886a',
+    bieuHieu:'Bé yếu nhiều nhóm nền tảng, cần hỗ trợ liên tục, dễ mất định hướng.',
+    desc:'Bé cần được củng cố thêm nền tảng học tập như hiểu yêu cầu, phân loại, so sánh, ghi nhớ, quy luật và duy trì sự tập trung. Giai đoạn này nên ưu tiên bài học ngắn, trực quan, có hỗ trợ rõ.',
+    hoatDong:'củng cố nền học tập cơ bản, bao gồm hiểu yêu cầu, duy trì chú ý, làm theo hướng dẫn và hoàn thành nhiệm vụ ngắn.',
+    strong:[],
+    weak:['Củng cố khả năng hiểu yêu cầu, duy trì chú ý và hoàn thành nhiệm vụ ngắn.','Tăng hoạt động trực quan, vật thật và trò chơi học tập có hướng dẫn rõ.','Luyện từng bước nhỏ để bé ổn định nền học tập trước khi tăng độ khó.'],
+  },
+};
+
+// Hệ số mức hỗ trợ
+const __H_MULT = {H0:1.0, H1:0.9, H2:0.75, H3:0.55, H4:0.3};
+const __H_DESC = {
+  H0:'Bé tự hiểu yêu cầu và tự làm',
+  H1:'Giáo viên chỉ nhắc lại đề, không gợi ý cách làm',
+  H2:'Giáo viên gợi ý nhẹ hướng quan sát hoặc bước đầu',
+  H3:'Giáo viên làm mẫu một phần hoặc hướng dẫn từng bước',
+  H4:'Giáo viên phải làm cùng, bé phụ thuộc nhiều',
+};
+
+// State
+const __scoresL4v2 = {};
+__BAI_L4V2.forEach(b => { __scoresL4v2[b.bai] = {diem: 0, h: 'H1'}; });
+
+// Demo data — Bé An Nguyên (từ file xlsx user cung cấp)
+const __DEMO = {
+  1:{diem:4,h:'H1'},  2:{diem:6,h:'H1'},  3:{diem:4,h:'H2'},  4:{diem:6,h:'H2'},
+  5:{diem:5,h:'H1'},  6:{diem:2,h:'H1'},  7:{diem:4,h:'H1'},  8:{diem:5,h:'H1'},
+  9:{diem:7,h:'H1'}, 10:{diem:4,h:'H1'}, 11:{diem:8,h:'H1'}, 12:{diem:6,h:'H1'},
+ 13:{diem:3,h:'H1'}, 14:{diem:6,h:'H1'},
+};
+const __DEMO_INFO = {name:'Hải An', code:'', gender:'Nam', dob:'01/01/2021', date:'15/05/2025', class:'L3'};
+
+/* ─── Toast notification ─── */
+function showToast(msg, color){
+  const t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.style.background = color || '#5fb53f';
+  t.classList.add('show');
+  clearTimeout(window.__toastTm);
+  window.__toastTm = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ─── Save indicator ─── */
+function _markSaved(){
+  const pill = document.getElementById('save-pill');
+  if(pill){
+    pill.textContent = '✓ Đã lưu ' + new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+    pill.classList.add('saved');
+    setTimeout(() => pill.classList.remove('saved'), 1800);
+  }
+}
+
+function _restoreState(){
+  try{
+    const s = localStorage.getItem('mg-l3v2-scores');
+    if(s){
+      const obj = JSON.parse(s);
+      Object.keys(obj).forEach(k => {
+        if(__scoresL4v2[k]) __scoresL4v2[k] = obj[k];
+      });
+      return true;
+    }
+  }catch(_){}
+  // No saved state -> load demo (Bé An Nguyên)
+  Object.assign(__scoresL4v2, __DEMO);
+  return false;
+}
+
+function _saveState(){
+  try{ localStorage.setItem('mg-l3v2-scores', JSON.stringify(__scoresL4v2)); _markSaved(); }catch(_){}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCTION FEATURES — Import xlsx + Backup + Template + Reset
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Wait XLSX library ready */
+function _waitXlsx(maxMs){
+  maxMs = maxMs || 5000;
+  return new Promise(resolve => {
+    if(window.__xlsxStatus === 'ready') return resolve(true);
+    const start = Date.now();
+    const t = setInterval(() => {
+      if(window.__xlsxStatus === 'ready'){ clearInterval(t); resolve(true); }
+      else if(window.__xlsxStatus === 'failed' || Date.now() - start > maxMs){
+        clearInterval(t); resolve(false);
+      }
+    }, 100);
+  });
+}
+
+/* Import xlsx — parse L4 v2 format (cách chấm xlsx) */
+async function importXlsxL4v2(ev){
+  const f = ev.target?.files?.[0];
+  if(!f) return;
+  const ready = await _waitXlsx();
+  if(!ready){ showToast('XLSX chưa load được, kiểm tra mạng', '#df5728'); return; }
+  try{
+    const buf = await f.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:false});
+    const sheetName = wb.SheetNames[0];
+    const sht = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sht, {header:1, defval:''});
+
+    // Reset scores
+    __BAI_L4V2.forEach(b => { __scoresL4v2[b.bai] = {diem: 0, h: 'H1'}; });
+
+    // Extract student name (cell A1 or sheet name)
+    let studentName = '';
+    if(rows[0] && rows[0][0]) studentName = String(rows[0][0]).trim();
+    if(!studentName) studentName = sheetName.trim();
+
+    // Find data rows: bài 1-14 in column A
+    let parsed = 0;
+    let totalAdjFromFile = null;
+    for(let i = 0; i < rows.length; i++){
+      const r = rows[i];
+      if(!r) continue;
+      const cau = r[0];
+      // Detect data row: column A is integer 1-14
+      const cauNum = parseInt(cau, 10);
+      if(!Number.isFinite(cauNum) || cauNum < 1 || cauNum > 14) continue;
+      // Read điểm đạt (col E = index 4) + mức hỗ trợ (col F = index 5)
+      const diem = parseFloat(r[4]);
+      const h = String(r[5] || 'H1').trim().toUpperCase();
+      if(Number.isFinite(diem) && __scoresL4v2[cauNum]){
+        __scoresL4v2[cauNum].diem = diem;
+        __scoresL4v2[cauNum].h = ['H0','H1','H2','H3','H4'].includes(h) ? h : 'H1';
+        parsed++;
+      }
+      // Also try to read tổng điểm from L2 (label "TỔNG ĐIỂM HIỆU CHỈNH" at I2, value at L2)
+      if(i === 1 && r[11]){
+        const t = parseFloat(r[11]);
+        if(Number.isFinite(t)) totalAdjFromFile = t;
+      }
+    }
+
+    if(parsed === 0){
+      showToast('Không tìm thấy data — file có thể sai format', '#df5728');
+      return;
+    }
+
+    // Apply student name
+    if(studentName){
+      document.getElementById('f-name').value = studentName;
+    }
+    // Save & render
+    _saveState();
+    saveInfo();
+    renderAll();
+    showToast('✓ Đã nhập ' + parsed + '/14 bài cho bé ' + studentName);
+  }catch(err){
+    console.error('Import error:', err);
+    showToast('Lỗi đọc file: ' + (err.message || err), '#df5728');
+  } finally {
+    if(ev?.target) ev.target.value = '';
+  }
+}
+
+/* Download template xlsx — format chuẩn để GV chấm */
+async function downloadXlsxTemplate(){
+  const ready = await _waitXlsx();
+  if(!ready){ showToast('XLSX chưa load', '#df5728'); return; }
+  // Build sheet matching format L4 v2
+  const rows = [
+    ['TÊN BÉ', '', '', '', '', '', '', '', '', '', '', '', '', ''],  // R1
+    ['', '', '', '', '', '', '', '', 'TỔNG ĐIỂM HIỆU CHỈNH', '', '', '', '', ''],  // R2
+    ['Câu', 'Nội dung đo', 'Điểm tối đa', 'Cách chấm nên dùng', 'ĐIỂM ĐẠT', 'MỨC ĐỘ HỖ TRỢ', 'ĐIỂM HIỆU CHỈNH'],  // R3
+  ];
+  __BAI_L4V2.forEach(b => {
+    rows.push([b.bai, b.name, b.max, b.rubric, '', 'H1', '']);
+  });
+  rows.push(['TỔNG', '', '', '', '', '', '']);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [
+    {wch:5},{wch:42},{wch:8},{wch:46},{wch:10},{wch:12},{wch:12}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'TÊN BÉ');
+  const fname = 'WonderKids_L3v2_Template_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  XLSX.writeFile(wb, fname);
+  showToast('✓ Đã tải ' + fname);
+}
+
+/* Backup state JSON */
+function exportBackup(){
+  const data = {
+    version: 2,
+    type: 'mau-giao-l3-v2',
+    exportedAt: new Date().toISOString(),
+    scores: __scoresL4v2,
+    info: {
+      name: document.getElementById('f-name').value,
+      dob: document.getElementById('f-dob').value,
+      date: document.getElementById('f-date').value,
+      class: document.getElementById('f-class').value,
+    },
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const name = data.info.name.replace(/\s+/g,'_') || 'unknown';
+  a.href = url;
+  a.download = 'l3v2-backup-' + name + '-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Đã backup data');
+}
+
+/* Restore from JSON */
+function importBackup(ev){
+  const f = ev.target?.files?.[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const obj = JSON.parse(e.target.result);
+      if(!obj.scores) throw new Error('Backup không hợp lệ');
+      if(!confirm('Khôi phục data từ backup (' + obj.exportedAt + ')?\nDữ liệu hiện tại sẽ bị ghi đè.')) return;
+      Object.assign(__scoresL4v2, obj.scores);
+      if(obj.info){
+        ['name','code','gender','dob','date','class'].forEach(k => {
+          const el = document.getElementById('f-' + k);
+          if(el && obj.info[k] != null) el.value = obj.info[k];
+        });
+        updateAvatar();
+      }
+      _saveState();
+      renderAll();
+      showToast('✓ Đã khôi phục data');
+    }catch(err){
+      showToast('Lỗi đọc backup: ' + err.message, '#df5728');
+    }
+    if(ev?.target) ev.target.value = '';
+  };
+  reader.readAsText(f);
+}
+
+/* Reset to demo data */
+function resetData(){
+  if(!confirm('Xóa data hiện tại và reset về demo "An Nguyên"?\n\nNếu cần giữ data, bấm Backup trước.')) return;
+  try{ localStorage.removeItem('mg-l3v2-scores'); localStorage.removeItem('mg-l3v2-info'); }catch(_){}
+  Object.assign(__scoresL4v2, __DEMO);
+  ['name','code','gender','dob','date','class'].forEach(k => {
+    const el = document.getElementById('f-' + k);
+    if(el) el.value = __DEMO_INFO[k] || '';
+  });
+  updateAvatar();
+  renderAll();
+  showToast('✓ Đã reset về demo data');
+}
+
+/* Parent mode toggle */
+function toggleParentMode(){
+  const isParent = document.body.classList.toggle('parent-mode');
+  try{ localStorage.setItem('mg-l3v2-parent', isParent ? '1' : '0'); }catch(_){}
+  const btn = document.getElementById('btn-parent');
+  if(btn) btn.textContent = isParent ? '👨‍🏫 Chế độ GV' : '👪 Phụ huynh';
+  showToast(isParent ? '👪 Đã bật chế độ phụ huynh' : '👨‍🏫 Đã bật chế độ GV');
+}
+
+/* Save info fields */
+function saveInfo(){
+  try{
+    localStorage.setItem('mg-l3v2-info', JSON.stringify({
+      name: document.getElementById('f-name').value,
+      code: document.getElementById('f-code').value,
+      gender: document.getElementById('f-gender').value,
+      dob: document.getElementById('f-dob').value,
+      date: document.getElementById('f-date').value,
+      class: document.getElementById('f-class').value,
+    }));
+    _markSaved();
+  }catch(_){}
+}
+
+/* Update avatar emoji + background theo giới tính */
+function updateAvatar(){
+  const g = document.getElementById('f-gender').value;
+  const av = document.getElementById('student-avatar');
+  if(!av) return;
+  if(g === 'Nữ'){
+    av.textContent = '👧';
+    av.classList.remove('male'); av.classList.add('female');
+  } else {
+    av.textContent = '👦';
+    av.classList.remove('female'); av.classList.add('male');
+  }
+  saveInfo();
+}
+
+/* ═════ EDITABLE COMMENTS — inline edit + persist ═════ */
+const __EDITABLE_IDS = [
+  'strong-list',     // A) Điểm mạnh
+  'weak-list',       // B) Vùng cần phát triển
+  'orient-list',     // C) Định hướng học tập (orient items)
+  'parent-msg',      // Heart message
+  'grade-desc',      // Tổng điểm description
+  'top-code-desc',   // Mã học tập description
+  'muc-ho-tro-desc', // Mức hỗ trợ description
+];
+const __EDIT_OVERRIDES = {};
+
+function _makeAllEditable(){
+  __EDITABLE_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.dataset.editableInit) return;
+    el.dataset.editableInit = '1';
+    el.setAttribute('contenteditable', 'true');
+    el.setAttribute('spellcheck', 'false');
+    el.classList.add('editable');
+    el.addEventListener('blur', () => {
+      __EDIT_OVERRIDES[id] = el.innerHTML;
+      try{ localStorage.setItem('mg-l3v2-edits', JSON.stringify(__EDIT_OVERRIDES)); }catch(_){}
+      _showEditHint('✓ Đã lưu chỉnh sửa "' + (el.dataset.label || id) + '"');
+    });
+    el.addEventListener('focus', () => {
+      _showEditHint('✎ Đang chỉnh sửa — click ra ngoài để lưu');
+    });
+  });
+}
+
+function _showEditHint(msg){
+  let hint = document.getElementById('edit-hint');
+  if(!hint){
+    hint = document.createElement('div');
+    hint.id = 'edit-hint';
+    hint.className = 'edit-hint';
+    document.body.appendChild(hint);
+  }
+  hint.textContent = msg;
+  hint.classList.add('show');
+  clearTimeout(window.__hintTm);
+  window.__hintTm = setTimeout(() => hint.classList.remove('show'), 2500);
+}
+
+function _restoreEdits(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('mg-l3v2-edits') || '{}');
+    Object.assign(__EDIT_OVERRIDES, saved);
+  }catch(_){}
+}
+
+function _applyEditOverride(id, defaultHtml){
+  // Returns saved edit if exists, else default
+  return __EDIT_OVERRIDES[id] || defaultHtml;
+}
+
+function resetEdits(){
+  if(!confirm('Khôi phục tất cả nhận xét về tự động? (Mất các chỉnh sửa thủ công)')) return;
+  Object.keys(__EDIT_OVERRIDES).forEach(k => delete __EDIT_OVERRIDES[k]);
+  try{ localStorage.removeItem('mg-l3v2-edits'); }catch(_){}
+  renderAll();
+  showToast('✓ Đã khôi phục nhận xét tự động');
+}
+window.resetEdits = resetEdits;
+
+/* ─── Aggregation ─── */
+function aggregateL4v2(){
+  // Per Bài: điểm đạt × hệ số H = điểm hiệu chỉnh
+  const perBai = {};
+  __BAI_L4V2.forEach(b => {
+    const s = __scoresL4v2[b.bai] || {diem:0, h:'H1'};
+    const diem = Math.min(+s.diem || 0, b.max);
+    const mult = __H_MULT[s.h] || 1;
+    perBai[b.bai] = {
+      diem, h: s.h, mult,
+      adjusted: diem * mult,
+      max: b.max,
+    };
+  });
+
+  // Per WK code: sum
+  const perWK = {};
+  ['WK-V','WK-M','WK-R','WK-X'].forEach(wk => {
+    let sumAdj = 0, sumMax = 0;
+    const cauList = [];
+    __BAI_L4V2.forEach(b => {
+      if(b.wk.includes(wk)){
+        sumAdj += perBai[b.bai].adjusted;
+        sumMax += b.max;
+        cauList.push(b.bai);
+      }
+    });
+    perWK[wk] = {
+      adjusted: sumAdj, max: sumMax,
+      pct: sumMax > 0 ? (sumAdj / sumMax * 100) : 0,
+      cau: cauList,
+    };
+  });
+
+  // Tổng điểm hiệu chỉnh
+  const totalAdj = Object.values(perBai).reduce((a, p) => a + p.adjusted, 0);
+  const totalMax = __BAI_L4V2.reduce((a, b) => a + b.max, 0);
+  const totalPct = totalMax > 0 ? (totalAdj / totalMax * 100) : 0;
+
+  // Average H level
+  const hCounts = {};
+  Object.values(perBai).forEach(p => { hCounts[p.h] = (hCounts[p.h] || 0) + 1; });
+  // Most common H + adjacent (vd "H1-H2")
+  const sortedH = Object.entries(hCounts).sort((a,b) => b[1] - a[1]);
+  const topH = sortedH.slice(0, 2).map(x => x[0]).sort();
+  const supportLabel = topH.length === 1 ? topH[0] : topH[0] + '-' + topH[1];
+
+  // Count H3/H4 → for WK-F check
+  const hHardCount = (hCounts['H3'] || 0) + (hCounts['H4'] || 0);
+
+  // Mức nền (grade name)
+  const grade = totalPct >= 75 ? 'Tốt'
+              : totalPct >= 60 ? 'Khá'
+              : totalPct >= 45 ? 'Đạt'
+              : 'Cần củng cố';
+  const stars = totalPct >= 75 ? '★★★★' : totalPct >= 60 ? '★★★' : totalPct >= 45 ? '★★' : '★';
+
+  // Sort WK by pct (descending) — exclude WK-F (fallback only)
+  const sortedWK = Object.entries(perWK).sort((a,b) => b[1].pct - a[1].pct);
+
+  // Select primary code (rule: WK-F first if conditions met, else highest)
+  let primaryCode, secondaryCode = null;
+  if(totalPct < 45 || hHardCount >= 3){
+    primaryCode = 'WK-F';
+  } else {
+    primaryCode = sortedWK[0][0];
+    // Secondary: nếu chênh <8% với primary, ghi như xu hướng phụ
+    if(sortedWK.length >= 2){
+      const diff = sortedWK[0][1].pct - sortedWK[1][1].pct;
+      if(diff < 8) secondaryCode = sortedWK[1][0];
+    }
+  }
+
+  // Find lowest WK code for "vùng cần rèn" reference
+  const lowestWK = sortedWK[sortedWK.length - 1][0];
+
+  return {
+    perBai, perWK, sortedWK,
+    totalAdj, totalMax, totalPct,
+    supportLabel, hCounts, hHardCount,
+    grade, stars,
+    primaryCode, secondaryCode, lowestWK,
+  };
+}
+
+/* Workspace input bị bỏ — input giờ qua xlsx file upload.
+   GV vẫn có thể chấm thủ công từ console: __scoresL4v2[1] = {diem:5, h:'H1'}; renderAll(); */
+window._updateScore = function(bai, field, value){
+  if(!__scoresL4v2[bai]) __scoresL4v2[bai] = {diem:0, h:'H1'};
+  if(field === 'diem') __scoresL4v2[bai].diem = Math.max(0, +value || 0);
+  else __scoresL4v2[bai].h = value;
+  _saveState();
+  renderAll();
+};
+
+/* ─── Render donut SVG ─── */
+function _donutSVG(pct, color, size){
+  size = size || 100;
+  const r = 38, cx = 50, cy = 50;
+  const C = 2 * Math.PI * r;
+  const dashLen = (pct / 100) * C;
+  return `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#f0e8d8" stroke-width="9"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="9"
+      stroke-dasharray="${dashLen} ${C}" stroke-dashoffset="0"
+      transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>
+  `;
+}
+
+/* ─── Render WK grid (5 cards) ─── */
+function renderWKGrid(agg){
+  const grid = document.getElementById('wk-grid');
+  if(!grid) return;
+  const codes = [
+    {key:'WK-V', cls:'v'},
+    {key:'WK-M', cls:'m'},
+    {key:'WK-R', cls:'r'},
+    {key:'WK-X', cls:'x'},
+    {key:'WK-F', cls:'f'},
+  ];
+  let html = '';
+  codes.forEach(({key, cls}) => {
+    const cfg = __WK_CODES[key];
+    if(key === 'WK-F'){
+      // Dynamic: chỉ hiện WK-F khi bé THỰC SỰ thuộc nhóm cần củng cố (primary)
+      const isFallback = agg.primaryCode === 'WK-F';
+      if(!isFallback) return; // Skip render khi bé không cần củng cố
+      html += '<div class="wk-card f">';
+      html += '<div class="head">' + cfg.emoji + ' ' + key + '</div>';
+      html += '<div class="name">' + cfg.name + '</div>';
+      html += '<div class="wk-donut">⚠</div>';
+      html += '<div class="cmt">Bé thuộc nhóm cần củng cố nền tảng — cần được đồng hành nhiều hơn ở các hoạt động ngắn, có hỗ trợ rõ.</div>';
+      html += '</div>';
+      return;
+    }
+    const d = agg.perWK[key];
+    const pct = Math.round(d.pct);
+    html += `<div class="wk-card ${cls}">`;
+    html += `<div class="head">${cfg.emoji} ${key}</div>`;
+    html += `<div class="name">${cfg.name}</div>`;
+    html += `<div class="wk-donut"><svg viewBox="0 0 100 100">${_donutSVG(d.pct, cfg.color, 96)}</svg><div class="center">${pct}%</div></div>`;
+    html += `<div class="cmt">${_genWKComment(key, d.pct)}</div>`;
+    html += `</div>`;
+  });
+  grid.innerHTML = html;
+  // Dynamic columns: WK-F ẩn → 4 cards thay vì 5 — chỉnh grid auto
+  const visibleCount = grid.querySelectorAll('.wk-card').length;
+  grid.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+}
+
+function _genWKComment(key, pct){
+  const lvl = pct >= 75 ? 'tốt' : pct >= 60 ? 'khá' : pct >= 45 ? 'đạt' : 'cần luyện thêm';
+  const short = {
+    'WK-V':'quan sát và thao tác trực quan',
+    'WK-M':'làm theo mẫu và quy trình',
+    'WK-R':'suy luận từng bước và xử lý nhiều dữ kiện',
+    'WK-X':'sáng tạo và mở rộng ý tưởng',
+  };
+  return 'Khả năng ' + short[key] + ' ở mức <b>' + lvl + '</b>.';
+}
+
+/* ─── Render top cards (new pastel layout) ─── */
+function renderTopCards(agg){
+  // Primary code + secondary
+  const code = agg.primaryCode;
+  const cfg = __WK_CODES[code];
+  document.getElementById('top-code-ko').textContent = code;
+  document.getElementById('top-code-nm').textContent = cfg.name;
+  // Desc: DIỄN GIẢI
+  document.getElementById('top-code-desc').textContent = cfg.desc;
+  // Secondary pill
+  const secEl = document.getElementById('secondary-pill');
+  if(secEl){
+    if(agg.secondaryCode){
+      const secCfg = __WK_CODES[agg.secondaryCode];
+      document.getElementById('secondary-text').textContent = agg.secondaryCode + ' – ' + secCfg.name;
+      secEl.style.display = 'inline-block';
+    } else {
+      secEl.style.display = 'none';
+    }
+  }
+  // Code badge: solid saturated bg + WHITE text (high contrast)
+  const cb = document.getElementById('top-code-ko');
+  const nm = document.getElementById('top-code-nm');
+  const codeBg = {
+    'WK-V': '#5cb83e',  // green
+    'WK-M': '#4a8cc4',  // deep blue (white text contrast OK)
+    'WK-R': '#f3811f',  // orange brand
+    'WK-X': '#e94e1b',  // red-orange brand
+    'WK-F': '#a4886a',  // brown
+  };
+  const bgColor = codeBg[code] || codeBg['WK-X'];
+  // Apply solid bg to .code-big with white text
+  if(cb){
+    cb.style.background = bgColor;
+    cb.style.color = '#fff';
+    cb.style.padding = '10px 24px';
+    cb.style.borderRadius = '14px';
+    cb.style.display = 'inline-block';
+    cb.style.boxShadow = '0 4px 14px ' + bgColor + '40'; // 40 = 25% alpha
+    cb.style.textShadow = '0 1px 2px rgba(0,0,0,.12)';
+  }
+  if(nm) nm.style.color = bgColor;
+
+  // Total — donut, integer pct
+  const totalPct = Math.round(agg.totalPct);
+  document.getElementById('total-pct').textContent = totalPct;
+  document.getElementById('total-frac').textContent = '/100';
+  const totalColor = totalPct >= 75 ? '#5cb83e' : totalPct >= 60 ? '#f3811f' : totalPct >= 45 ? '#f5b223' : '#e94e1b';
+  document.getElementById('donut-total-svg').innerHTML = _donutSVG(totalPct, totalColor, 128);
+  document.getElementById('grade-name').textContent = agg.grade.toUpperCase();
+  document.getElementById('grade-name').style.color = totalColor;
+  const desc = totalPct >= 75
+    ? 'Bé có nền tảng học tập rất tốt. Tiếp tục duy trì và phát triển toàn diện.'
+    : totalPct >= 60
+    ? 'Bé có nền học tập khá, tiếp thu tốt ở các hoạt động trực quan và sáng tạo. Cần rèn thêm suy luận từng bước để phát triển cân bằng hơn.'
+    : totalPct >= 45
+    ? 'Bé đang trong giai đoạn hình thành nền tảng. Cần kiên trì luyện tập với bài học ngắn và trực quan.'
+    : 'Bé cần được củng cố nền tảng học tập ngay. Ưu tiên bài học đơn giản, có hỗ trợ rõ ràng.';
+  document.getElementById('grade-desc').textContent = desc;
+
+  // Mức nền (Card row 2)
+  const mucNen = totalPct >= 75 ? 'Tốt' : totalPct >= 60 ? 'Khá' : totalPct >= 45 ? 'Đạt' : 'Cần củng cố';
+  document.getElementById('muc-nen-val').textContent = mucNen;
+  const stars = totalPct >= 75 ? '★★★★★' : totalPct >= 60 ? '★★★★☆' : totalPct >= 45 ? '★★★☆☆' : '★★☆☆☆';
+  document.getElementById('muc-nen-stars').textContent = stars;
+
+  // Mức hỗ trợ (Card row 2, pink)
+  document.getElementById('muc-ho-tro-val').textContent = agg.supportLabel;
+  const supportDesc = agg.supportLabel.includes('-')
+    ? 'Chủ yếu cần nhắc lại yêu cầu hoặc gợi ý nhẹ.'
+    : (__H_DESC[agg.supportLabel] || '—');
+  document.getElementById('muc-ho-tro-desc').textContent = supportDesc;
+}
+
+/* ─── Render per-Bài compact table ─── */
+function renderBaiTable(agg){
+  const left = document.getElementById('bai-table-left');
+  const right = document.getElementById('bai-table-right');
+  if(!left || !right) return;
+  function row(b){
+    const p = agg.perBai[b.bai];
+    const pct = b.max > 0 ? (p.adjusted / b.max * 100) : 0;
+    const adjColor = pct >= 75 ? '#5fb53f' : pct >= 60 ? '#4a8cc4' : pct >= 45 ? '#f0a230' : '#df5728';
+    const shortName = b.name.length > 38 ? b.name.slice(0, 36) + '…' : b.name;
+    return `<div class="bai-row" title="${b.name}">
+      <span class="num">${b.bai}</span>
+      <span class="name">${shortName}</span>
+      <span class="frac">${p.diem}/${b.max}</span>
+      <span class="h-tag h-${p.h}">${p.h}</span>
+      <span class="adj" style="color:${adjColor}">${(Math.round(p.adjusted * 10) / 10)}</span>
+    </div>`;
+  }
+  // Split 14 bai into 2 cols of 7
+  left.innerHTML = __BAI_L4V2.slice(0, 7).map(row).join('');
+  right.innerHTML = __BAI_L4V2.slice(7).map(row).join('');
+}
+
+/* ─── Render H distribution bar ─── */
+function renderHDist(agg){
+  const bar = document.getElementById('h-dist-bar');
+  if(!bar) return;
+  const total = 14;
+  const colors = {H0:'#5fb53f', H1:'#a3c950', H2:'#f0a230', H3:'#df5728', H4:'#a4886a'};
+  let html = '';
+  ['H0','H1','H2','H3','H4'].forEach(h => {
+    const c = agg.hCounts[h] || 0;
+    if(c === 0) return;
+    const pct = (c / total * 100);
+    html += `<div class="h-dist-seg" style="width:${pct}%;background:${colors[h]}" title="${h}: ${c} bài">${c}</div>`;
+  });
+  bar.innerHTML = html;
+}
+
+/* ─── Render strong/weak lists ─── */
+function renderPoints(agg){
+  const primary = __WK_CODES[agg.primaryCode];
+  // Strong: bullets from primary + top 2 WK codes
+  const sortedWK = Object.entries(agg.perWK).sort((a,b) => b[1].pct - a[1].pct);
+  const strongBullets = new Set();
+  sortedWK.slice(0, 2).forEach(([k]) => {
+    __WK_CODES[k].strong.slice(0, 2).forEach(s => strongBullets.add(s));
+  });
+  if(strongBullets.size === 0){
+    strongBullets.add('Nền tảng toán học cơ bản phù hợp độ tuổi.');
+  }
+  document.getElementById('strong-list').innerHTML =
+    [...strongBullets].slice(0, 4).map(s => '<li>' + s + '</li>').join('');
+
+  // Weak: bullets from weakest 2 WK codes
+  const weakBullets = new Set();
+  sortedWK.slice(-2).forEach(([k]) => {
+    __WK_CODES[k].weak.slice(0, 2).forEach(w => weakBullets.add(w));
+  });
+  document.getElementById('weak-list').innerHTML =
+    [...weakBullets].slice(0, 4).map(w => '<li>' + w + '</li>').join('');
+}
+
+/* ─── Render định hướng học tập — data-driven từ CSV hoatDong ─── */
+function renderOrientation(agg){
+  const code = agg.primaryCode;
+  const cfg = __WK_CODES[code];
+  const orientList = document.getElementById('orient-list');
+  if(!orientList) return;
+
+  // Phương pháp phù hợp: dùng cfg.hoatDong (HOẠT ĐỘNG/KỸ NĂNG PHÙ HỢP từ CSV)
+  // Phát huy điểm mạnh: bullet đầu của primary strong[]
+  // Cần rèn: bullet đầu của weakest WK code
+  const phatHuy = cfg.strong[0] || cfg.weak[0] || cfg.hoatDong;
+  const weakestCfg = __WK_CODES[agg.lowestWK] || __WK_CODES['WK-F'];
+  const canRen = weakestCfg.weak[0] || 'Củng cố các kỹ năng nền tảng phù hợp với lứa tuổi.';
+  // Đồng hành: dynamic theo primary
+  const dongHanhMap = {
+    'WK-V':'Cùng bé chơi ghép hình, sắp xếp đồ chơi, tìm 3 điểm khác giữa 2 tranh.',
+    'WK-M':'Cùng bé làm theo công thức nấu ăn, lego có hướng dẫn, đọc truyện có quy luật.',
+    'WK-R':'Đố vui logic 2-3 bước, kể chuyện ngược, hỏi "vì sao" sau mỗi quan sát.',
+    'WK-X':'Trò chơi mở: "Bao nhiêu cách dùng cái ly?", "Còn cách nào khác?".',
+    'WK-F':'Bài học ngắn 5-10 phút, kiên nhẫn, ưu tiên niềm vui hơn kết quả.',
+  };
+  const dongHanh = dongHanhMap[code] || dongHanhMap['WK-M'];
+
+  orientList.innerHTML = `
+    <div class="orient-item"><div class="ico">💡</div><div class="text"><b>Phát huy sáng tạo:</b>${phatHuy}</div></div>
+    <div class="orient-item"><div class="ico">🔍</div><div class="text"><b>Duy trì trực quan:</b>Tăng bài ghép hình, phân loại, so sánh và trò chơi với vật thật.</div></div>
+    <div class="orient-item"><div class="ico">🧩</div><div class="text"><b>Rèn suy luận:</b>${canRen}</div></div>
+    <div class="orient-item"><div class="ico">🏠</div><div class="text"><b>Đồng hành tại nhà:</b>${dongHanh}</div></div>
+  `;
+
+  // Update parent message với template CSV row 25
+  const lowestCfg = __WK_CODES[agg.lowestWK];
+  const msgEl = document.getElementById('parent-msg');
+  if(msgEl){
+    const intro = code === 'WK-F'
+      ? 'Bé đang trong giai đoạn cần củng cố nền học tập.'
+      : `Bé thể hiện ${cfg.bieuHieu.toLowerCase().replace(/^bé /,'')}`;
+    const advice = code === 'WK-F'
+      ? 'Hãy ưu tiên bài học ngắn, có hỗ trợ rõ và ghi nhận từng tiến bộ nhỏ.'
+      : `Nhóm ${lowestCfg.name} là vùng cần rèn thêm để bé phát triển cân bằng hơn. Tiếp tục phát huy kỹ năng theo hướng ${cfg.name} thông qua ${cfg.hoatDong}, đồng thời củng cố ${lowestCfg.hoatDong}`;
+    msgEl.innerHTML = '<b>' + intro + '</b> ' + advice + ' Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện. ♥';
+  }
+}
+
+/* ─── Render meta date ─── */
+function renderMeta(){
+  const dateEl = document.getElementById('meta-date');
+  const inDate = document.getElementById('f-date');
+  if(dateEl && inDate) dateEl.textContent = inDate.value;
+}
+
+/* ─── Main render orchestrator ─── */
+function renderAll(){
+  const agg = aggregateL4v2();
+  renderTopCards(agg);
+  renderWKGrid(agg);
+  renderPoints(agg);
+  renderOrientation(agg);
+  renderMeta();
+  // Apply saved manual edits AFTER render (overrides auto-generated)
+  setTimeout(() => {
+    __EDITABLE_IDS.forEach(id => {
+      if(__EDIT_OVERRIDES[id]){
+        const el = document.getElementById(id);
+        if(el) el.innerHTML = __EDIT_OVERRIDES[id];
+      }
+    });
+    _makeAllEditable();
+  }, 50);
+}
+
+// Initial load
+_restoreState();
+_restoreEdits();
+document.addEventListener('DOMContentLoaded', () => {
+  // Restore info first
+  try{
+    const inf = JSON.parse(localStorage.getItem('mg-l3v2-info') || '{}');
+    ['name','code','gender','dob','date','class'].forEach(k => {
+      const el = document.getElementById('f-' + k);
+      if(el && inf[k] != null) el.value = inf[k];
+    });
+  }catch(_){}
+
+  // Apply demo info if no saved (first load) — set defaults
+  if(!localStorage.getItem('mg-l3v2-info')){
+    ['name','code','gender','dob','date','class'].forEach(k => {
+      const el = document.getElementById('f-' + k);
+      if(el) el.value = __DEMO_INFO[k] || '';
+    });
+    saveInfo();
+  }
+  // Update avatar based on gender
+  updateAvatar();
+
+  // Restore parent mode
+  if(localStorage.getItem('mg-l3v2-parent') === '1'){
+    document.body.classList.add('parent-mode');
+    const btn = document.getElementById('btn-parent');
+    if(btn) btn.textContent = '👨‍🏫 Chế độ GV';
+  }
+
+  renderAll();
+
+  // Auto-save info fields on change
+  ['f-name','f-dob','f-date','f-class'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', () => {
+      saveInfo();
+      renderMeta();
+    });
+  });
+
+  // Drag-drop file support
+  document.addEventListener('dragover', e => { e.preventDefault(); });
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if(f && (f.name.endsWith('.xlsx') || f.name.endsWith('.xls'))){
+      importXlsxL4v2({target:{files:[f]}});
+    } else if(f && f.name.endsWith('.json')){
+      importBackup({target:{files:[f]}});
+    }
+  });
+});
+</script>
+</body>
+</html>
