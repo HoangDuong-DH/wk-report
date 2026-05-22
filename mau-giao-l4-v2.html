@@ -33,27 +33,28 @@
 </script>
 <style>
 :root{
-  /* Brand palette — đồng bộ với tieu-hoc.html (warm orange-cream) */
-  --c-primary:#f3811f;
-  --c-primary-2:#e94e1b;
-  --c-yellow:#f5b223;
-  --c-yellow-soft:#fce5b6;
-  --c-orange-soft:#ffe6cc;
-  --c-cream:#fff8ec;
-  --c-cream-2:#fff3e0;
-  --c-line:#f4cf9e;
-  --c-line-soft:#fbe5c4;
-  --c-ink:#2a2117;
-  --c-ink-soft:#6b5a45;
-  --c-mute:#a4886a;
-  --c-pill-bg:#ffe9d1;
-  /* WK code colors — soften to fit warm theme */
-  --c-wkv:#5cb83e; --c-wkv-bg:#e8f5e1;
-  --c-wkm:#3a9bdc; --c-wkm-bg:#dfeef8;
-  --c-wkr:#f3811f; --c-wkr-bg:#ffe6cc;
-  --c-wkx:#a26ad8; --c-wkx-bg:#ede0f5;
-  --c-wkf:#a4886a; --c-wkf-bg:#f0eae0;
-  --c-card:#ffffff;
+  /* PASTEL palette — friendly + modern theo design ref */
+  --c-ink:#2a3c5a; --c-ink-soft:#4a5878; --c-mute:#7a8090;
+  --c-card:#ffffff; --c-line:#e8edf5;
+  /* Pastel section backgrounds */
+  --bg-purple:#f5f0ff; --br-purple:#d9c8f0; --tx-purple:#7e57c2;
+  --bg-blue:#f0f7ff;   --br-blue:#c8dcf2;   --tx-blue:#3a7fc4;
+  --bg-mint:#eaf7ee;   --br-mint:#bee3c6;   --tx-mint:#3da062;
+  --bg-pink:#fdecf0;   --br-pink:#f5c9d3;   --tx-pink:#d05a72;
+  --bg-cream:#fff5e3;  --br-cream:#f5d9a8;  --tx-cream:#d68a3c;
+  /* WK codes — soft saturated */
+  --c-wkv:#5fb74f; --c-wkv-bg:#e8f5e1;
+  --c-wkm:#3a8cd4; --c-wkm-bg:#dfeaf8;
+  --c-wkr:#f5a020; --c-wkr-bg:#fde8ce;
+  --c-wkx:#9966cc; --c-wkx-bg:#ebe0f5;
+  --c-wkf:#9aa5b8; --c-wkf-bg:#edeff3;
+  /* Brand (giữ L4 orange cho logo) */
+  --c-brand:#f3811f; --c-brand-2:#e94e1b;
+  /* Aliases để giữ tương thích các CSS rules cũ */
+  --c-primary:#f3811f; --c-primary-2:#e94e1b;
+  --c-yellow:#f5b223; --c-yellow-soft:#fce5b6;
+  --c-orange-soft:#ffe6cc; --c-cream:#fff8ec; --c-cream-2:#fff3e0;
+  --c-pill-bg:#ffe9d1; --c-line-soft:#fbe5c4;
   --font:'Be Vietnam Pro',system-ui,sans-serif;
   --font-d:'Fredoka','Be Vietnam Pro',sans-serif;
 }
@@ -1042,13 +1043,10 @@ function renderWKGrid(agg){
     }
     const d = agg.perWK[key];
     const pct = Math.round(d.pct * 10) / 10;
-    const adj = Math.round(d.adjusted * 10) / 10;
     html += `<div class="wk-card ${cls}">`;
     html += `<div class="head">${cfg.emoji} ${key}</div>`;
     html += `<div class="name">${cfg.name}</div>`;
     html += `<div class="wk-donut"><svg viewBox="0 0 100 100">${_donutSVG(d.pct, cfg.color, 96)}</svg><div class="center">${pct}%</div></div>`;
-    html += `<div class="score">${adj} / ${d.max} điểm</div>`;
-    html += `<div class="cau-list">Các câu: ${d.cau.join(', ')}</div>`;
     html += `<div class="cmt">${_genWKComment(key, d.pct)}</div>`;
     html += `</div>`;
   });
