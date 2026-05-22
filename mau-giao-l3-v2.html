@@ -792,9 +792,13 @@ const __BAI_L4V2 = [
 ];
 
 // 5 mã WK — toàn bộ field từ CSV official L4 (warm yellow-orange theme)
+// L3 specific max điểm (khác L4 theo CSV official):
+// WK-V=33 (L4: 39), WK-M=37 (L4: 34), WK-R=44 (L4: 43), WK-X=16 (L4: 18)
+const __WK_MAX_L3 = { 'WK-V': 33, 'WK-M': 37, 'WK-R': 44, 'WK-X': 16 };
+
 const __WK_CODES = {
   'WK-V': {
-    emoji:'👁', name:'Trực quan – thao tác', color:'#5cb83e',
+    emoji:'👁', name:'Quan sát trực quan & thao tác', color:'#5cb83e', maxSum:33,
     bieuHieu:'Bé làm tốt các câu hình ảnh, phân loại, ghép hình, so sánh, nhưng yếu hơn ở bài nghe số hoặc suy luận.',
     desc:'Bé tiếp thu tốt khi học qua hình ảnh, vật thật và thao tác trực tiếp. Khi bài học rõ ràng có minh họa cụ thể, bé thường tham gia tốt và xử lý nhiệm vụ ổn định hơn.',
     hoatDong:'quan sát, so sánh và đối chiếu hình ảnh để xử lý chính xác hơn các bài ghép hình, phân loại và nhận diện đặc điểm.',
@@ -802,7 +806,7 @@ const __WK_CODES = {
     weak:['Quan sát kỹ đặc điểm hình ảnh trước khi chọn đáp án.','Rèn thêm kỹ năng so sánh, phân loại và ghép hình trực quan.','Tập đối chiếu với mẫu để tăng độ chính xác khi làm bài.'],
   },
   'WK-M': {
-    emoji:'📋', name:'Theo mẫu – có cấu trúc', color:'#f5b223',
+    emoji:'📋', name:'Theo mẫu – có cấu trúc', color:'#f5b223', maxSum:37,
     bieuHieu:'Bé làm tốt khi có ví dụ, nhưng lúng túng khi yêu cầu thay đổi hoặc không có mẫu.',
     desc:'Bé học tốt khi có ví dụ mẫu và từng bước hướng dẫn rõ ràng. Với dạng bài quen thuộc, bé có thể hoàn thành khá ổn, nhưng cần thêm thời gian để tự xử lý bài mới.',
     hoatDong:'quan sát mẫu, ghi nhớ yêu cầu và làm bài theo từng bước để tăng sự ổn định khi gặp nhiệm vụ mới.',
@@ -810,7 +814,7 @@ const __WK_CODES = {
     weak:['Rèn thói quen quan sát ví dụ mẫu trước khi bắt đầu.','Luyện làm bài theo từng bước để giữ đúng yêu cầu.','Tăng khả năng chuyển từ bài mẫu sang bài tương tự.'],
   },
   'WK-R': {
-    emoji:'💡', name:'Suy luận từng bước', color:'#f3811f',
+    emoji:'💡', name:'Suy luận từng bước', color:'#f3811f', maxSum:44,
     bieuHieu:'Bé làm tốt quy luật, tổng 10, trình tự, bài nhiều bước, có thể giải thích cách làm.',
     desc:'Bé có khả năng suy luận và xử lý bài theo trình tự. Khi được hướng dẫn đúng cách, bé có thể kết nối dữ kiện, nhận ra quy luật và giải quyết nhiệm vụ có nhiều bước.',
     hoatDong:'suy luận từng bước, đặc biệt ở các bài quy luật, trình tự, tạo tổng và xử lý nhiều dữ kiện.',
@@ -818,7 +822,7 @@ const __WK_CODES = {
     weak:['Rèn suy luận từng bước với bài quy luật, trình tự và tạo tổng.','Tăng khả năng xử lý nhiều dữ kiện trước khi chọn đáp án.','Luyện thói quen giải thích ngắn và kiểm tra lại kết quả.'],
   },
   'WK-X': {
-    emoji:'🚀', name:'Linh hoạt – khám phá', color:'#e94e1b',
+    emoji:'🚀', name:'Linh hoạt – khám phá', color:'#e94e1b', maxSum:16,
     bieuHieu:'Bé sáng tạo tốt, thử nhiều cách, phản ứng nhanh, nhưng đôi khi thiếu kiểm tra lại.',
     desc:'Bé có xu hướng linh hoạt, thích khám phá và thử nhiều cách làm. Đây là điểm mạnh tốt, nhưng cần rèn thêm thói quen quan sát kỹ, kiểm tra lại và hoàn thiện nhiệm vụ chính xác hơn.',
     hoatDong:'khuyến khích mở rộng ý tưởng, thử nhiều cách làm và diễn đạt sản phẩm sáng tạo rõ ràng hơn.',
@@ -1201,7 +1205,7 @@ function aggregateL4v2(){
     };
   });
 
-  // Per WK code: sum
+  // Per WK code: sum (L3 dùng override max từ CSV official, khác L4)
   const perWK = {};
   ['WK-V','WK-M','WK-R','WK-X'].forEach(wk => {
     let sumAdj = 0, sumMax = 0;
@@ -1213,9 +1217,13 @@ function aggregateL4v2(){
         cauList.push(b.bai);
       }
     });
+    // L3-specific max override (từ CSV): WK-V=33, WK-M=37, WK-R=44, WK-X=16
+    const overrideMax = __WK_MAX_L3[wk] || sumMax;
+    // Cap pct at 100% nếu sumAdj > overrideMax (edge case)
+    const pct = overrideMax > 0 ? Math.min(100, sumAdj / overrideMax * 100) : 0;
     perWK[wk] = {
-      adjusted: sumAdj, max: sumMax,
-      pct: sumMax > 0 ? (sumAdj / sumMax * 100) : 0,
+      adjusted: sumAdj, max: overrideMax,
+      pct: pct,
       cau: cauList,
     };
   });
