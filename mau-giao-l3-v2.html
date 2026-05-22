@@ -261,6 +261,24 @@ body{
 .top-toolbar a.home{color:var(--c-primary)}
 .top-toolbar a.home:hover{color:var(--c-primary-2)}
 
+/* ─── Student picker dropdown ─── */
+.student-picker-group{display:flex;gap:4px;align-items:center}
+.student-picker-group .label{font:700 9.5px/1 var(--font);color:var(--c-mute);letter-spacing:.08em;text-transform:uppercase;padding-right:3px;white-space:nowrap}
+#student-picker{
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
+  background:#fff;border:1px solid var(--c-line);
+  padding:6px 26px 6px 10px;
+  border-radius:8px;
+  font:700 11.5px/1 var(--font);
+  color:var(--c-ink);
+  cursor:pointer;
+  max-width:170px;text-overflow:ellipsis;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a8946d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+}
+#student-picker:hover{border-color:var(--c-primary);color:var(--c-primary-2)}
+.student-picker-group button.icon-btn{padding:6px 8px;font-size:11px;min-width:28px}
+
 /* Toast notification */
 #toast{position:fixed;bottom:80px;right:20px;background:var(--c-primary);color:#fff;padding:12px 18px;
   border-radius:10px;font:600 12px/1.4 var(--font);box-shadow:0 8px 22px rgba(233,78,27,.28);
@@ -626,6 +644,14 @@ body.parent-mode #parent-exit-fab{display:inline-flex !important}
     Trang chính
   </a>
   <span class="sep"></span>
+  <div class="group student-picker-group" title="Quản lý hồ sơ học viên — mỗi bé một profile">
+    <span class="label">🧒 Bé</span>
+    <select id="student-picker" onchange="switchStudent(this.value)"></select>
+    <button class="icon-btn" onclick="newStudent()" title="Thêm bé mới (giữ data bé hiện tại)">＋</button>
+    <button class="icon-btn" onclick="renameCurrentStudent()" title="Đổi tên bé hiện tại">✎</button>
+    <button class="icon-btn" onclick="deleteCurrentStudent()" title="Xóa hồ sơ bé hiện tại">🗑</button>
+  </div>
+  <span class="sep"></span>
   <div class="group">
     <label for="xlsx-input" title="Import file xlsx chứa điểm chấm (format 14 bài + mức hỗ trợ H)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -922,25 +948,239 @@ function _markSaved(){
   }
 }
 
-function _restoreState(){
-  try{
-    const s = localStorage.getItem('mg-l3v2-scores');
-    if(s){
-      const obj = JSON.parse(s);
-      Object.keys(obj).forEach(k => {
-        if(__scoresL4v2[k]) __scoresL4v2[k] = obj[k];
-      });
-      return true;
-    }
-  }catch(_){}
-  // No saved state -> load demo (Bé An Nguyên)
-  Object.assign(__scoresL4v2, __DEMO);
-  return false;
+/* ═══════════════════════════════════════════════════════════════
+   MULTI-STUDENT PROFILE MANAGEMENT — mỗi bé một hồ sơ riêng
+   Storage scheme:
+     mg-l3v2-profiles → { <id>: {info, scores, edits, lastUpdated}, ... }
+     mg-l3v2-current  → <id> hiện tại
+     mg-l3v2-parent   → '0'|'1' (global UI mode, không per-student)
+   ═══════════════════════════════════════════════════════════════ */
+const __SK = { profiles:'mg-l3v2-profiles', current:'mg-l3v2-current' };
+
+function _genStudentId(){
+  return 'st_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7);
+}
+function _getProfiles(){
+  try{ return JSON.parse(localStorage.getItem(__SK.profiles) || '{}'); }catch(_){ return {}; }
+}
+function _setProfiles(profiles){
+  try{ localStorage.setItem(__SK.profiles, JSON.stringify(profiles)); }catch(e){
+    console.warn('Save profiles failed:', e);
+    showToast('⚠ Lưu thất bại — localStorage có thể đầy', '#df5728');
+  }
+}
+function _getCurrentId(){ return localStorage.getItem(__SK.current) || ''; }
+function _setCurrentId(id){ try{ localStorage.setItem(__SK.current, id); }catch(_){} }
+
+function _emptyScores(){
+  const sc = {};
+  __BAI_L4V2.forEach(b => { sc[b.bai] = {diem: 0, h: 'H1'}; });
+  return sc;
+}
+function _emptyProfile(name){
+  return {
+    info: {name: name || '', code: '', gender: 'Nam', dob: '01/01/2021', date: new Date().toLocaleDateString('vi-VN'), class: 'L3'},
+    scores: _emptyScores(), edits: {},
+    lastUpdated: new Date().toISOString()
+  };
 }
 
-function _saveState(){
-  try{ localStorage.setItem('mg-l3v2-scores', JSON.stringify(__scoresL4v2)); _markSaved(); }catch(_){}
+/* Migrate v1 single-state → v2 multi-student */
+function _migrateOldData(){
+  const oldScores = localStorage.getItem('mg-l3v2-scores');
+  const oldInfo = localStorage.getItem('mg-l3v2-info');
+  const oldEdits = localStorage.getItem('mg-l3v2-edits');
+  if(!oldScores && !oldInfo && !oldEdits) return false;
+  try{
+    const info = oldInfo ? JSON.parse(oldInfo) : {};
+    const scores = oldScores ? JSON.parse(oldScores) : _emptyScores();
+    const edits = oldEdits ? JSON.parse(oldEdits) : {};
+    const profiles = _getProfiles();
+    const id = _genStudentId();
+    profiles[id] = {info, scores, edits, lastUpdated: new Date().toISOString()};
+    _setProfiles(profiles);
+    _setCurrentId(id);
+    ['mg-l3v2-scores','mg-l3v2-info','mg-l3v2-edits'].forEach(k => { try{ localStorage.removeItem(k); }catch(_){} });
+    console.info('[L3v2] Migrated old data → student', id, info.name);
+    return true;
+  }catch(e){ console.warn('Migration failed:', e); return false; }
 }
+
+/* Load profile into runtime state */
+function _loadStudent(id){
+  const profiles = _getProfiles();
+  const p = profiles[id];
+  if(!p) return false;
+  Object.assign(__scoresL4v2, _emptyScores());
+  Object.keys(p.scores || {}).forEach(k => {
+    if(__scoresL4v2[k]) __scoresL4v2[k] = p.scores[k];
+  });
+  ['name','code','gender','dob','date','class'].forEach(k => {
+    const el = document.getElementById('f-' + k);
+    if(el && p.info && p.info[k] != null) el.value = p.info[k];
+  });
+  // Replace edit overrides cleanly (KHÔNG carry-over giữa các bé)
+  Object.keys(__EDIT_OVERRIDES).forEach(k => delete __EDIT_OVERRIDES[k]);
+  Object.assign(__EDIT_OVERRIDES, p.edits || {});
+  return true;
+}
+
+/* Save current runtime state to current profile */
+function _saveCurrent(){
+  const id = _getCurrentId();
+  if(!id) return;
+  const profiles = _getProfiles();
+  if(!profiles[id]) profiles[id] = _emptyProfile();
+  profiles[id].scores = JSON.parse(JSON.stringify(__scoresL4v2));
+  profiles[id].info = {
+    name: document.getElementById('f-name')?.value || '',
+    code: document.getElementById('f-code')?.value || '',
+    gender: document.getElementById('f-gender')?.value || '',
+    dob: document.getElementById('f-dob')?.value || '',
+    date: document.getElementById('f-date')?.value || '',
+    class: document.getElementById('f-class')?.value || '',
+  };
+  profiles[id].edits = JSON.parse(JSON.stringify(__EDIT_OVERRIDES));
+  profiles[id].lastUpdated = new Date().toISOString();
+  _setProfiles(profiles);
+  _markSaved();
+}
+
+/* Public API: switch student */
+function switchStudent(id){
+  if(!id || id === _getCurrentId()){ _renderStudentPicker(); return; }
+  _saveCurrent();
+  if(!_loadStudent(id)){
+    showToast('⚠ Không tìm thấy hồ sơ', '#df5728');
+    _renderStudentPicker();
+    return;
+  }
+  _setCurrentId(id);
+  updateAvatar();
+  renderAll();
+  _renderStudentPicker();
+  showToast('✓ Đã chuyển → ' + (document.getElementById('f-name').value || 'bé mới'));
+}
+window.switchStudent = switchStudent;
+
+function newStudent(){
+  const name = prompt('Tên bé mới:', '');
+  if(name == null) return;
+  const trimmed = name.trim();
+  if(!trimmed){ showToast('⚠ Tên không được để trống', '#df5728'); return; }
+  _saveCurrent();
+  const profiles = _getProfiles();
+  const id = _genStudentId();
+  profiles[id] = _emptyProfile(trimmed);
+  _setProfiles(profiles);
+  _setCurrentId(id);
+  _loadStudent(id);
+  updateAvatar();
+  renderAll();
+  _renderStudentPicker();
+  showToast('✓ Đã tạo bé mới: ' + trimmed);
+}
+window.newStudent = newStudent;
+
+function renameCurrentStudent(){
+  const id = _getCurrentId();
+  if(!id) return;
+  const profiles = _getProfiles();
+  const p = profiles[id];
+  if(!p) return;
+  const newName = prompt('Đổi tên bé:', p.info?.name || '');
+  if(newName == null) return;
+  const trimmed = newName.trim();
+  if(!trimmed){ showToast('⚠ Tên không được để trống', '#df5728'); return; }
+  p.info = p.info || {};
+  p.info.name = trimmed;
+  p.lastUpdated = new Date().toISOString();
+  _setProfiles(profiles);
+  const el = document.getElementById('f-name');
+  if(el) el.value = trimmed;
+  renderAll();
+  _renderStudentPicker();
+  showToast('✓ Đã đổi tên');
+}
+window.renameCurrentStudent = renameCurrentStudent;
+
+function deleteCurrentStudent(){
+  const id = _getCurrentId();
+  if(!id) return;
+  const profiles = _getProfiles();
+  const p = profiles[id];
+  if(!p) return;
+  const name = p.info?.name || 'bé này';
+  const ids = Object.keys(profiles);
+  if(ids.length <= 1){
+    if(!confirm('Đây là bé cuối cùng. Xóa sẽ reset về demo "Hải An".\nTiếp tục?')) return;
+  } else {
+    if(!confirm('Xóa hồ sơ bé "' + name + '"?\n\nDữ liệu mất vĩnh viễn — nên Backup trước.')) return;
+  }
+  delete profiles[id];
+  _setProfiles(profiles);
+  const remaining = Object.keys(profiles);
+  if(remaining.length > 0){
+    _setCurrentId(remaining[0]);
+    _loadStudent(remaining[0]);
+  } else {
+    // Tạo demo fresh
+    const newId = _genStudentId();
+    const fresh = _emptyProfile();
+    Object.assign(fresh.scores, __DEMO);
+    fresh.info = {...__DEMO_INFO};
+    profiles[newId] = fresh;
+    _setProfiles(profiles);
+    _setCurrentId(newId);
+    _loadStudent(newId);
+  }
+  updateAvatar();
+  renderAll();
+  _renderStudentPicker();
+  showToast('✓ Đã xóa "' + name + '"');
+}
+window.deleteCurrentStudent = deleteCurrentStudent;
+
+function _renderStudentPicker(){
+  const sel = document.getElementById('student-picker');
+  if(!sel) return;
+  const profiles = _getProfiles();
+  const currentId = _getCurrentId();
+  const ids = Object.keys(profiles).sort((a,b) =>
+    (profiles[b].lastUpdated || '').localeCompare(profiles[a].lastUpdated || '')
+  );
+  sel.innerHTML = ids.map(id => {
+    const p = profiles[id];
+    const name = (p.info?.name || '(chưa đặt tên)').replace(/[<>&]/g, '');
+    return '<option value="' + id + '"' + (id === currentId ? ' selected':'') + '>' + name + '</option>';
+  }).join('');
+}
+
+function _initStudentSystem(){
+  _migrateOldData();
+  let currentId = _getCurrentId();
+  const profiles = _getProfiles();
+  if(Object.keys(profiles).length === 0){
+    // First load — tạo demo
+    const id = _genStudentId();
+    const fresh = _emptyProfile();
+    Object.assign(fresh.scores, __DEMO);
+    fresh.info = {...__DEMO_INFO};
+    profiles[id] = fresh;
+    _setProfiles(profiles);
+    _setCurrentId(id);
+    currentId = id;
+  } else if(!currentId || !profiles[currentId]){
+    currentId = Object.keys(profiles)[0];
+    _setCurrentId(currentId);
+  }
+  _loadStudent(currentId);
+  _renderStudentPicker();
+}
+
+/* ═══ Legacy wrappers (gọi từ các nơi cũ trong code) ═══ */
+function _restoreState(){ /* no-op — _initStudentSystem handles */ return true; }
+function _saveState(){ _saveCurrent(); }
 
 /* ═══════════════════════════════════════════════════════════════
    PRODUCTION FEATURES — Import xlsx + Backup + Template + Reset
@@ -961,69 +1201,112 @@ function _waitXlsx(maxMs){
   });
 }
 
-/* Import xlsx — parse L4 v2 format (cách chấm xlsx) */
+/* Parse số có thể chứa "," (thập phân VN) hoặc "." */
+function _parseNum(v){
+  if(v == null || v === '') return NaN;
+  if(typeof v === 'number') return v;
+  return parseFloat(String(v).replace(',', '.').trim());
+}
+
+/* Import xlsx — parse L3 v2 format (cách chấm xlsx) */
 async function importXlsxL4v2(ev){
   const f = ev.target?.files?.[0];
   if(!f) return;
+  // Validate extension
+  if(!/\.(xlsx|xls)$/i.test(f.name)){
+    showToast('⚠ Chỉ hỗ trợ .xlsx / .xls', '#df5728');
+    if(ev?.target) ev.target.value = '';
+    return;
+  }
   const ready = await _waitXlsx();
-  if(!ready){ showToast('XLSX chưa load được, kiểm tra mạng', '#df5728'); return; }
+  if(!ready){ showToast('XLSX chưa load được, kiểm tra mạng', '#df5728'); if(ev?.target) ev.target.value=''; return; }
   try{
     const buf = await f.arrayBuffer();
     const wb = XLSX.read(buf, {type:'array', cellDates:false});
     const sheetName = wb.SheetNames[0];
+    if(!sheetName) throw new Error('File không có sheet hợp lệ');
     const sht = wb.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(sht, {header:1, defval:''});
 
-    // Reset scores
-    __BAI_L4V2.forEach(b => { __scoresL4v2[b.bai] = {diem: 0, h: 'H1'}; });
-
-    // Extract student name (cell A1 or sheet name)
+    // Tạm parse trước, KHÔNG ghi đè scores hiện tại
+    const stagedScores = _emptyScores();
     let studentName = '';
     if(rows[0] && rows[0][0]) studentName = String(rows[0][0]).trim();
     if(!studentName) studentName = sheetName.trim();
 
-    // Find data rows: bài 1-14 in column A
-    let parsed = 0;
-    let totalAdjFromFile = null;
+    let parsed = 0, capped = 0;
     for(let i = 0; i < rows.length; i++){
       const r = rows[i];
       if(!r) continue;
-      const cau = r[0];
-      // Detect data row: column A is integer 1-14
-      const cauNum = parseInt(cau, 10);
+      const cauNum = parseInt(r[0], 10);
       if(!Number.isFinite(cauNum) || cauNum < 1 || cauNum > 14) continue;
-      // Read điểm đạt (col E = index 4) + mức hỗ trợ (col F = index 5)
-      const diem = parseFloat(r[4]);
+      // Tìm max của bài này
+      const baiDef = __BAI_L4V2.find(b => b.bai === cauNum);
+      if(!baiDef) continue;
+      // Điểm đạt (col E, idx 4) — parse VN decimal "5,5"
+      const diemRaw = _parseNum(r[4]);
       const h = String(r[5] || 'H1').trim().toUpperCase();
-      if(Number.isFinite(diem) && __scoresL4v2[cauNum]){
-        __scoresL4v2[cauNum].diem = diem;
-        __scoresL4v2[cauNum].h = ['H0','H1','H2','H3','H4'].includes(h) ? h : 'H1';
+      if(Number.isFinite(diemRaw)){
+        // Cap diem ≤ max + ≥ 0
+        let diem = Math.max(0, diemRaw);
+        if(diem > baiDef.max){ diem = baiDef.max; capped++; }
+        stagedScores[cauNum].diem = diem;
+        stagedScores[cauNum].h = ['H0','H1','H2','H3','H4'].includes(h) ? h : 'H1';
         parsed++;
-      }
-      // Also try to read tổng điểm from L2 (label "TỔNG ĐIỂM HIỆU CHỈNH" at I2, value at L2)
-      if(i === 1 && r[11]){
-        const t = parseFloat(r[11]);
-        if(Number.isFinite(t)) totalAdjFromFile = t;
       }
     }
 
     if(parsed === 0){
-      showToast('Không tìm thấy data — file có thể sai format', '#df5728');
+      showToast('⚠ Không tìm thấy data hợp lệ — file có thể sai format', '#df5728');
+      if(ev?.target) ev.target.value = '';
       return;
     }
 
-    // Apply student name
-    if(studentName){
-      document.getElementById('f-name').value = studentName;
+    // Hỏi user: lưu vào bé hiện tại hay tạo bé mới?
+    const currentName = document.getElementById('f-name')?.value || '(chưa đặt tên)';
+    const hasExistingData = Object.values(__scoresL4v2).some(s => +s.diem > 0);
+    let mode = 'current';
+    if(hasExistingData && currentName !== studentName){
+      const ans = confirm(
+        '📥 File: "' + studentName + '" — ' + parsed + '/14 bài' + (capped ? ' (' + capped + ' bài vượt max — đã cap)' : '') + '\n\n' +
+        'Bé hiện tại: "' + currentName + '" đang có data.\n\n' +
+        '▶ OK: TẠO BÉ MỚI "' + studentName + '" (giữ data bé hiện tại)\n' +
+        '▶ Cancel: GHI ĐÈ lên bé hiện tại'
+      );
+      mode = ans ? 'new' : 'overwrite';
+    } else if(hasExistingData){
+      // Same name — confirm overwrite
+      if(!confirm('Ghi đè data bé "' + currentName + '" bằng file mới?\n\n' + parsed + '/14 bài' + (capped ? ', ' + capped + ' điểm bị cap' : ''))){
+        if(ev?.target) ev.target.value = '';
+        return;
+      }
+      mode = 'overwrite';
     }
-    // Save & render
-    _saveState();
-    saveInfo();
+
+    if(mode === 'new'){
+      _saveCurrent();
+      const profiles = _getProfiles();
+      const id = _genStudentId();
+      profiles[id] = _emptyProfile(studentName);
+      _setProfiles(profiles);
+      _setCurrentId(id);
+      _loadStudent(id);
+    }
+    // Apply staged scores
+    Object.assign(__scoresL4v2, stagedScores);
+    if(studentName){
+      const el = document.getElementById('f-name');
+      if(el) el.value = studentName;
+    }
+    _saveCurrent();
+    updateAvatar();
     renderAll();
-    showToast('✓ Đã nhập ' + parsed + '/14 bài cho bé ' + studentName);
+    _renderStudentPicker();
+    const msg = '✓ Nhập ' + parsed + '/14 bài cho "' + studentName + '"' + (capped ? ' — ' + capped + ' điểm bị cap về max' : '');
+    showToast(msg);
   }catch(err){
     console.error('Import error:', err);
-    showToast('Lỗi đọc file: ' + (err.message || err), '#df5728');
+    showToast('⚠ Lỗi đọc file: ' + (err.message || err), '#df5728');
   } finally {
     if(ev?.target) ev.target.value = '';
   }
@@ -1055,72 +1338,111 @@ async function downloadXlsxTemplate(){
   showToast('✓ Đã tải ' + fname);
 }
 
-/* Backup state JSON */
+/* Backup state JSON — bao gồm cả edits + ALL profiles option */
 function exportBackup(){
+  _saveCurrent();  // flush trước khi backup
+  const id = _getCurrentId();
+  const profiles = _getProfiles();
+  const p = profiles[id] || _emptyProfile();
   const data = {
-    version: 2,
+    version: 3,
     type: 'mau-giao-l3-v2',
     exportedAt: new Date().toISOString(),
-    scores: __scoresL4v2,
-    info: {
-      name: document.getElementById('f-name').value,
-      dob: document.getElementById('f-dob').value,
-      date: document.getElementById('f-date').value,
-      class: document.getElementById('f-class').value,
-    },
+    info: p.info || {},
+    scores: p.scores || {},
+    edits: p.edits || {},
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const name = data.info.name.replace(/\s+/g,'_') || 'unknown';
+  const name = (p.info?.name || 'unknown').replace(/[^\wÀ-ỹ]+/g,'_');
   a.href = url;
   a.download = 'l3v2-backup-' + name + '-' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
   URL.revokeObjectURL(url);
-  showToast('✓ Đã backup data');
+  showToast('✓ Đã backup "' + (p.info?.name || 'bé') + '"');
 }
 
-/* Restore from JSON */
+/* Restore from JSON — verify type khớp file này, hỏi user lưu vào hồ sơ nào */
 function importBackup(ev){
   const f = ev.target?.files?.[0];
   if(!f) return;
+  if(!/\.json$/i.test(f.name)){
+    showToast('⚠ Chỉ hỗ trợ .json', '#df5728');
+    if(ev?.target) ev.target.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = e => {
     try{
       const obj = JSON.parse(e.target.result);
-      if(!obj.scores) throw new Error('Backup không hợp lệ');
-      if(!confirm('Khôi phục data từ backup (' + obj.exportedAt + ')?\nDữ liệu hiện tại sẽ bị ghi đè.')) return;
-      Object.assign(__scoresL4v2, obj.scores);
-      if(obj.info){
-        ['name','code','gender','dob','date','class'].forEach(k => {
-          const el = document.getElementById('f-' + k);
-          if(el && obj.info[k] != null) el.value = obj.info[k];
-        });
-        updateAvatar();
+      if(!obj || typeof obj !== 'object' || !obj.scores){
+        throw new Error('File backup không hợp lệ (thiếu scores)');
       }
-      _saveState();
+      // VERIFY type khớp — không cho import L4 vào L3
+      if(obj.type && obj.type !== 'mau-giao-l3-v2'){
+        throw new Error('Backup này dành cho "' + obj.type + '", không phải L3 v2. Mở đúng file template tương ứng.');
+      }
+      const restoreName = obj.info?.name || '(không tên)';
+      const choice = confirm(
+        '📥 Backup: "' + restoreName + '"\n' +
+        'Xuất ngày: ' + (obj.exportedAt || '?') + '\n\n' +
+        '▶ OK: TẠO BÉ MỚI từ backup (giữ bé hiện tại)\n' +
+        '▶ Cancel: GHI ĐÈ bé hiện tại'
+      );
+      _saveCurrent();
+      if(choice){
+        // Tạo bé mới từ backup
+        const profiles = _getProfiles();
+        const id = _genStudentId();
+        profiles[id] = {
+          info: obj.info || {},
+          scores: obj.scores || _emptyScores(),
+          edits: obj.edits || {},
+          lastUpdated: new Date().toISOString(),
+        };
+        _setProfiles(profiles);
+        _setCurrentId(id);
+        _loadStudent(id);
+      } else {
+        // Ghi đè current
+        const id = _getCurrentId();
+        const profiles = _getProfiles();
+        if(!profiles[id]) profiles[id] = _emptyProfile();
+        profiles[id].info = obj.info || profiles[id].info;
+        profiles[id].scores = obj.scores || _emptyScores();
+        profiles[id].edits = obj.edits || {};
+        profiles[id].lastUpdated = new Date().toISOString();
+        _setProfiles(profiles);
+        _loadStudent(id);
+      }
+      updateAvatar();
       renderAll();
-      showToast('✓ Đã khôi phục data');
+      _renderStudentPicker();
+      showToast('✓ Đã khôi phục "' + restoreName + '"');
     }catch(err){
-      showToast('Lỗi đọc backup: ' + err.message, '#df5728');
+      showToast('⚠ ' + (err.message || 'Lỗi đọc backup'), '#df5728');
     }
     if(ev?.target) ev.target.value = '';
   };
   reader.readAsText(f);
 }
 
-/* Reset to demo data */
+/* Reset bé hiện tại về demo (KHÔNG xóa các bé khác) */
 function resetData(){
-  if(!confirm('Xóa data hiện tại và reset về demo "An Nguyên"?\n\nNếu cần giữ data, bấm Backup trước.')) return;
-  try{ localStorage.removeItem('mg-l3v2-scores'); localStorage.removeItem('mg-l3v2-info'); }catch(_){}
-  Object.assign(__scoresL4v2, __DEMO);
+  if(!confirm('Reset bé hiện tại về demo "Hải An"?\n\nDữ liệu của bé hiện tại sẽ bị ghi đè bằng demo. Các bé khác không bị ảnh hưởng.\n\nNếu cần giữ data, bấm Backup trước.')) return;
+  // Clear edit overrides in-memory + DOM
+  Object.keys(__EDIT_OVERRIDES).forEach(k => delete __EDIT_OVERRIDES[k]);
+  Object.assign(__scoresL4v2, _emptyScores(), __DEMO);
   ['name','code','gender','dob','date','class'].forEach(k => {
     const el = document.getElementById('f-' + k);
     if(el) el.value = __DEMO_INFO[k] || '';
   });
+  _saveCurrent();
   updateAvatar();
   renderAll();
-  showToast('✓ Đã reset về demo data');
+  _renderStudentPicker();
+  showToast('✓ Đã reset bé hiện tại về demo');
 }
 
 /* Parent mode toggle */
@@ -1132,19 +1454,11 @@ function toggleParentMode(){
   showToast(isParent ? '👪 Đã bật chế độ phụ huynh' : '👨‍🏫 Đã bật chế độ GV');
 }
 
-/* Save info fields */
+/* Save info fields → delegate vào current student profile */
 function saveInfo(){
-  try{
-    localStorage.setItem('mg-l3v2-info', JSON.stringify({
-      name: document.getElementById('f-name').value,
-      code: document.getElementById('f-code').value,
-      gender: document.getElementById('f-gender').value,
-      dob: document.getElementById('f-dob').value,
-      date: document.getElementById('f-date').value,
-      class: document.getElementById('f-class').value,
-    }));
-    _markSaved();
-  }catch(_){}
+  _saveCurrent();
+  // Reflect rename vào picker dropdown
+  _renderStudentPicker();
 }
 
 /* Update avatar emoji + background theo giới tính */
@@ -1185,7 +1499,7 @@ function _makeAllEditable(){
     el.classList.add('editable');
     el.addEventListener('blur', () => {
       __EDIT_OVERRIDES[id] = el.innerHTML;
-      try{ localStorage.setItem('mg-l3v2-edits', JSON.stringify(__EDIT_OVERRIDES)); }catch(_){}
+      _saveCurrent();  // persist vào current student profile
       _showEditHint('✓ Đã lưu chỉnh sửa "' + (el.dataset.label || id) + '"');
     });
     el.addEventListener('focus', () => {
@@ -1208,22 +1522,23 @@ function _showEditHint(msg){
   window.__hintTm = setTimeout(() => hint.classList.remove('show'), 2500);
 }
 
-function _restoreEdits(){
-  try{
-    const saved = JSON.parse(localStorage.getItem('mg-l3v2-edits') || '{}');
-    Object.assign(__EDIT_OVERRIDES, saved);
-  }catch(_){}
-}
+/* Legacy stub — edits load qua _loadStudent() rồi */
+function _restoreEdits(){ /* no-op */ }
 
 function _applyEditOverride(id, defaultHtml){
-  // Returns saved edit if exists, else default
   return __EDIT_OVERRIDES[id] || defaultHtml;
 }
 
 function resetEdits(){
-  if(!confirm('Khôi phục tất cả nhận xét về tự động? (Mất các chỉnh sửa thủ công)')) return;
+  if(!confirm('Khôi phục TẤT CẢ nhận xét của bé hiện tại về tự động? (Mất các chỉnh sửa thủ công)')) return;
+  // Clear in-memory
   Object.keys(__EDIT_OVERRIDES).forEach(k => delete __EDIT_OVERRIDES[k]);
-  try{ localStorage.removeItem('mg-l3v2-edits'); }catch(_){}
+  // Clear contenteditable DOM cache (cần re-init khi render)
+  document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+    el.removeAttribute('data-editable-init');
+    delete el.dataset.editableInit;
+  });
+  _saveCurrent();
   renderAll();
   showToast('✓ Đã khôi phục nhận xét tự động');
 }
@@ -1322,8 +1637,13 @@ function aggregateL4v2(){
    GV vẫn có thể chấm thủ công từ console: __scoresL4v2[1] = {diem:5, h:'H1'}; renderAll(); */
 window._updateScore = function(bai, field, value){
   if(!__scoresL4v2[bai]) __scoresL4v2[bai] = {diem:0, h:'H1'};
-  if(field === 'diem') __scoresL4v2[bai].diem = Math.max(0, +value || 0);
-  else __scoresL4v2[bai].h = value;
+  if(field === 'diem'){
+    const baiDef = __BAI_L4V2.find(b => b.bai === +bai);
+    const maxAllowed = baiDef?.max ?? 10;
+    __scoresL4v2[bai].diem = Math.min(maxAllowed, Math.max(0, +value || 0));
+  } else if(field === 'h'){
+    __scoresL4v2[bai].h = ['H0','H1','H2','H3','H4'].includes(value) ? value : 'H1';
+  }
   _saveState();
   renderAll();
 };
@@ -1602,31 +1922,14 @@ function renderAll(){
   }, 50);
 }
 
-// Initial load
-_restoreState();
-_restoreEdits();
 document.addEventListener('DOMContentLoaded', () => {
-  // Restore info first
-  try{
-    const inf = JSON.parse(localStorage.getItem('mg-l3v2-info') || '{}');
-    ['name','code','gender','dob','date','class'].forEach(k => {
-      const el = document.getElementById('f-' + k);
-      if(el && inf[k] != null) el.value = inf[k];
-    });
-  }catch(_){}
+  // Initialize multi-student system (migration + load current)
+  _initStudentSystem();
 
-  // Apply demo info if no saved (first load) — set defaults
-  if(!localStorage.getItem('mg-l3v2-info')){
-    ['name','code','gender','dob','date','class'].forEach(k => {
-      const el = document.getElementById('f-' + k);
-      if(el) el.value = __DEMO_INFO[k] || '';
-    });
-    saveInfo();
-  }
   // Update avatar based on gender
   updateAvatar();
 
-  // Restore parent mode
+  // Restore parent mode (global UI state, không per-student)
   if(localStorage.getItem('mg-l3v2-parent') === '1'){
     document.body.classList.add('parent-mode');
     const btn = document.getElementById('btn-parent');
