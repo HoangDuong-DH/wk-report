@@ -568,7 +568,7 @@ body{
   .heart-msg{break-before:avoid !important;page-break-before:avoid !important}
   .brand-bar-deco{break-before:avoid !important;page-break-before:avoid !important}
 
-  /* Compact print sizing */
+  /* Compact print sizing (mặc định 1 trang) */
   .card-highlight{padding:12px 16px !important}
   .card-mini{padding:10px 14px !important}
   .wk-card{padding:10px 8px !important}
@@ -579,6 +579,68 @@ body{
   .section-title-deco{margin:12px 0 8px !important}
 
   @page{size:A4 portrait;margin:6mm}
+
+  /* ═════ MULTI-PAGE PRINT MODE — chữ to, rõ, dãn ═════ */
+  body.print-large .page{padding:12mm 14mm !important}
+
+  body.print-large .l4-logo{width:90px !important;height:90px !important}
+  body.print-large .l4-logo .big{font-size:30px !important}
+  body.print-large .l4-logo .small{font-size:9px !important}
+  body.print-large .l4-logo .award{font-size:14px !important}
+  body.print-large .title-block h1{font-size:23px !important;line-height:1.25 !important}
+  body.print-large .title-block h2{font-size:14px !important}
+
+  body.print-large .info-card{padding:16px 22px !important}
+  body.print-large .info-card .avatar-circle{width:60px !important;height:60px !important;font-size:30px !important}
+  body.print-large .info-card .field label{font-size:11.5px !important}
+  body.print-large .info-card .field .input{font-size:14.5px !important}
+
+  body.print-large .top-cards{gap:18px !important;margin-top:18px !important}
+  body.print-large .card{padding:20px 22px !important}
+  body.print-large .card-head{font-size:11.5px !important;padding:7px 16px !important}
+  body.print-large .code-big{padding:18px 26px !important}
+  body.print-large .code-big .ko{font-size:30px !important}
+  body.print-large .code-big .nm{font-size:11.5px !important;max-width:100px !important}
+  body.print-large .code-desc{font-size:13.5px !important;line-height:1.6 !important}
+  body.print-large .donut-total{width:140px !important;height:140px !important}
+  body.print-large .donut-total .pct b{font-size:32px !important}
+  body.print-large .donut-total .pct small{font-size:12px !important}
+  body.print-large .grade-info h3{font-size:22px !important}
+  body.print-large .grade-info p{font-size:12.5px !important;line-height:1.6 !important}
+  body.print-large .grade-info .tag{font-size:11.5px !important;padding:5px 12px !important}
+  body.print-large .meta-row{padding:11px 15px !important}
+  body.print-large .meta-row .icon{width:38px !important;height:38px !important;font-size:18px !important}
+  body.print-large .meta-row .lbl{font-size:11px !important}
+  body.print-large .meta-row .val{font-size:15px !important}
+  body.print-large .meta-row .sub{font-size:11px !important}
+
+  body.print-large .wk-grid{grid-template-columns:repeat(2,1fr) !important;gap:18px !important}
+  body.print-large .wk-card{padding:20px 18px !important;break-inside:avoid !important;page-break-inside:avoid !important}
+  body.print-large .wk-card .head{font-size:17px !important}
+  body.print-large .wk-card .name{font-size:12.5px !important;min-height:0 !important;margin-bottom:10px !important}
+  body.print-large .wk-donut{width:140px !important;height:140px !important;margin:6px auto 10px !important}
+  body.print-large .wk-donut .center{font-size:24px !important}
+  body.print-large .wk-card .score{font-size:14px !important}
+  body.print-large .wk-card .cau-list{font-size:12.5px !important}
+  body.print-large .wk-card .cmt{font-size:12.5px !important;line-height:1.65 !important;min-height:0 !important;text-align:left !important;padding:0 6px !important}
+
+  body.print-large .section-title{font-size:18px !important;margin:24px 0 16px !important}
+  body.print-large .section-title-deco{font-size:18px !important;margin:24px 0 16px !important}
+
+  body.print-large .points-section{gap:18px !important;margin-top:24px !important}
+  body.print-large .points-box{padding:18px 20px !important;break-inside:avoid !important;page-break-inside:avoid !important}
+  body.print-large .points-box .ico{width:48px !important;height:48px !important;font-size:25px !important}
+  body.print-large .points-box .label{font-size:13px !important}
+  body.print-large .points-box ul{font-size:12.5px !important;line-height:1.75 !important}
+
+  body.print-large .abc-section{padding:18px 22px !important}
+  body.print-large .heart-msg, body.print-large .brand-bar-deco{padding:14px 22px !important;font-size:12.5px !important}
+  body.print-large .footer-note{font-size:11px !important;padding:14px 4px 0 !important}
+
+  body.print-large .points-section{break-inside:auto !important;page-break-inside:auto !important}
+  body.print-large .abc-row{break-inside:auto !important;page-break-inside:auto !important}
+  body.print-large .wk-grid{break-inside:auto !important;page-break-inside:auto !important}
+  body.print-large .cards-row-1, body.print-large .cards-row-2{break-inside:auto !important;page-break-inside:auto !important}
 }
 
 /* Parent mode: hide technical details */
@@ -692,7 +754,10 @@ body.parent-mode #parent-exit-fab{display:inline-flex !important}
     </button>
   </div>
   <span class="sep"></span>
-  <button class="primary" onclick="window.print()" title="In/Xuất PDF A4 portrait">
+  <button id="btn-print-mode" onclick="togglePrintMode()" title="Chuyển chế độ in: 1 trang (gọn) ↔ Nhiều trang (chữ to, rõ)">
+    📄 1 trang
+  </button>
+  <button class="primary" onclick="window.print()" title="In/Xuất PDF (theo chế độ đã chọn)">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
     In PDF
   </button>
@@ -1428,6 +1493,16 @@ function toggleParentMode(){
   showToast(isParent ? '👪 Đã bật chế độ phụ huynh' : '👨‍🏫 Đã bật chế độ GV');
 }
 
+/* Print mode toggle — 1 trang (gọn) ↔ Nhiều trang (rõ) */
+function togglePrintMode(){
+  const isLarge = document.body.classList.toggle('print-large');
+  try{ localStorage.setItem('mg-l4v2-printmode', isLarge ? 'large' : 'compact'); }catch(_){}
+  const btn = document.getElementById('btn-print-mode');
+  if(btn) btn.textContent = isLarge ? '📚 Nhiều trang' : '📄 1 trang';
+  showToast(isLarge ? '📚 In sẽ TRẢI ra nhiều trang, chữ to rõ hơn' : '📄 In gom GỌN trong 1 trang A4');
+}
+window.togglePrintMode = togglePrintMode;
+
 /* Save info fields → delegate vào current student profile */
 function saveInfo(){
   _saveCurrent();
@@ -1901,6 +1976,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('parent-mode');
     const btn = document.getElementById('btn-parent');
     if(btn) btn.textContent = '👨‍🏫 Chế độ GV';
+  }
+
+  // Restore print mode (global UI preference)
+  if(localStorage.getItem('mg-l4v2-printmode') === 'large'){
+    document.body.classList.add('print-large');
+    const btn = document.getElementById('btn-print-mode');
+    if(btn) btn.textContent = '📚 Nhiều trang';
   }
 
   renderAll();
