@@ -365,28 +365,48 @@ const __BAI_L4V2 = [
   {bai:14, name:'Sáng tạo hình từ số "11"',                             max:9, wk:['WK-X'],          rubric:'Trôi chảy: 3đ, linh hoạt: 3đ, độc đáo: 2đ, chính xác: 2đ'},
 ];
 
-// 5 mã WK
+// 5 mã WK — toàn bộ field từ CSV official L4
 const __WK_CODES = {
-  'WK-V': {emoji:'👁', name:'Trực quan – thao tác',  color:'#6ba66b',
-           desc:'Bé tiếp thu tốt khi học qua hình ảnh, vật thật và thao tác trực tiếp. Khi bài học rõ ràng có minh họa cụ thể, bé thường tham gia tốt và xử lý nhiệm vụ ổn định hơn.',
-           strong:['Nhận diện hình ảnh, phân loại và so sánh tốt.','Tiếp thu hiệu quả qua vật thật, tranh ảnh và thao tác trực quan.','Làm tốt các bài ghép hình, phân loại và so sánh.'],
-           weak:['Quan sát kỹ đặc điểm hình ảnh trước khi chọn đáp án.','Rèn thêm kỹ năng so sánh, phân loại và ghép hình trực quan.','Tập đối chiếu với mẫu để tăng độ chính xác khi làm bài.']},
-  'WK-M': {emoji:'📋', name:'Theo mẫu – có cấu trúc', color:'#4a8cc4',
-           desc:'Bé học tốt khi có ví dụ mẫu và từng bước hướng dẫn rõ ràng. Với dạng bài quen thuộc, bé có thể hoàn thành khá ổn, nhưng cần thêm thời gian để tự xử lý bài mới.',
-           strong:['Làm tốt khi có ví dụ mẫu hoặc hướng dẫn rõ ràng.','Biết thực hiện nhiệm vụ theo trình tự ổn định.','Ghi nhớ và áp dụng quy tắc quen thuộc khá tốt.'],
-           weak:['Rèn thói quen quan sát ví dụ mẫu trước khi bắt đầu.','Luyện làm bài theo từng bước để giữ đúng yêu cầu.','Tăng khả năng chuyển từ bài mẫu sang bài tương tự.']},
-  'WK-R': {emoji:'💡', name:'Suy luận từng bước',    color:'#f0a230',
-           desc:'Bé có khả năng suy luận và xử lý bài theo trình tự. Khi được hướng dẫn đúng cách, bé có thể kết nối dữ kiện, nhận ra quy luật và giải quyết nhiệm vụ có nhiều bước.',
-           strong:['Biết kết nối dữ kiện và xử lý bài theo từng bước.','Làm tốt các bài quy luật, trình tự và bài nhiều dữ kiện.','Có khả năng suy nghĩ logic trước khi chọn đáp án.'],
-           weak:['Rèn suy luận từng bước với bài quy luật, trình tự và tạo tổng.','Tăng khả năng xử lý nhiều dữ kiện trước khi chọn đáp án.','Luyện thói quen giải thích ngắn và kiểm tra lại kết quả.']},
-  'WK-X': {emoji:'🚀', name:'Linh hoạt – khám phá',  color:'#9966cc',
-           desc:'Bé có xu hướng linh hoạt, thích khám phá và thử nhiều cách làm. Đây là điểm mạnh tốt, nhưng cần rèn thêm thói quen quan sát kỹ, kiểm tra lại và hoàn thiện nhiệm vụ chính xác hơn.',
-           strong:['Có nhiều ý tưởng khi gặp nhiệm vụ mở.','Biết biến đổi hình gợi ý thành sản phẩm sáng tạo.','Chủ động thử cách làm mới và thể hiện sự tưởng tượng tốt.'],
-           weak:['Khuyến khích bé thử nhiều ý tưởng khác nhau từ cùng một hình gợi ý.','Tăng hoạt động vẽ tiếp hình, kể chuyện từ tranh và đặt tên cho sản phẩm.','Rèn sự tự tin khi trình bày ý tưởng, không chỉ tập trung vào đúng – sai.']},
-  'WK-F': {emoji:'🛡', name:'Cần củng cố nền tảng',  color:'#a4886a',
-           desc:'Bé cần được củng cố thêm nền tảng học tập như hiểu yêu cầu, phân loại, so sánh, ghi nhớ, quy luật và duy trì sự tập trung. Giai đoạn này nên ưu tiên bài học ngắn, trực quan, có hỗ trợ rõ.',
-           strong:[],
-           weak:['Củng cố khả năng hiểu yêu cầu, duy trì chú ý và hoàn thành nhiệm vụ ngắn.','Tăng hoạt động trực quan, vật thật và trò chơi học tập có hướng dẫn rõ.','Luyện từng bước nhỏ để bé ổn định nền học tập trước khi tăng độ khó.']},
+  'WK-V': {
+    emoji:'👁', name:'Trực quan – thao tác', color:'#6ba66b',
+    bieuHieu:'Bé làm tốt các câu hình ảnh, phân loại, ghép hình, so sánh, nhưng yếu hơn ở bài nghe số hoặc suy luận.',
+    desc:'Bé tiếp thu tốt khi học qua hình ảnh, vật thật và thao tác trực tiếp. Khi bài học rõ ràng có minh họa cụ thể, bé thường tham gia tốt và xử lý nhiệm vụ ổn định hơn.',
+    hoatDong:'quan sát, so sánh và đối chiếu hình ảnh để xử lý chính xác hơn các bài ghép hình, phân loại và nhận diện đặc điểm.',
+    strong:['Nhận diện hình ảnh, phân loại và so sánh tốt.','Tiếp thu hiệu quả qua vật thật, tranh ảnh và thao tác trực quan.','Làm tốt các bài ghép hình, phân loại và so sánh.'],
+    weak:['Quan sát kỹ đặc điểm hình ảnh trước khi chọn đáp án.','Rèn thêm kỹ năng so sánh, phân loại và ghép hình trực quan.','Tập đối chiếu với mẫu để tăng độ chính xác khi làm bài.'],
+  },
+  'WK-M': {
+    emoji:'📋', name:'Theo mẫu – có cấu trúc', color:'#4a8cc4',
+    bieuHieu:'Bé làm tốt khi có ví dụ, nhưng lúng túng khi yêu cầu thay đổi hoặc không có mẫu.',
+    desc:'Bé học tốt khi có ví dụ mẫu và từng bước hướng dẫn rõ ràng. Với dạng bài quen thuộc, bé có thể hoàn thành khá ổn, nhưng cần thêm thời gian để tự xử lý bài mới.',
+    hoatDong:'quan sát mẫu, ghi nhớ yêu cầu và làm bài theo từng bước để tăng sự ổn định khi gặp nhiệm vụ mới.',
+    strong:['Làm tốt khi có ví dụ mẫu hoặc hướng dẫn rõ ràng.','Biết thực hiện nhiệm vụ theo trình tự ổn định.','Ghi nhớ và áp dụng quy tắc quen thuộc khá tốt.'],
+    weak:['Rèn thói quen quan sát ví dụ mẫu trước khi bắt đầu.','Luyện làm bài theo từng bước để giữ đúng yêu cầu.','Tăng khả năng chuyển từ bài mẫu sang bài tương tự.'],
+  },
+  'WK-R': {
+    emoji:'💡', name:'Suy luận từng bước', color:'#f0a230',
+    bieuHieu:'Bé làm tốt quy luật, tổng 10, trình tự, bài nhiều bước, có thể giải thích cách làm.',
+    desc:'Bé có khả năng suy luận và xử lý bài theo trình tự. Khi được hướng dẫn đúng cách, bé có thể kết nối dữ kiện, nhận ra quy luật và giải quyết nhiệm vụ có nhiều bước.',
+    hoatDong:'suy luận từng bước, đặc biệt ở các bài quy luật, trình tự, tạo tổng và xử lý nhiều dữ kiện.',
+    strong:['Biết kết nối dữ kiện và xử lý bài theo từng bước.','Làm tốt các bài quy luật, trình tự và bài nhiều dữ kiện.','Có khả năng suy nghĩ logic trước khi chọn đáp án.'],
+    weak:['Rèn suy luận từng bước với bài quy luật, trình tự và tạo tổng.','Tăng khả năng xử lý nhiều dữ kiện trước khi chọn đáp án.','Luyện thói quen giải thích ngắn và kiểm tra lại kết quả.'],
+  },
+  'WK-X': {
+    emoji:'🚀', name:'Linh hoạt – khám phá', color:'#9966cc',
+    bieuHieu:'Bé sáng tạo tốt, thử nhiều cách, phản ứng nhanh, nhưng đôi khi thiếu kiểm tra lại.',
+    desc:'Bé có xu hướng linh hoạt, thích khám phá và thử nhiều cách làm. Đây là điểm mạnh tốt, nhưng cần rèn thêm thói quen quan sát kỹ, kiểm tra lại và hoàn thiện nhiệm vụ chính xác hơn.',
+    hoatDong:'khuyến khích mở rộng ý tưởng, thử nhiều cách làm và diễn đạt sản phẩm sáng tạo rõ ràng hơn.',
+    strong:['Có nhiều ý tưởng khi gặp nhiệm vụ mở.','Biết biến đổi hình gợi ý thành sản phẩm sáng tạo.','Chủ động thử cách làm mới và thể hiện sự tưởng tượng tốt.'],
+    weak:['Khuyến khích bé thử nhiều ý tưởng khác nhau từ cùng một hình gợi ý.','Tăng hoạt động vẽ tiếp hình, kể chuyện từ tranh và đặt tên cho sản phẩm.','Rèn sự tự tin khi trình bày ý tưởng, không chỉ tập trung vào đúng – sai.'],
+  },
+  'WK-F': {
+    emoji:'🛡', name:'Cần củng cố nền tảng', color:'#a4886a',
+    bieuHieu:'Bé yếu nhiều nhóm nền tảng, cần hỗ trợ liên tục, dễ mất định hướng.',
+    desc:'Bé cần được củng cố thêm nền tảng học tập như hiểu yêu cầu, phân loại, so sánh, ghi nhớ, quy luật và duy trì sự tập trung. Giai đoạn này nên ưu tiên bài học ngắn, trực quan, có hỗ trợ rõ.',
+    hoatDong:'củng cố nền học tập cơ bản, bao gồm hiểu yêu cầu, duy trì chú ý, làm theo hướng dẫn và hoàn thành nhiệm vụ ngắn.',
+    strong:[],
+    weak:['Củng cố khả năng hiểu yêu cầu, duy trì chú ý và hoàn thành nhiệm vụ ngắn.','Tăng hoạt động trực quan, vật thật và trò chơi học tập có hướng dẫn rõ.','Luyện từng bước nhỏ để bé ổn định nền học tập trước khi tăng độ khó.'],
+  },
 };
 
 // Hệ số mức hỗ trợ
@@ -488,21 +508,31 @@ function aggregateL4v2(){
               : 'Cần củng cố';
   const stars = totalPct >= 75 ? '★★★★' : totalPct >= 60 ? '★★★' : totalPct >= 45 ? '★★' : '★';
 
-  // Select primary code (rule: WK-F first, then highest)
-  let primaryCode;
+  // Sort WK by pct (descending) — exclude WK-F (fallback only)
+  const sortedWK = Object.entries(perWK).sort((a,b) => b[1].pct - a[1].pct);
+
+  // Select primary code (rule: WK-F first if conditions met, else highest)
+  let primaryCode, secondaryCode = null;
   if(totalPct < 45 || hHardCount >= 3){
     primaryCode = 'WK-F';
   } else {
-    const sortedWK = Object.entries(perWK).sort((a,b) => b[1].pct - a[1].pct);
     primaryCode = sortedWK[0][0];
+    // Secondary: nếu chênh <8% với primary, ghi như xu hướng phụ
+    if(sortedWK.length >= 2){
+      const diff = sortedWK[0][1].pct - sortedWK[1][1].pct;
+      if(diff < 8) secondaryCode = sortedWK[1][0];
+    }
   }
 
+  // Find lowest WK code for "vùng cần rèn" reference
+  const lowestWK = sortedWK[sortedWK.length - 1][0];
+
   return {
-    perBai, perWK,
+    perBai, perWK, sortedWK,
     totalAdj, totalMax, totalPct,
-    supportLabel, hCounts,
+    supportLabel, hCounts, hHardCount,
     grade, stars,
-    primaryCode,
+    primaryCode, secondaryCode, lowestWK,
   };
 }
 
@@ -619,12 +649,19 @@ function _genWKComment(key, pct){
 
 /* ─── Render top cards ─── */
 function renderTopCards(agg){
-  // Primary code
+  // Primary code + secondary (nếu có)
   const code = agg.primaryCode;
   const cfg = __WK_CODES[code];
   document.getElementById('top-code-ko').textContent = code;
-  document.getElementById('top-code-nm').textContent = cfg.name;
-  document.getElementById('top-code-desc').textContent = cfg.desc;
+  // Tên + xu hướng phụ
+  let nameText = cfg.name;
+  if(agg.secondaryCode){
+    nameText += ' (+' + agg.secondaryCode + ')';
+  }
+  document.getElementById('top-code-nm').textContent = nameText;
+  // Desc: DIỄN GIẢI + Biểu hiệu in italic small
+  document.getElementById('top-code-desc').innerHTML =
+    cfg.desc + '<br><em style="display:block;margin-top:6px;font-size:10.5px;color:#6b5a45">📌 ' + cfg.bieuHieu + '</em>';
   // Change color of code-big based on code
   const cb = document.querySelector('.code-big');
   if(cb){
@@ -661,9 +698,17 @@ function renderTopCards(agg){
             : '🛡 Cần củng cố nền tảng';
   document.getElementById('grade-tag').textContent = tag;
 
-  // Meta
-  document.getElementById('meta-grade').textContent = agg.grade;
-  document.getElementById('meta-stars').textContent = agg.stars;
+  // Meta — Card 3
+  // Thay "Mức nền" (duplicate xếp loại) bằng "Tỷ lệ tự chủ" (= bài H0+H1 / total)
+  const autoCount = (agg.hCounts['H0'] || 0) + (agg.hCounts['H1'] || 0);
+  const autoTotal = Object.values(agg.hCounts).reduce((a,b)=>a+b, 0) || 14;
+  const autoPct = Math.round(autoCount / autoTotal * 100);
+  document.getElementById('meta-grade').textContent = autoPct + '%';
+  const stars = autoPct >= 75 ? '★★★★' : autoPct >= 60 ? '★★★' : autoPct >= 45 ? '★★' : '★';
+  document.getElementById('meta-stars').textContent = stars;
+  // Update label of card 3 top row
+  const card3LblTop = document.querySelector('.meta-row:first-child .lbl');
+  if(card3LblTop) card3LblTop.textContent = 'Tỷ lệ tự chủ (H0–H1)';
   document.getElementById('meta-support').textContent = agg.supportLabel;
   const supportDesc = agg.supportLabel.includes('-')
     ? __H_DESC[agg.supportLabel.split('-')[0]] + ' / ' + __H_DESC[agg.supportLabel.split('-')[1]].toLowerCase()
@@ -695,40 +740,48 @@ function renderPoints(agg){
     [...weakBullets].slice(0, 4).map(w => '<li>' + w + '</li>').join('');
 }
 
-/* ─── Render định hướng học tập ─── */
+/* ─── Render định hướng học tập — data-driven từ CSV hoatDong ─── */
 function renderOrientation(agg){
   const code = agg.primaryCode;
+  const cfg = __WK_CODES[code];
   const orientList = document.getElementById('orient-list');
   if(!orientList) return;
-  const methodMap = {
-    'WK-V':{phuong:'Ưu tiên bài học có vật thật, hình ảnh minh hoạ, thao tác trực tiếp.',
-            tu_duy:'Tăng bài quan sát, so sánh, phân loại để rèn xử lý chính xác.',
-            sang_tao:'Khuyến khích bé vẽ, kể chuyện theo tranh, tạo hình từ vật liệu sẵn có.',
-            dong_hanh:'Ba mẹ có thể cùng bé chơi ghép hình, sắp xếp, đố vui hình ảnh.'},
-    'WK-M':{phuong:'Ưu tiên bài học có ví dụ mẫu, hình ảnh minh hoạ, cấu trúc rõ ràng, sau đó tăng dần độ mở.',
-            tu_duy:'Tăng bài suy luận, quy luật, giải quyết vấn đề nhiều bước bằng các tình huống gần gũi.',
-            sang_tao:'Khuyến khích bé vẽ, kể chuyện, mô tả hình, biến đổi ý tưởng từ các hình đơn giản.',
-            dong_hanh:'Ba mẹ có thể cùng bé chơi trò ghép hình, sắp xếp, tìm quy luật, đọc truyện và đặt câu hỏi gợi mở.'},
-    'WK-R':{phuong:'Ưu tiên bài có nhiều bước, có dữ kiện rõ, khuyến khích bé giải thích cách làm.',
-            tu_duy:'Tăng bài quy luật, trình tự, bài toán có lời văn nhiều bước.',
-            sang_tao:'Khuyến khích bé tự đặt câu hỏi "vì sao" và thử nhiều cách giải.',
-            dong_hanh:'Ba mẹ có thể cùng bé đố vui logic, kể chuyện ngược, giải đố nhiều bước.'},
-    'WK-X':{phuong:'Ưu tiên bài mở để bé thử nhiều cách, kết hợp với bài có cấu trúc để rèn chính xác.',
-            tu_duy:'Tăng bài quan sát kỹ và kiểm tra lại kết quả trước khi nộp.',
-            sang_tao:'Khuyến khích bé phát triển nhiều ý tưởng từ 1 hình gợi ý, đặt tên cho sản phẩm.',
-            dong_hanh:'Ba mẹ tham gia trò chơi sáng tạo, hỏi "còn cách nào khác?" sau mỗi câu trả lời.'},
-    'WK-F':{phuong:'Ưu tiên bài học ngắn, đơn giản, có hỗ trợ rõ. Tăng dần độ khó từng bước.',
-            tu_duy:'Củng cố hiểu yêu cầu, duy trì chú ý, làm theo hướng dẫn.',
-            sang_tao:'Khuyến khích bé vẽ, tô màu, kể chuyện đơn giản theo gợi ý.',
-            dong_hanh:'Ba mẹ kiên trì cùng bé, ưu tiên niềm vui hơn kết quả, ghi nhận từng tiến bộ nhỏ.'},
+
+  // Phương pháp phù hợp: dùng cfg.hoatDong (HOẠT ĐỘNG/KỸ NĂNG PHÙ HỢP từ CSV)
+  // Phát huy điểm mạnh: bullet đầu của primary strong[]
+  // Cần rèn: bullet đầu của weakest WK code
+  const phatHuy = cfg.strong[0] || cfg.weak[0] || cfg.hoatDong;
+  const weakestCfg = __WK_CODES[agg.lowestWK] || __WK_CODES['WK-F'];
+  const canRen = weakestCfg.weak[0] || 'Củng cố các kỹ năng nền tảng phù hợp với lứa tuổi.';
+  // Đồng hành: dynamic theo primary
+  const dongHanhMap = {
+    'WK-V':'Cùng bé chơi ghép hình, sắp xếp đồ chơi, tìm 3 điểm khác giữa 2 tranh.',
+    'WK-M':'Cùng bé làm theo công thức nấu ăn, lego có hướng dẫn, đọc truyện có quy luật.',
+    'WK-R':'Đố vui logic 2-3 bước, kể chuyện ngược, hỏi "vì sao" sau mỗi quan sát.',
+    'WK-X':'Trò chơi mở: "Bao nhiêu cách dùng cái ly?", "Còn cách nào khác?".',
+    'WK-F':'Bài học ngắn 5-10 phút, kiên nhẫn, ưu tiên niềm vui hơn kết quả.',
   };
-  const m = methodMap[code] || methodMap['WK-M'];
+  const dongHanh = dongHanhMap[code] || dongHanhMap['WK-M'];
+
   orientList.innerHTML = `
-    <div class="orient-item"><div class="ico">📖</div><div class="text"><b>Phương pháp phù hợp</b>${m.phuong}</div></div>
-    <div class="orient-item"><div class="ico">💪</div><div class="text"><b>Rèn luyện tư duy</b>${m.tu_duy}</div></div>
-    <div class="orient-item"><div class="ico">🌱</div><div class="text"><b>Phát triển sáng tạo</b>${m.sang_tao}</div></div>
-    <div class="orient-item"><div class="ico">👨‍👩‍👧</div><div class="text"><b>Đồng hành tại nhà</b>${m.dong_hanh}</div></div>
+    <div class="orient-item"><div class="ico">🎯</div><div class="text"><b>Hướng phát triển chính</b>Khuyến khích bé ${cfg.hoatDong}</div></div>
+    <div class="orient-item"><div class="ico">✨</div><div class="text"><b>Phát huy điểm mạnh</b>${phatHuy}</div></div>
+    <div class="orient-item"><div class="ico">🌱</div><div class="text"><b>Cần rèn thêm</b>${canRen}</div></div>
+    <div class="orient-item"><div class="ico">👨‍👩‍👧</div><div class="text"><b>Đồng hành tại nhà</b>${dongHanh}</div></div>
   `;
+
+  // Update parent message với template CSV row 25
+  const lowestCfg = __WK_CODES[agg.lowestWK];
+  const msgEl = document.getElementById('parent-msg');
+  if(msgEl){
+    const intro = code === 'WK-F'
+      ? 'Bé đang trong giai đoạn cần củng cố nền học tập.'
+      : `Bé thể hiện ${cfg.bieuHieu.toLowerCase().replace(/^bé /,'')}`;
+    const advice = code === 'WK-F'
+      ? 'Hãy ưu tiên bài học ngắn, có hỗ trợ rõ và ghi nhận từng tiến bộ nhỏ.'
+      : `Nhóm ${lowestCfg.name} là vùng cần rèn thêm để bé phát triển cân bằng hơn. Tiếp tục phát huy kỹ năng theo hướng ${cfg.name} thông qua ${cfg.hoatDong}, đồng thời củng cố ${lowestCfg.hoatDong}`;
+    msgEl.innerHTML = '<b>' + intro + '</b> ' + advice + ' Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện. ♥';
+  }
 }
 
 /* ─── Render meta date ─── */
