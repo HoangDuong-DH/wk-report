@@ -9,6 +9,27 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Fredoka:wght@500;600;700;800&display=swap" rel="stylesheet">
+<!-- XLSX library với 3 CDN fallback -->
+<script>
+(function(){
+  window.__xlsxStatus='loading';
+  const cdns=[
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
+  ];
+  let i=0;
+  function tryNext(){
+    if(i>=cdns.length){window.__xlsxStatus='failed';return;}
+    const s=document.createElement('script');
+    s.src=cdns[i++];
+    s.onload=()=>{window.__xlsxStatus='ready';};
+    s.onerror=tryNext;
+    document.head.appendChild(s);
+  }
+  tryNext();
+})();
+</script>
 <style>
 :root{
   --c-wkv:#6ba66b; --c-wkv-bg:#e8f3e3;
@@ -178,16 +199,105 @@ body{background:linear-gradient(180deg,#fff5e3,#fff);padding:0;min-height:100vh}
   .report-header{flex-direction:column;gap:14px}
 }
 
-/* Toolbar (FAB) */
-#fab{position:fixed;bottom:18px;right:18px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#ffd166,#f5a623);
-  color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 6px 18px rgba(245,166,35,.4);z-index:9000}
-#fab:hover{transform:scale(1.06)}
-@media print{#fab{display:none !important}}
+/* ─── Production toolbar (top bar + FAB) ─── */
+.top-toolbar{
+  position:sticky;top:0;background:#fff;border-bottom:2px solid var(--c-line);
+  padding:10px 32px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:100;
+  box-shadow:0 2px 8px rgba(0,0,0,.04);
+}
+.top-toolbar .group{display:flex;gap:4px;align-items:center}
+.top-toolbar .sep{width:1px;height:20px;background:var(--c-line);margin:0 4px}
+.top-toolbar button, .top-toolbar label{
+  background:transparent;border:1px solid transparent;cursor:pointer;
+  padding:7px 12px;border-radius:8px;
+  font:600 11.5px/1 var(--font);color:var(--c-ink-soft);
+  transition:all .15s ease;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+}
+.top-toolbar button:hover, .top-toolbar label:hover{background:#fff3da;color:#df5728;border-color:#f5d5a8}
+.top-toolbar button.primary{background:linear-gradient(135deg,#ffd166,#f5a623);color:#fff;font-weight:800}
+.top-toolbar button.primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(245,166,35,.3)}
+.top-toolbar input[type="file"]{display:none}
+.top-toolbar .save-pill{
+  font:600 10.5px/1 var(--font);color:var(--c-mute);
+  padding:5px 9px;background:#fffaef;border-radius:99px;border:1px solid #f5e2b8;
+}
+.top-toolbar .save-pill.saved{color:#5fb53f;background:#f0fbe9;border-color:#a5d68a}
+.top-toolbar a.home{color:#4a8cc4}
+.top-toolbar a.home:hover{color:#2a6ba8}
+
+/* Toast notification */
+#toast{position:fixed;bottom:80px;right:20px;background:#5fb53f;color:#fff;padding:12px 18px;
+  border-radius:8px;font:600 12px/1.4 var(--font);box-shadow:0 6px 18px rgba(0,0,0,.2);
+  z-index:10000;opacity:0;transform:translateY(20px);transition:all .25s ease;pointer-events:none;max-width:340px}
+#toast.show{opacity:1;transform:translateY(0)}
+
+@media print{
+  .top-toolbar{display:none !important}
+  #toast{display:none !important}
+}
+@media (max-width:700px){
+  .top-toolbar{padding:8px 12px}
+  .top-toolbar button, .top-toolbar label{padding:6px 8px;font-size:10.5px}
+  .top-toolbar .sep{display:none}
+}
+
+/* Parent mode: hide technical details */
+body.parent-mode .workspace, body.parent-mode .top-toolbar{display:none !important}
+body.parent-mode .student-info input{pointer-events:none;border-color:transparent}
 </style>
 </head>
 <body>
 
-<button id="fab" onclick="document.getElementById('workspace').scrollIntoView({behavior:'smooth'})" title="Mở workspace nhập điểm">✎</button>
+<!-- ═════ TOP TOOLBAR (production features) ═════ -->
+<div class="top-toolbar">
+  <a href="index.html" class="home" title="Quay về trang chính">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Trang chính
+  </a>
+  <span class="sep"></span>
+  <div class="group">
+    <label for="xlsx-input" title="Import file xlsx chứa điểm chấm (theo format L4 v2)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Nhập Excel
+    </label>
+    <input type="file" id="xlsx-input" accept=".xlsx,.xls" onchange="importXlsxL4v2(event)">
+    <button onclick="downloadXlsxTemplate()" title="Tải template xlsx trống để GV chấm điểm">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Template
+    </button>
+  </div>
+  <span class="sep"></span>
+  <span id="save-pill" class="save-pill">● Chưa lưu</span>
+  <span class="sep"></span>
+  <div class="group">
+    <button onclick="exportBackup()" title="Sao lưu data ra JSON">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+      Backup
+    </button>
+    <label for="restore-input" title="Khôi phục từ file JSON">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Restore
+    </label>
+    <input type="file" id="restore-input" accept=".json" onchange="importBackup(event)">
+  </div>
+  <span class="sep"></span>
+  <div class="group">
+    <button onclick="resetData()" title="Xóa dữ liệu và reset về mặc định">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      Làm mới
+    </button>
+    <button onclick="toggleParentMode()" id="btn-parent" title="Chế độ phụ huynh: ẩn toolbar + workspace">
+      👪 Phụ huynh
+    </button>
+  </div>
+  <span class="sep"></span>
+  <button class="primary" onclick="window.print()" title="In/Xuất PDF A4 portrait">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    In PDF
+  </button>
+</div>
+
+<div id="toast"></div>
 
 <div class="page">
 
@@ -318,28 +428,6 @@ body{background:linear-gradient(180deg,#fff5e3,#fff);padding:0;min-height:100vh}
   <span>Giáo viên đánh giá <span class="signature">_______________</span></span>
 </div>
 
-<!-- ═════ WORKSPACE — GV input điểm + mức hỗ trợ per bài ═════ -->
-<div class="workspace" id="workspace">
-  <h3>✎ Workspace nhập điểm (14 bài)</h3>
-  <p class="ws-note">GV nhập <b>Điểm đạt</b> + <b>Mức hỗ trợ</b> cho từng bài. Hệ thống tự tính điểm hiệu chỉnh = Điểm đạt × Hệ số(H).</p>
-  <table class="ws-table">
-    <thead>
-      <tr>
-        <th class="num">Bài</th>
-        <th>Nội dung đo</th>
-        <th class="num">Max</th>
-        <th class="num">Điểm đạt</th>
-        <th class="num">Mức hỗ trợ</th>
-        <th class="num">Điểm hiệu chỉnh</th>
-      </tr>
-    </thead>
-    <tbody id="ws-tbody"></tbody>
-  </table>
-  <div class="ws-total">
-    Tổng điểm hiệu chỉnh: <b id="ws-total">— / 100</b>
-  </div>
-</div>
-
 </div><!-- /.page -->
 
 <script>
@@ -423,13 +511,35 @@ const __H_DESC = {
 const __scoresL4v2 = {};
 __BAI_L4V2.forEach(b => { __scoresL4v2[b.bai] = {diem: 0, h: 'H1'}; });
 
-// Load demo data (matching xlsx Sheet 2)
+// Demo data — Bé An Nguyên (từ file xlsx user cung cấp)
 const __DEMO = {
   1:{diem:4,h:'H1'},  2:{diem:6,h:'H1'},  3:{diem:4,h:'H2'},  4:{diem:6,h:'H2'},
   5:{diem:5,h:'H1'},  6:{diem:2,h:'H1'},  7:{diem:4,h:'H1'},  8:{diem:5,h:'H1'},
   9:{diem:7,h:'H1'}, 10:{diem:4,h:'H1'}, 11:{diem:8,h:'H1'}, 12:{diem:6,h:'H1'},
  13:{diem:3,h:'H1'}, 14:{diem:6,h:'H1'},
 };
+const __DEMO_INFO = {name:'An Nguyên', dob:'01/01/2020', date:'15/05/2025', class:'L4'};
+
+/* ─── Toast notification ─── */
+function showToast(msg, color){
+  const t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.style.background = color || '#5fb53f';
+  t.classList.add('show');
+  clearTimeout(window.__toastTm);
+  window.__toastTm = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ─── Save indicator ─── */
+function _markSaved(){
+  const pill = document.getElementById('save-pill');
+  if(pill){
+    pill.textContent = '✓ Đã lưu ' + new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+    pill.classList.add('saved');
+    setTimeout(() => pill.classList.remove('saved'), 1800);
+  }
+}
 
 function _restoreState(){
   try{
@@ -442,13 +552,216 @@ function _restoreState(){
       return true;
     }
   }catch(_){}
-  // No saved state -> load demo
+  // No saved state -> load demo (Bé An Nguyên)
   Object.assign(__scoresL4v2, __DEMO);
   return false;
 }
 
 function _saveState(){
-  try{ localStorage.setItem('mg-l4v2-scores', JSON.stringify(__scoresL4v2)); }catch(_){}
+  try{ localStorage.setItem('mg-l4v2-scores', JSON.stringify(__scoresL4v2)); _markSaved(); }catch(_){}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCTION FEATURES — Import xlsx + Backup + Template + Reset
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Wait XLSX library ready */
+function _waitXlsx(maxMs){
+  maxMs = maxMs || 5000;
+  return new Promise(resolve => {
+    if(window.__xlsxStatus === 'ready') return resolve(true);
+    const start = Date.now();
+    const t = setInterval(() => {
+      if(window.__xlsxStatus === 'ready'){ clearInterval(t); resolve(true); }
+      else if(window.__xlsxStatus === 'failed' || Date.now() - start > maxMs){
+        clearInterval(t); resolve(false);
+      }
+    }, 100);
+  });
+}
+
+/* Import xlsx — parse L4 v2 format (cách chấm xlsx) */
+async function importXlsxL4v2(ev){
+  const f = ev.target?.files?.[0];
+  if(!f) return;
+  const ready = await _waitXlsx();
+  if(!ready){ showToast('XLSX chưa load được, kiểm tra mạng', '#df5728'); return; }
+  try{
+    const buf = await f.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:false});
+    const sheetName = wb.SheetNames[0];
+    const sht = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sht, {header:1, defval:''});
+
+    // Reset scores
+    __BAI_L4V2.forEach(b => { __scoresL4v2[b.bai] = {diem: 0, h: 'H1'}; });
+
+    // Extract student name (cell A1 or sheet name)
+    let studentName = '';
+    if(rows[0] && rows[0][0]) studentName = String(rows[0][0]).trim();
+    if(!studentName) studentName = sheetName.trim();
+
+    // Find data rows: bài 1-14 in column A
+    let parsed = 0;
+    let totalAdjFromFile = null;
+    for(let i = 0; i < rows.length; i++){
+      const r = rows[i];
+      if(!r) continue;
+      const cau = r[0];
+      // Detect data row: column A is integer 1-14
+      const cauNum = parseInt(cau, 10);
+      if(!Number.isFinite(cauNum) || cauNum < 1 || cauNum > 14) continue;
+      // Read điểm đạt (col E = index 4) + mức hỗ trợ (col F = index 5)
+      const diem = parseFloat(r[4]);
+      const h = String(r[5] || 'H1').trim().toUpperCase();
+      if(Number.isFinite(diem) && __scoresL4v2[cauNum]){
+        __scoresL4v2[cauNum].diem = diem;
+        __scoresL4v2[cauNum].h = ['H0','H1','H2','H3','H4'].includes(h) ? h : 'H1';
+        parsed++;
+      }
+      // Also try to read tổng điểm from L2 (label "TỔNG ĐIỂM HIỆU CHỈNH" at I2, value at L2)
+      if(i === 1 && r[11]){
+        const t = parseFloat(r[11]);
+        if(Number.isFinite(t)) totalAdjFromFile = t;
+      }
+    }
+
+    if(parsed === 0){
+      showToast('Không tìm thấy data — file có thể sai format', '#df5728');
+      return;
+    }
+
+    // Apply student name
+    if(studentName){
+      document.getElementById('f-name').value = studentName;
+    }
+    // Save & render
+    _saveState();
+    saveInfo();
+    renderAll();
+    showToast('✓ Đã nhập ' + parsed + '/14 bài cho bé ' + studentName);
+  }catch(err){
+    console.error('Import error:', err);
+    showToast('Lỗi đọc file: ' + (err.message || err), '#df5728');
+  } finally {
+    if(ev?.target) ev.target.value = '';
+  }
+}
+
+/* Download template xlsx — format chuẩn để GV chấm */
+async function downloadXlsxTemplate(){
+  const ready = await _waitXlsx();
+  if(!ready){ showToast('XLSX chưa load', '#df5728'); return; }
+  // Build sheet matching format L4 v2
+  const rows = [
+    ['TÊN BÉ', '', '', '', '', '', '', '', '', '', '', '', '', ''],  // R1
+    ['', '', '', '', '', '', '', '', 'TỔNG ĐIỂM HIỆU CHỈNH', '', '', '', '', ''],  // R2
+    ['Câu', 'Nội dung đo', 'Điểm tối đa', 'Cách chấm nên dùng', 'ĐIỂM ĐẠT', 'MỨC ĐỘ HỖ TRỢ', 'ĐIỂM HIỆU CHỈNH'],  // R3
+  ];
+  __BAI_L4V2.forEach(b => {
+    rows.push([b.bai, b.name, b.max, b.rubric, '', 'H1', '']);
+  });
+  rows.push(['TỔNG', '', '', '', '', '', '']);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [
+    {wch:5},{wch:42},{wch:8},{wch:46},{wch:10},{wch:12},{wch:12}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'TÊN BÉ');
+  const fname = 'WonderKids_L4v2_Template_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  XLSX.writeFile(wb, fname);
+  showToast('✓ Đã tải ' + fname);
+}
+
+/* Backup state JSON */
+function exportBackup(){
+  const data = {
+    version: 2,
+    type: 'mau-giao-l4-v2',
+    exportedAt: new Date().toISOString(),
+    scores: __scoresL4v2,
+    info: {
+      name: document.getElementById('f-name').value,
+      dob: document.getElementById('f-dob').value,
+      date: document.getElementById('f-date').value,
+      class: document.getElementById('f-class').value,
+    },
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const name = data.info.name.replace(/\s+/g,'_') || 'unknown';
+  a.href = url;
+  a.download = 'l4v2-backup-' + name + '-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Đã backup data');
+}
+
+/* Restore from JSON */
+function importBackup(ev){
+  const f = ev.target?.files?.[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const obj = JSON.parse(e.target.result);
+      if(!obj.scores) throw new Error('Backup không hợp lệ');
+      if(!confirm('Khôi phục data từ backup (' + obj.exportedAt + ')?\nDữ liệu hiện tại sẽ bị ghi đè.')) return;
+      Object.assign(__scoresL4v2, obj.scores);
+      if(obj.info){
+        ['name','dob','date','class'].forEach(k => {
+          const el = document.getElementById('f-' + k);
+          if(el && obj.info[k]) el.value = obj.info[k];
+        });
+        saveInfo();
+      }
+      _saveState();
+      renderAll();
+      showToast('✓ Đã khôi phục data');
+    }catch(err){
+      showToast('Lỗi đọc backup: ' + err.message, '#df5728');
+    }
+    if(ev?.target) ev.target.value = '';
+  };
+  reader.readAsText(f);
+}
+
+/* Reset to demo data */
+function resetData(){
+  if(!confirm('Xóa data hiện tại và reset về demo "An Nguyên"?\n\nNếu cần giữ data, bấm Backup trước.')) return;
+  try{ localStorage.removeItem('mg-l4v2-scores'); localStorage.removeItem('mg-l4v2-info'); }catch(_){}
+  Object.assign(__scoresL4v2, __DEMO);
+  ['name','dob','date','class'].forEach(k => {
+    const el = document.getElementById('f-' + k);
+    if(el) el.value = __DEMO_INFO[k] || '';
+  });
+  saveInfo();
+  renderAll();
+  showToast('✓ Đã reset về demo data');
+}
+
+/* Parent mode toggle */
+function toggleParentMode(){
+  const isParent = document.body.classList.toggle('parent-mode');
+  try{ localStorage.setItem('mg-l4v2-parent', isParent ? '1' : '0'); }catch(_){}
+  const btn = document.getElementById('btn-parent');
+  if(btn) btn.textContent = isParent ? '👨‍🏫 Chế độ GV' : '👪 Phụ huynh';
+  showToast(isParent ? '👪 Đã bật chế độ phụ huynh' : '👨‍🏫 Đã bật chế độ GV');
+}
+
+/* Save info fields */
+function saveInfo(){
+  try{
+    localStorage.setItem('mg-l4v2-info', JSON.stringify({
+      name: document.getElementById('f-name').value,
+      dob: document.getElementById('f-dob').value,
+      date: document.getElementById('f-date').value,
+      class: document.getElementById('f-class').value,
+    }));
+    _markSaved();
+  }catch(_){}
 }
 
 /* ─── Aggregation ─── */
@@ -536,45 +849,8 @@ function aggregateL4v2(){
   };
 }
 
-/* ─── Render workspace ─── */
-function renderWorkspace(){
-  const tb = document.getElementById('ws-tbody');
-  if(!tb) return;
-  let html = '';
-  __BAI_L4V2.forEach(b => {
-    const s = __scoresL4v2[b.bai];
-    const adj = (s.diem || 0) * (__H_MULT[s.h] || 1);
-    html += '<tr>';
-    html += '<td class="num">' + b.bai + '</td>';
-    html += '<td>' + b.name + '<br><span style="font-size:10px;color:#999">' + b.rubric + '</span></td>';
-    html += '<td class="num max">' + b.max + '</td>';
-    html += '<td class="num"><input type="number" min="0" max="' + b.max + '" step="0.5" value="' + (s.diem || 0) + '" onchange="_updateScore(' + b.bai + ', \'diem\', this.value)"></td>';
-    html += '<td class="num"><select onchange="_updateScore(' + b.bai + ', \'h\', this.value)">';
-    ['H0','H1','H2','H3','H4'].forEach(h => {
-      const sel = s.h === h ? ' selected' : '';
-      html += '<option value="' + h + '"' + sel + '>' + h + ' (' + (__H_MULT[h]*100) + '%)</option>';
-    });
-    html += '</select></td>';
-    html += '<td class="num calc">' + (Math.round(adj * 10) / 10) + '</td>';
-    html += '</tr>';
-  });
-  tb.innerHTML = html;
-  const total = Object.values(__scoresL4v2).reduce((a, s) => {
-    const b = __BAI_L4V2.find(x => x.bai == _findBaiKey(s));
-    return a;
-  }, 0);
-  // Actually compute total from aggregate
-  const agg = aggregateL4v2();
-  document.getElementById('ws-total').textContent =
-    (Math.round(agg.totalAdj * 10) / 10) + ' / ' + agg.totalMax;
-}
-
-function _findBaiKey(scoreObj){
-  for(const k in __scoresL4v2){
-    if(__scoresL4v2[k] === scoreObj) return k;
-  }
-}
-
+/* Workspace input bị bỏ — input giờ qua xlsx file upload.
+   GV vẫn có thể chấm thủ công từ console: __scoresL4v2[1] = {diem:5, h:'H1'}; renderAll(); */
 window._updateScore = function(bai, field, value){
   if(!__scoresL4v2[bai]) __scoresL4v2[bai] = {diem:0, h:'H1'};
   if(field === 'diem') __scoresL4v2[bai].diem = Math.max(0, +value || 0);
@@ -799,37 +1075,58 @@ function renderAll(){
   renderPoints(agg);
   renderOrientation(agg);
   renderMeta();
-  renderWorkspace();
 }
 
 // Initial load
 _restoreState();
 document.addEventListener('DOMContentLoaded', () => {
-  renderAll();
-  // Auto-save info fields on change
-  ['f-name','f-dob','f-date','f-class'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('input', () => {
-      try{
-        localStorage.setItem('mg-l4v2-info', JSON.stringify({
-          name: document.getElementById('f-name').value,
-          dob: document.getElementById('f-dob').value,
-          date: document.getElementById('f-date').value,
-          class: document.getElementById('f-class').value,
-        }));
-      }catch(_){}
-      renderMeta();
-    });
-  });
-  // Restore info
+  // Restore info first
   try{
     const inf = JSON.parse(localStorage.getItem('mg-l4v2-info') || '{}');
     if(inf.name) document.getElementById('f-name').value = inf.name;
     if(inf.dob) document.getElementById('f-dob').value = inf.dob;
     if(inf.date) document.getElementById('f-date').value = inf.date;
     if(inf.class) document.getElementById('f-class').value = inf.class;
-    renderMeta();
   }catch(_){}
+
+  // Apply demo info if no saved (first load) — set defaults
+  if(!localStorage.getItem('mg-l4v2-info')){
+    document.getElementById('f-name').value = __DEMO_INFO.name;
+    document.getElementById('f-dob').value = __DEMO_INFO.dob;
+    document.getElementById('f-date').value = __DEMO_INFO.date;
+    document.getElementById('f-class').value = __DEMO_INFO.class;
+    saveInfo();
+  }
+
+  // Restore parent mode
+  if(localStorage.getItem('mg-l4v2-parent') === '1'){
+    document.body.classList.add('parent-mode');
+    const btn = document.getElementById('btn-parent');
+    if(btn) btn.textContent = '👨‍🏫 Chế độ GV';
+  }
+
+  renderAll();
+
+  // Auto-save info fields on change
+  ['f-name','f-dob','f-date','f-class'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', () => {
+      saveInfo();
+      renderMeta();
+    });
+  });
+
+  // Drag-drop file support
+  document.addEventListener('dragover', e => { e.preventDefault(); });
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if(f && (f.name.endsWith('.xlsx') || f.name.endsWith('.xls'))){
+      importXlsxL4v2({target:{files:[f]}});
+    } else if(f && f.name.endsWith('.json')){
+      importBackup({target:{files:[f]}});
+    }
+  });
 });
 </script>
 </body>
