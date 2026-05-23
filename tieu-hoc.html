@@ -32,7 +32,7 @@
 <meta name="description" content="WonderKids - Báo cáo đánh giá năng lực Tiểu học (lớp 1, 5-7 tuổi).">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Fredoka:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
@@ -1590,7 +1590,7 @@ body.print-preview .hdr .mascot svg{display:none !important}
         <path d="M150 100 q12 -4 18 -16" stroke="#e09752" stroke-width="9" fill="none" stroke-linecap="round"/>
         <circle cx="158" cy="86" r="18" fill="#f3811f" stroke="#2a2117" stroke-width="2.5"/>
         <circle cx="158" cy="86" r="13" fill="#ffd9a8"/>
-        <text x="158" y="92" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="800" font-size="18" fill="#fff">W</text>
+        <text x="158" y="92" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="18" fill="#fff">W</text>
         <path d="M172 100 l12 12" stroke="#2a2117" stroke-width="5" stroke-linecap="round"/>
         <path d="M188 122 l1.6 4 4 1.6 -4 1.6 -1.6 4 -1.6 -4 -4 -1.6 4 -1.6z" fill="#f5b223"/>
       </svg>
@@ -3280,7 +3280,8 @@ document.addEventListener('keydown', e=>{
 });
 
 /* ── Autosave to localStorage — v3: id-based cho named fields, index-based cho anon ── */
-const SAVE_KEY='wk-baocao-v3';
+const SAVE_KEY='wk-baocao-th-v3';
+const LEGACY_SAVE_KEY='wk-baocao-v3';
 let saveTimer=null;
 function scheduleSave(){
   const ind=document.getElementById('save-ind');
@@ -3303,6 +3304,12 @@ function saveNow(){
 }
 function loadSaved(){
   try{
+    if(!localStorage.getItem(SAVE_KEY) && localStorage.getItem(LEGACY_SAVE_KEY)){
+      try{
+        localStorage.setItem(SAVE_KEY, localStorage.getItem(LEGACY_SAVE_KEY));
+        localStorage.setItem(LEGACY_SAVE_KEY+'-migrated-th', '1');
+      }catch(_){}
+    }
     const raw=localStorage.getItem(SAVE_KEY); if(!raw) return;
     const data=JSON.parse(raw); if(!data.v || data.v<3) return;
     // STRUCTURE CHECK — nếu số input/textarea ẩn không khớp (do thêm/bớt
@@ -4387,14 +4394,13 @@ function importWonderkids(rows){
 
 async function importExcel(ev){
   if(!_beginLoad()){ if(ev?.target) ev.target.value=''; return; }
+  let importSnapshot = null;
   try{
     const file=ev?.target?.files?.[0];
     if(!file){ slog('✕ Không có file','err'); return; }
+    importSnapshot = typeof _snapshotState === 'function' ? _snapshotState() : null;
     const isCSV=/\.csv$/i.test(file.name);
     slog(`▶ Bắt đầu đọc "${file.name}" (${isCSV?'CSV':'XLSX'}, ${file.size}b)`,'');
-    // Clean slate trước khi parse — đảm bảo data mới không lẫn với data cũ
-    if(typeof _cleanSlate === 'function') _cleanSlate();
-
     let rowsBatches=[];
 
     if(isCSV){
@@ -4422,15 +4428,27 @@ async function importExcel(ev){
       });
     }
 
+    if(typeof _cleanSlate === 'function') _cleanSlate();
     let filled=0;
     rowsBatches.forEach(rows=>{ filled+=importWonderkids(rows); });
     refreshSummary(); scheduleSave(); autoGrowAll();
     // FORCE regen nhận xét sau khi import dữ liệu mới — fix bug
     // textarea giữ nhận xét của dữ liệu trước đó.
     if(filled>0 && typeof autoFillComments==='function'){ autoFillComments(true); }
-    if(filled>0){ slog(`✓ HOÀN TẤT — fill ${filled} mục`,'ok'); toast(`✓ Đã nhập ${filled} mục`,'info'); }
-    else{ slog('⚠ Không khớp template','warn'); toast('Không khớp template WonderKids','warn'); }
+    if(filled>0){
+      slog(`✓ HOÀN TẤT — fill ${filled} mục`,'ok');
+      toast(`✓ Đã nhập ${filled} mục`,'info');
+    } else {
+      if(importSnapshot && typeof _applySnapshot === 'function'){
+        try{ _applySnapshot(importSnapshot); }catch(_){}
+      }
+      slog('⚠ Không khớp template','warn');
+      toast('Không khớp template WonderKids','warn');
+    }
   }catch(err){
+    if(importSnapshot && typeof _applySnapshot === 'function'){
+      try{ _applySnapshot(importSnapshot); }catch(_){}
+    }
     slog('✕ Lỗi: '+(err?.message||err),'err');
     toast('Lỗi: '+(err?.message||err),'error');
     console.error(err);
