@@ -50,12 +50,15 @@ supabaseAnonKey:'eyJhbGc...',
 ```
 Mở lại app → banner đổi thành **🟢 Kết nối Supabase**. Giờ mọi máy cùng config = chung dữ liệu.
 
-### 2.4 Bảo mật (QUAN TRỌNG — NĐ 13/2023)
-Schema bật sẵn **RLS**. Có 2 lựa chọn:
+### 2.4 Đăng nhập & bảo mật — đơn giản cho nội bộ
 
-- **Khuyến nghị (an toàn)**: bật **Supabase Auth** (email + mật khẩu). Tạo tài khoản cho từng nhân sự, rồi map vào bảng `staff` qua cột `auth_uid` (= `auth.users.id`). Chính sách `auth_center` tự giới hạn mỗi người chỉ thấy dữ liệu trung tâm mình. Trang phụ huynh dùng RPC `get_parent_report` token-gated nên KHÔNG lộ bảng `students`.
+App là **công cụ nội bộ**: đăng nhập = **chọn tên nhân sự** (GV/CSKH/Manager), không mật khẩu. Phân vai trò quyết định thấy tab nào. Đổi tài khoản nhanh ngay trên thanh trên (bấm tên → chọn vai trò khác).
 
-- **Nhanh, nội bộ tạm thời**: nếu chưa kịp làm Auth, mở comment **mục 6** cuối `schema.sql` (chính sách `anon_all`) để app chạy bằng anon key. ⚠ Chỉ dùng nội bộ sau URL khó đoán, **không** để lâu với dữ liệu thật — anon key nằm trong JS public.
+Schema **mặc định đã cấu hình sẵn** cho kiểu này — chạy `schema.sql` là dùng được ngay, **không cần thiết lập Auth gì thêm**. Nguyên tắc giữ an toàn:
+- Chỉ chia **URL app + anon key** cho nhân sự trung tâm (đặt sau link khó đoán).
+- Phụ huynh KHÔNG đọc dữ liệu trực tiếp — chỉ xem 1 tin qua **link token** (RPC `get_parent_report`, hết hạn 30 ngày). Đúng tinh thần NĐ 13/2023.
+
+> Cần chặt hơn (nhiều trung tâm chung 1 DB, hoặc muốn đăng nhập email/mật khẩu)? Mở **mục 6** trong `schema.sql` để bật Supabase Auth + RLS theo trung tâm. **Không bắt buộc** cho 1 trung tâm nội bộ.
 
 ---
 

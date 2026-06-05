@@ -226,67 +226,25 @@ $$;
 grant execute on function get_parent_report(text) to anon;
 
 -- ──────────────────────────────────────────────────────────────────────────
---  4. RLS — bật bảo vệ. Chính sách mặc định: STAFF đã đăng nhập Supabase Auth
---     (auth.uid map qua staff.auth_uid) thao tác trong center của mình.
+--  4. RLS — NỘI BỘ ĐƠN GIẢN (mặc định)
+--     App đăng nhập kiểu nội bộ: chọn tên nhân sự (GV/CSKH/Manager), không
+--     mật khẩu. Dùng anon key. Vì là công cụ nội bộ, cho anon thao tác đủ để
+--     app chạy. Phụ huynh KHÔNG đọc bảng trực tiếp — chỉ qua RPC token ở mục 3.
 --
---     ⚠ MVP nội bộ nhanh: nếu CHƯA bật Supabase Auth, xem mục 6 (chính sách
---     anon tạm thời) — chỉ dùng sau URL khó đoán, và HARDEN trước khi mở rộng.
+--     👉 Đặt sau URL + anon key khó đoán, chỉ chia cho nhân sự trung tâm.
+--     👉 Cần chặt hơn (nhiều trung tâm, dữ liệu nhạy cảm): xem mục 6 (Auth).
 -- ──────────────────────────────────────────────────────────────────────────
-alter table centers            enable row level security;
-alter table staff              enable row level security;
-alter table classes            enable row level security;
-alter table students           enable row level security;
-alter table weekly_themes      enable row level security;
-alter table strength_templates enable row level security;
-alter table child_profiles     enable row level security;
-alter table sessions           enable row level security;
-alter table session_records    enable row level security;
-alter table session_messages   enable row level security;
-alter table parent_tokens      enable row level security;
-alter table audit_logs         enable row level security;
-
--- Helper: center_id của staff đang đăng nhập
-create or replace function current_center_id()
-returns uuid language sql stable security definer set search_path = public as $$
-  select center_id from staff where auth_uid = auth.uid() limit 1;
-$$;
-
--- Chính sách AUTH (production). Bọc trong DO để chạy lại không lỗi "đã tồn tại".
 do $$
 declare t text;
 begin
-  foreach t in array array['classes','students','weekly_themes','strength_templates',
-                           'sessions','session_records','session_messages','audit_logs']
+  foreach t in array array['centers','staff','classes','students','weekly_themes',
+    'strength_templates','child_profiles','sessions','session_records',
+    'session_messages','parent_tokens','audit_logs']
   loop
-    execute format('drop policy if exists auth_center on %I', t);
-    execute format($f$
-      create policy auth_center on %I
-        using (center_id = current_center_id())
-        with check (center_id = current_center_id())
-    $f$, t);
+    execute format('alter table %I enable row level security', t);
+    execute format('drop policy if exists app_internal on %I', t);
+    execute format('create policy app_internal on %I using (true) with check (true)', t);
   end loop;
-
-  -- centers: staff đọc center của mình
-  drop policy if exists auth_centers on centers;
-  create policy auth_centers on centers
-    using (id = current_center_id());
-
-  -- staff: đọc đồng nghiệp cùng center
-  drop policy if exists auth_staff on staff;
-  create policy auth_staff on staff
-    using (center_id = current_center_id());
-
-  -- child_profiles + parent_tokens: lọc qua student.center
-  drop policy if exists auth_profiles on child_profiles;
-  create policy auth_profiles on child_profiles
-    using (exists (select 1 from students s where s.id = student_id and s.center_id = current_center_id()))
-    with check (exists (select 1 from students s where s.id = student_id and s.center_id = current_center_id()));
-
-  drop policy if exists auth_tokens on parent_tokens;
-  create policy auth_tokens on parent_tokens
-    using (exists (select 1 from session_messages m join students s on s.id = m.student_id
-                   where m.id = message_id and s.center_id = current_center_id()))
-    with check (true);
 end $$;
 
 -- ──────────────────────────────────────────────────────────────────────────
@@ -331,18 +289,35 @@ begin
 end $$;
 
 -- ═══════════════════════════════════════════════════════════════════════════
---  6. (TÙY CHỌN) Chính sách ANON tạm thời cho MVP nội bộ CHƯA bật Auth.
---     Bỏ comment để cho phép anon key thao tác (chỉ dùng nội bộ, URL khó đoán).
---     ⚠ KHÔNG khuyến nghị với dữ liệu thật lâu dài — hãy bật Supabase Auth.
+--  6. (TÙY CHỌN — chỉ khi cần chặt hơn) Supabase Auth + RLS theo trung tâm.
+--     Dùng khi: nhiều trung tâm chung 1 DB, hoặc cần đăng nhập email/mật khẩu.
+--     Các bước: bật Supabase Auth → tạo tài khoản cho từng nhân sự → điền
+--     staff.auth_uid = auth.users.id. Sau đó BỎ COMMENT khối dưới (nó thay
+--     chính sách app_internal bằng chính sách lọc theo center của người đăng nhập).
 -- ═══════════════════════════════════════════════════════════════════════════
+-- create or replace function current_center_id()
+-- returns uuid language sql stable security definer set search_path = public as $$
+--   select center_id from staff where auth_uid = auth.uid() limit 1;
+-- $$;
 -- do $$
 -- declare t text;
 -- begin
---   foreach t in array array['centers','staff','classes','students','weekly_themes',
---     'strength_templates','child_profiles','sessions','session_records',
---     'session_messages','parent_tokens','audit_logs']
+--   foreach t in array array['classes','students','weekly_themes','strength_templates',
+--     'sessions','session_records','session_messages','audit_logs','child_profiles','parent_tokens']
+--   loop execute format('drop policy if exists app_internal on %I', t); end loop;
+--   foreach t in array array['classes','students','weekly_themes','strength_templates',
+--     'sessions','session_records','session_messages','audit_logs']
 --   loop
---     execute format('drop policy if exists anon_all on %I', t);
---     execute format('create policy anon_all on %I using (true) with check (true)', t);
+--     execute format('drop policy if exists auth_center on %I', t);
+--     execute format('create policy auth_center on %I using (center_id = current_center_id()) with check (center_id = current_center_id())', t);
 --   end loop;
+--   drop policy if exists app_internal on staff;  drop policy if exists app_internal on centers;
+--   create policy auth_staff   on staff   using (center_id = current_center_id());
+--   create policy auth_centers on centers using (id = current_center_id());
+--   create policy auth_profiles on child_profiles
+--     using (exists (select 1 from students s where s.id=student_id and s.center_id=current_center_id()))
+--     with check (exists (select 1 from students s where s.id=student_id and s.center_id=current_center_id()));
+--   create policy auth_tokens on parent_tokens
+--     using (exists (select 1 from session_messages m join students s on s.id=m.student_id where m.id=message_id and s.center_id=current_center_id()))
+--     with check (true);
 -- end $$;
