@@ -215,9 +215,9 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=2"></script>
-<script src="db.js?v=2"></script>
-<script src="engine.js?v=2"></script>
+<script src="config.js?v=3"></script>
+<script src="db.js?v=3"></script>
+<script src="engine.js?v=3"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -365,6 +365,22 @@ const AI = {
     if(!out.diem_manh) out={diem_manh:text,co_gang:'',goi_y:''};
     return out;
   },
+  /* gọi Claude tổng quát (cho Insights + trợ lý GV). Trả về text. */
+  async complete(system, prompt, cfg){
+    const c=cfg||this.get();
+    if(c.mode==='edge'){
+      if(!c.edgeFnUrl) throw new Error('Chưa có Edge Function URL');
+      const r=await fetch(c.edgeFnUrl,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'complete',system,prompt,model:c.model,max_tokens:c.maxTokens})});
+      if(!r.ok) throw new Error('Edge HTTP '+r.status);
+      const d=await r.json(); return d.text||'';
+    }
+    if(!c.apiKey) throw new Error('Chưa có API key');
+    const r=await fetch(c.baseUrl+'/v1/messages',{method:'POST',headers:this._directHeaders(c),
+      body:JSON.stringify({model:c.model,max_tokens:c.maxTokens,system,messages:[{role:'user',content:prompt}]})});
+    if(!r.ok) throw new Error('Anthropic HTTP '+r.status+': '+(await r.text()).slice(0,160));
+    const d=await r.json(); return ((d.content&&d.content[0]&&d.content[0].text)||'').trim();
+  },
 };
 
 /* ═══════════════ BOOT ═══════════════ */
@@ -458,7 +474,7 @@ function buildNav(){
   const tabs = {
     gv:[['cham','Chấm buổi']],
     cskh:[['queue','Hàng đợi']],
-    manager:[['overview','Tổng quan'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
+    manager:[['overview','Tổng quan'],['insights','✨ AI Insights'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
   }[STAFF.role] || [];
   $('#nav').innerHTML = tabs.map(([k,l])=>`<button data-tab="${k}" onclick="CTRC.go('${k}')">${l}</button>`).join('');
   go(tabs[0][0]);
@@ -466,7 +482,7 @@ function buildNav(){
 function go(tab){
   TAB = tab;
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  ({cham:viewCham, queue:viewQueue, overview:viewOverview, profiles:viewProfiles, config:viewConfig, audit:viewAudit}[tab]||(()=>{}))();
+  ({cham:viewCham, queue:viewQueue, overview:viewOverview, insights:viewInsights, profiles:viewProfiles, config:viewConfig, audit:viewAudit}[tab]||(()=>{}))();
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -546,7 +562,11 @@ function renderScore(){
       <div class="ln">
         <label style="color:#b8860b">⭐ Quan sát cụ thể (QUAN TRỌNG NHẤT)</label>
         <textarea class="input gold" id="sc-obs" placeholder="VD: Bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần khi sai">${esc(rec.observation)}</textarea>
-        <div class="hint">Càng cụ thể → tin nhắn càng "đắt". Tránh viết chung chung như "bé ngoan".</div>
+        <div class="row" style="margin-top:6px;gap:8px">
+          <button class="btn sm" type="button" onclick="CTRC.gvSuggest()">✨ Gợi ý từ quan sát</button>
+          <span class="hint" style="margin:0">Càng cụ thể → tin càng "đắt". Tránh viết chung như "bé ngoan".</span>
+        </div>
+        <div id="sc-suggest"></div>
       </div>
       <div class="ln"><label>Điểm cố gắng (tuỳ chọn)</label>
         <textarea class="input" id="sc-effort" placeholder="VD: tập đếm to thành tiếng dù còn ngại">${esc(rec.effort)}</textarea></div>
@@ -557,16 +577,76 @@ function renderScore(){
       <button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
       <button class="btn primary" onclick="CTRC.saveScore()">Lưu & sinh nháp</button>
     </div>`);
+  if(SCORE._suggest) renderSuggestBox(SCORE._suggest);
 }
-function setScore(k,n){ SCORE.rec.scores_5d[k]=n; renderScore(); }
+/* đồng bộ ô nhập vào rec trước khi re-render (chống mất chữ khi tap điểm) */
+function syncScoreForm(){
+  if($('#sc-obs')) SCORE.rec.observation = $('#sc-obs').value;
+  if($('#sc-effort')) SCORE.rec.effort = $('#sc-effort').value;
+  if($('#sc-mood')) SCORE.rec.mood = $('#sc-mood').value;
+}
+/* ── Trợ lý GV: gợi ý từ quan sát ── */
+function gvSuggest(){
+  syncScoreForm();
+  SCORE._suggest = ENG.suggestFromObservation(SCORE.rec.observation, SCORE.rec.strengths);
+  renderSuggestBox(SCORE._suggest);
+  if(!SCORE.rec.observation.trim()) toast('Gõ vài chữ quan sát trước để có gợi ý','var(--primary-2)');
+}
+function renderSuggestBox(res){
+  const box = $('#sc-suggest'); if(!box) return;
+  if(!res){ box.innerHTML=''; return; }
+  const sBank = SCORE.strengths;
+  const newStr = (res.strengths||[]).filter(idx=>!(SCORE.rec.strengths||[]).includes(idx));
+  const chips = newStr.map(idx=>{ const s=sBank.find(x=>x.idx===idx); return s?`<button class="chip" onclick="CTRC.applySuggestStrength(${idx})">+ ${esc(s.label)}</button>`:''; }).join('');
+  const dimLabels = (res.dims||[]).map(k=>(ENG.DIMS.find(d=>d.key===k)||{}).label).filter(Boolean);
+  const aiBtn = AI.usable()?`<button class="btn sm" type="button" onclick="CTRC.gvSuggestAI()">✨ Gợi ý sâu bằng AI</button>`:'';
+  box.innerHTML = `<div style="background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px">
+    ${res.thin?`<div class="voice-warn" style="margin:0 0 6px">⚠ ${esc(res.hints[0]||'Quan sát hơi sơ sài')}</div>`:''}
+    ${chips?`<div style="font:600 10.5px/1 var(--font);color:var(--mute);margin-bottom:5px">Điểm mạnh gợi ý (bấm để thêm):</div><div class="chips">${chips}</div>`:''}
+    ${dimLabels.length?`<div class="hint" style="margin-top:6px">Quan sát nhắc tới: <b>${esc(dimLabels.join(', '))}</b> — cân nhắc chấm các chiều này cao hơn.</div>`:''}
+    ${(!chips&&!dimLabels.length&&!res.thin)?`<div class="hint" style="margin:0">Chưa nhận ra từ khoá rõ — ${aiBtn?'thử gợi ý AI bên dưới.':'thêm chi tiết hành vi cụ thể.'}</div>`:''}
+    ${aiBtn?`<div style="margin-top:8px">${aiBtn}</div>`:''}
+  </div>`;
+}
+function applySuggestStrength(idx){
+  syncScoreForm();
+  const arr = SCORE.rec.strengths||(SCORE.rec.strengths=[]);
+  if(!arr.includes(idx)){ if(arr.length>=3){ toast('Tối đa 3 điểm mạnh','var(--primary-2)'); return; } arr.push(idx); }
+  // cập nhật lại danh sách gợi ý (bỏ cái vừa thêm)
+  renderScore();
+}
+async function gvSuggestAI(){
+  if(!AI.usable()){ toast('Chưa cấu hình AI — bấm ⚙ AI trên thanh trên','var(--primary-2)'); return; }
+  syncScoreForm();
+  const obs = SCORE.rec.observation.trim();
+  if(!obs){ toast('Cần có quan sát trước','var(--primary-2)'); return; }
+  toast('✨ AI đang đọc quan sát…','var(--blue)');
+  try{
+    const bank = SCORE.strengths.map(s=>`${s.idx}. ${s.label}`).join('; ');
+    const sys = 'Bạn hỗ trợ giáo viên mầm non chấm nhanh. Đọc câu quan sát, trả về JSON thuần.';
+    const prompt = `Danh sách 10 điểm mạnh: ${bank}.\n5 chiều: focus(Tập trung), logic, reflex(Phản xạ), interaction(Tương tác), creativity(Sáng tạo).\nQuan sát của GV: "${obs}".\nTrả về DUY NHẤT JSON: {"strengths":[so idx phu hop nhat toi da 3],"scores":{"focus":1-5,"logic":1-5,"reflex":1-5,"interaction":1-5,"creativity":1-5},"feedback":"1 cau goi y ngan cho GV"}.`;
+    const text = await AI.complete(sys, prompt);
+    const m = text.match(/\{[\s\S]*\}/); const out = m?JSON.parse(m[0]):{};
+    if(Array.isArray(out.strengths)){
+      out.strengths.slice(0,3).forEach(idx=>{ const a=SCORE.rec.strengths||(SCORE.rec.strengths=[]); if(!a.includes(+idx)&&a.length<3) a.push(+idx); });
+    }
+    if(out.scores){ ENG.DIMS.forEach(d=>{ const v=+out.scores[d.key]; if(v>=1&&v<=5) SCORE.rec.scores_5d[d.key]=v; }); }
+    SCORE._suggest = ENG.suggestFromObservation(SCORE.rec.observation, SCORE.rec.strengths);
+    if(out.feedback) SCORE._aiFeedback = out.feedback;
+    renderScore();
+    toast('✨ AI đã gợi ý điểm mạnh + chấm thử' + (out.feedback?' — '+out.feedback.slice(0,50):''));
+  }catch(e){ toast('Lỗi AI: '+e.message,'var(--primary-2)'); }
+}
+function setScore(k,n){ syncScoreForm(); SCORE.rec.scores_5d[k]=n; renderScore(); }
 function toggleStrength(idx){
+  syncScoreForm();
   const arr = SCORE.rec.strengths||(SCORE.rec.strengths=[]);
   const i = arr.indexOf(idx);
   if (i>=0) arr.splice(i,1);
   else { if (arr.length>=3){ toast('Tối đa 3 điểm mạnh','var(--primary-2)'); return; } arr.push(idx); }
   renderScore();
 }
-function setAttendance(a){ SCORE.rec.attendance=a; renderScore(); }
+function setAttendance(a){ syncScoreForm(); SCORE.rec.attendance=a; renderScore(); }
 
 async function saveScore(){
   const rec = SCORE.rec, stu = SCORE.stu;
@@ -881,6 +961,68 @@ async function viewOverview(){
 }
 function fmtTime(iso){ if(!iso)return''; const d=new Date(iso); return d.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
 
+/* ═══════════════ AI INSIGHTS (Manager) ═══════════════ */
+let INS = null;
+async function viewInsights(){
+  view.innerHTML = `<h2 class="h-title">✨ AI Insights</h2><p class="h-sub">Đang tổng hợp dữ liệu các buổi…</p>`;
+  const students = await DB.listStudents(CENTER.id);
+  const items = [];
+  for(const s of students){ const recs = await DB._allSessionsOfStudent(s.id); items.push({student:s, records:recs}); }
+  INS = ENG.computeInsights(items);
+  const bar = (d)=>{
+    const v = INS.classAvg[d.key]||0, pct = v/5*100;
+    const color = v>=3.5?'var(--green)':v>=2.5?'var(--yellow)':'var(--primary-2)';
+    return `<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font:600 11px/1.4 var(--font)"><span>${d.label}</span><span style="color:${color};font-weight:800">${v||'—'}</span></div>
+      <div style="height:8px;background:#f0e8d8;border-radius:5px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${color}"></div></div></div>`;
+  };
+  const nameTag = (it,extra)=>`<div class="stu-row" style="cursor:default"><span class="av">${AV(it.gender)}</span>
+    <span class="nm">${esc(it.name)}<small>${esc(extra||it.reasons.join('; '))}</small></span></div>`;
+  view.innerHTML = `
+    <h2 class="h-title">✨ AI Insights</h2>
+    <p class="h-sub">Tự tổng hợp ${INS.totalRecords} lượt chấm của ${INS.totalStudents} bé. Lõi phân tích chạy offline; bấm "Phân tích sâu" để AI viết nhận định.</p>
+    <div class="kpis" style="margin-bottom:16px">
+      <div class="kpi"><div class="n">${INS.progressing.length}</div><div class="l">📈 Đang tiến bộ</div></div>
+      <div class="kpi"><div class="n" style="color:${INS.attention.length?'var(--primary-2)':'var(--green)'}">${INS.attention.length}</div><div class="l">👀 Cần chú ý</div></div>
+      <div class="kpi"><div class="n">${INS.weakest?INS.weakest.label:'—'}</div><div class="l">Chiều yếu nhất lớp</div></div>
+      <div class="kpi"><div class="n">${INS.strongest?INS.strongest.label:'—'}</div><div class="l">Chiều mạnh nhất lớp</div></div>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card"><b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Xu hướng lớp · điểm TB 5 chiều</b>
+        <div style="margin-top:12px">${ENG.DIMS.map(bar).join('')}</div>
+        ${INS.weakest?`<div class="hint" style="margin-top:8px">Gợi ý: tuần tới tăng hoạt động rèn <b>${esc(INS.weakest.label)}</b> cho cả lớp.</div>`:''}
+      </div>
+      <div class="card">
+        <b style="font:800 13px/1 var(--font-d);color:var(--green)">📈 Đang tiến bộ</b>
+        <div style="margin-top:8px">${INS.progressing.length?INS.progressing.map(it=>nameTag(it,`+${it.trend} điểm · TB ${it.avg}/5 · ${it.sessions} buổi`)).join(''):'<p class="hint" style="margin:0">Chưa đủ dữ liệu (cần ≥2 buổi/bé).</p>'}</div>
+        <b style="font:800 13px/1 var(--font-d);color:var(--primary-2);display:block;margin-top:14px">👀 Cần chú ý</b>
+        <div style="margin-top:8px">${INS.attention.length?INS.attention.map(it=>nameTag(it)).join(''):'<p class="hint" style="margin:0">Không có bé nào cần chú ý đặc biệt. 🎉</p>'}</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Nhận định &amp; gợi ý hành động</b>
+        <button class="btn primary sm" onclick="CTRC.insightsAI()">✨ Phân tích sâu bằng AI</button>
+      </div>
+      <div id="insights-ai" class="hint" style="margin-top:10px">Bấm nút để AI đọc số liệu trên và viết nhận định tổng quan + 2-3 gợi ý cụ thể cho tuần tới.</div>
+    </div>`;
+}
+async function insightsAI(){
+  if(!AI.usable()){ toast('Chưa cấu hình AI — bấm ⚙ AI trên thanh trên','var(--primary-2)'); openAIConfig(); return; }
+  if(!INS){ return; }
+  const out = $('#insights-ai'); out.innerHTML = '⏳ AI đang phân tích…';
+  try{
+    const dims = ENG.DIMS.map(d=>`${d.label} ${INS.classAvg[d.key]||'—'}`).join(', ');
+    const prog = INS.progressing.map(i=>`${i.name} (+${i.trend})`).join(', ')||'chưa có';
+    const att = INS.attention.map(i=>`${i.name} (${i.reasons.join(', ')})`).join('; ')||'không có';
+    const sys = 'Bạn là cố vấn giáo dục mầm non WonderKids. Phân tích số liệu lớp, đưa nhận định ấm áp, cụ thể, hướng hành động. KHÔNG phán xét bé, không dùng từ kém/yếu/tệ. Tiếng Việt tự nhiên.';
+    const prompt = `Số liệu lớp tại ${CENTER.name}:\n- Tổng ${INS.totalStudents} bé, ${INS.totalRecords} lượt chấm.\n- Điểm TB từng chiều (1-5): ${dims}.\n- Chiều yếu nhất lớp: ${INS.weakest?INS.weakest.label:'—'}; mạnh nhất: ${INS.strongest?INS.strongest.label:'—'}.\n- Đang tiến bộ: ${prog}.\n- Cần chú ý: ${att}.\nViết ngắn gọn: (1) 2-3 câu nhận định tổng quan lớp; (2) 2-3 gợi ý hành động cụ thể cho giáo viên tuần tới (hoạt động 5-10 phút, không cần mua đồ).`;
+    const text = await AI.complete(sys, prompt);
+    out.style.color = 'var(--ink)';
+    out.innerHTML = esc(text).replace(/\n/g,'<br>');
+    await DB.audit(CENTER.id, STAFF, 'ai_insights','center',CENTER.id,{});
+  }catch(e){ out.innerHTML = '⚠ Lỗi AI: '+esc(e.message); }
+}
+
 async function viewProfiles(){
   const profiles = await DB.listProfiles(CENTER.id);
   const students = await DB.listStudents(CENTER.id);
@@ -1087,9 +1229,10 @@ window.CTRC = {
   login, logout, go, closeModal, helpSupabase,
   toggleAccountMenu, closeAccountMenu, switchAccount,
   openScore, setScore, toggleStrength, setAttendance, saveScore,
+  gvSuggest, applySuggestStrength, gvSuggestAI,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck,
   approveProfile, editProfile, saveEditProfile, addTheme,
-  aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig,
+  aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI,
 };
 boot();
 </script>

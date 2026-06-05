@@ -88,6 +88,24 @@ Deno.serve(async (req) => {
     const model = (body.model || DEFAULT_MODEL).toString();
     const maxTokens = Math.min(2000, Math.max(100, +body.max_tokens || 600));
 
+    // ── Gọi tổng quát (Insights + trợ lý GV): nhận system + prompt, trả {text} ──
+    if (body.action === "complete") {
+      const cr = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({
+          model, max_tokens: maxTokens,
+          system: body.system || SYSTEM,
+          messages: [{ role: "user", content: String(body.prompt || "") }],
+        }),
+      });
+      if (!cr.ok) throw new Error("Anthropic HTTP " + cr.status + ": " + (await cr.text()).slice(0, 200));
+      const cd = await cr.json();
+      return new Response(JSON.stringify({ text: (cd.content?.[0]?.text || "").trim() }), {
+        headers: { ...cors, "content-type": "application/json" },
+      });
+    }
+
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {

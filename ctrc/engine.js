@@ -238,5 +238,107 @@
     return { introversion, learning_style, concerns, baseline_5d: baseline, summary, observedSessions: valid.length };
   }
 
-  window.CTRC_ENGINE = { DIMS, generate, checkVoice, composeZalo, inferProfile, fmtDate, seedOf };
+  /* ════════ TRỢ LÝ GV: gợi ý từ quan sát (rule-based, offline) ════════
+     Đối chiếu từ khoá trong quan sát → điểm mạnh nên tick + chiều nên cao,
+     và cảnh báo nếu quan sát quá sơ sài. */
+  const STRENGTH_KW = {
+    1: ['tập trung', 'chăm chú', 'không xao nhãng', 'ngồi yên'],
+    2: ['giơ tay', 'phát biểu', 'xung phong', 'trả lời', 'mạnh dạn'],
+    3: ['tự tìm', 'tự làm', 'tự ghép', 'tự giải', 'không cần cô', 'tự nghĩ ra'],
+    4: ['giúp bạn', 'chỉ bạn', 'hướng dẫn bạn', 'nhường bạn'],
+    5: ['hào hứng', 'thích thú', 'vui vẻ', 'hứng thú', 'thích chơi', 'sôi nổi'],
+    6: ['kiên nhẫn', 'thử lại', 'nhiều lần', 'không bỏ cuộc', 'cố gắng', 'thử nhiều cách'],
+    7: ['giải thích', 'nói cách', 'trình bày cách', 'lý do'],
+    8: ['tự giác', 'hoàn thành', 'làm xong', 'không cần nhắc', 'làm đủ'],
+    9: ['quan sát', 'nhận ra', 'để ý', 'nhìn ra', 'phát hiện', 'tinh ý'],
+    10: ['tự tin', 'trình bày', 'kể', 'thuyết trình', 'nói trước lớp'],
+  };
+  const DIM_KW = {
+    focus: ['tập trung', 'chăm chú', 'kiên trì', 'ngồi yên'],
+    logic: ['suy luận', 'vì sao', 'quy luật', 'giải thích', 'cách làm', 'logic', 'phân loại'],
+    reflex: ['nhanh', 'phản xạ', 'trả lời ngay', 'tức thì'],
+    interaction: ['giúp bạn', 'cùng bạn', 'chia sẻ', 'giao tiếp', 'nói chuyện', 'hỏi'],
+    creativity: ['sáng tạo', 'ý tưởng', 'tưởng tượng', 'vẽ', 'tự nghĩ', 'cách mới'],
+  };
+  const THIN_PATTERNS = ['bé ngoan', 'bé giỏi', 'ngoan', 'tốt', 'bình thường', 'ok', 'được'];
+
+  function suggestFromObservation(obs, alreadyPicked) {
+    const text = (obs || '').toLowerCase().trim();
+    const picked = new Set(alreadyPicked || []);
+    const out = { strengths: [], dims: [], thin: false, hints: [] };
+    // sơ sài: quá ngắn hoặc chỉ chứa từ chung chung
+    const wordCount = text ? text.split(/\s+/).length : 0;
+    if (wordCount < 4 || THIN_PATTERNS.some((p) => text === p || text === p + '.')) {
+      out.thin = true;
+      out.hints.push('Quan sát hơi chung — thêm 1 chi tiết cụ thể (bé làm gì, với cái gì) để tin nhắn "đắt" hơn.');
+    }
+    if (!text) return out;
+    // điểm mạnh gợi ý (chưa tick)
+    for (const idx in STRENGTH_KW) {
+      if (picked.has(+idx)) continue;
+      if (STRENGTH_KW[idx].some((k) => text.includes(k))) out.strengths.push(+idx);
+    }
+    out.strengths = out.strengths.slice(0, 3);
+    // chiều nên cao
+    DIMS.forEach((d) => { if ((DIM_KW[d.key] || []).some((k) => text.includes(k))) out.dims.push(d.key); });
+    return out;
+  }
+
+  /* ════════ MANAGER INSIGHTS: tổng hợp nhiều buổi (rule-based, offline) ════════
+     items: [{ student:{id,name,gender}, records:[present records...] }] */
+  function avg5(rec) {
+    const xs = DIMS.map((d) => +((rec.scores_5d || {})[d.key]) || 0).filter((x) => x > 0);
+    return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+  }
+  function computeInsights(items) {
+    const progressing = [], attention = [], steady = [];
+    const dimSum = {}, dimCnt = {};
+    DIMS.forEach((d) => { dimSum[d.key] = 0; dimCnt[d.key] = 0; });
+    let totalRecords = 0;
+
+    items.forEach(({ student, records }) => {
+      const recs = (records || []).slice().sort((a, b) => (a.created_at || '') < (b.created_at || '') ? -1 : 1);
+      totalRecords += recs.length;
+      // gom điểm lớp
+      recs.forEach((r) => DIMS.forEach((d) => {
+        const v = +((r.scores_5d || {})[d.key]) || 0; if (v > 0) { dimSum[d.key] += v; dimCnt[d.key] += 1; }
+      }));
+      if (!recs.length) return;
+      const avgs = recs.map(avg5).filter((x) => x > 0);
+      const overall = avgs.length ? avgs.reduce((a, b) => a + b, 0) / avgs.length : 0;
+      // xu hướng: nửa sau vs nửa đầu
+      let trend = 0;
+      if (avgs.length >= 2) {
+        const half = Math.floor(avgs.length / 2);
+        const early = avgs.slice(0, half), late = avgs.slice(half);
+        const m = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+        trend = m(late) - m(early);
+      }
+      const negMood = recs.filter((r) => r.mood === 'sad' || r.mood === 'tired').length / recs.length;
+      const thinRatio = recs.filter((r) => (r.observation || '').trim().split(/\s+/).length < 4).length / recs.length;
+      const item = { name: student.name, gender: student.gender, sessions: recs.length, avg: Math.round(overall * 10) / 10, trend: Math.round(trend * 10) / 10, negMood, reasons: [] };
+
+      if (trend >= 0.3) { item.reasons.push(`điểm trung bình tăng ${item.trend} qua ${recs.length} buổi`); progressing.push(item); }
+      else if (trend <= -0.3) { item.reasons.push(`điểm trung bình giảm ${Math.abs(item.trend)}`); attention.push(item); }
+      if (overall > 0 && overall < 2.5 && !attention.includes(item)) { item.reasons.push(`điểm nền còn thấp (${item.avg}/5)`); attention.push(item); }
+      if (negMood >= 0.5 && !attention.includes(item)) { item.reasons.push('nhiều buổi tâm trạng chưa vui'); attention.push(item); }
+      if (!progressing.includes(item) && !attention.includes(item)) steady.push(item);
+      item._thin = thinRatio;
+    });
+
+    const classAvg = {};
+    DIMS.forEach((d) => { classAvg[d.key] = dimCnt[d.key] ? Math.round(dimSum[d.key] / dimCnt[d.key] * 10) / 10 : 0; });
+    const dimsRanked = DIMS.map((d) => ({ key: d.key, label: d.label, v: classAvg[d.key] })).filter((x) => x.v > 0).sort((a, b) => a.v - b.v);
+    return {
+      progressing: progressing.sort((a, b) => b.trend - a.trend),
+      attention,
+      steady,
+      classAvg, dimsRanked,
+      weakest: dimsRanked[0] || null,
+      strongest: dimsRanked[dimsRanked.length - 1] || null,
+      totalRecords, totalStudents: items.length,
+    };
+  }
+
+  window.CTRC_ENGINE = { DIMS, generate, checkVoice, composeZalo, inferProfile, fmtDate, seedOf, suggestFromObservation, computeInsights };
 })();
