@@ -215,9 +215,9 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=4"></script>
-<script src="db.js?v=4"></script>
-<script src="engine.js?v=4"></script>
+<script src="config.js?v=5"></script>
+<script src="db.js?v=5"></script>
+<script src="engine.js?v=5"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -323,9 +323,11 @@ const AI = {
     {id:'claude-sonnet-4-5',      name:'Claude Sonnet 4.5 — cân bằng (khuyên dùng)'},
     {id:'claude-3-5-haiku-latest',name:'Claude Haiku 3.5 — nhanh, tiết kiệm'},
   ],
-  // mức suy luận (extended thinking) → budget_tokens. 0 = tắt.
-  THINKING:{ off:0, low:1024, medium:4000, high:10000, extra:20000 },
+  // mức suy luận (effort). Model mới dùng adaptive+effort; model cũ dùng enabled+budget_tokens.
+  THINKING_LEVELS:['off','low','medium','high','extra'],
   THINKING_LABEL:{ off:'Tắt (nhanh)', low:'Thấp', medium:'Vừa', high:'Cao', extra:'Tối đa (extra)' },
+  EFFORT_BUDGET:{ low:2048, medium:6144, high:12288, extra:24576 },   // map cho model cũ (enabled)
+  EFFORT_MAXTOK:{ low:4000, medium:8000, high:16000, extra:32000 },   // room cho adaptive
   get(){
     const base = Object.assign({
       provider:'anthropic', mode: (CFG.edgeFnUrl?'edge':'edge'),
@@ -338,14 +340,36 @@ const AI = {
   save(cfg){ try{ localStorage.setItem(this.KEY, JSON.stringify(cfg)); }catch(e){ toast('Lưu cấu hình lỗi','var(--primary-2)'); } },
   usable(){ const c=this.get(); return c.mode==='edge' ? !!c.edgeFnUrl : !!c.apiKey; },
   _directHeaders(c){ return {'content-type':'application/json','x-api-key':c.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}; },
-  _budget(c){ return this.THINKING[c.thinking||'off']||0; },
-  /* dựng body messages có thể kèm extended thinking */
-  _msgBody(c, system, userContent){
+  /* model mới (4.6+/4.7/4.8/mythos) → dùng adaptive; còn lại → enabled */
+  _isAdaptive(model){ return /(opus-4-(6|7|8|9))|(sonnet-4-(6|7|8|9))|mythos/i.test(model||''); },
+  _thinkingObj(effort, style){
+    if(!effort || effort==='off') return null;
+    if(style==='adaptive') return { type:'adaptive', effort };
+    return { type:'enabled', budget_tokens: this.EFFORT_BUDGET[effort] || 6144 };
+  },
+  _maxTokensFor(effort, style, out){
+    if(!effort || effort==='off' || !style) return out;
+    if(style==='adaptive') return this.EFFORT_MAXTOK[effort] || 8000;
+    return (this.EFFORT_BUDGET[effort] || 6144) + out;   // enabled: budget + output
+  },
+  /* gọi /v1/messages, tự chọn format thinking theo model + fallback nếu sai */
+  async _callMessages(c, system, content){
+    const effort = c.thinking || 'off';
     const out = c.maxTokens || 600;
-    const budget = this._budget(c);
-    const body = { model:c.model, max_tokens: budget ? budget + out : out, system, messages:[{role:'user', content:userContent}] };
-    if (budget) body.thinking = { type:'enabled', budget_tokens: budget };
-    return body;
+    const styles = (effort==='off') ? [null]
+      : (this._isAdaptive(c.model) ? ['adaptive','enabled'] : ['enabled','adaptive']);
+    let lastErr;
+    for(const style of styles){
+      const body = { model:c.model, max_tokens:this._maxTokensFor(effort,style,out), system, messages:[{role:'user',content}] };
+      const th = this._thinkingObj(effort, style); if(th) body.thinking = th;
+      const r = await fetch(c.baseUrl+'/v1/messages',{method:'POST',headers:this._directHeaders(c),body:JSON.stringify(body)});
+      if(r.ok) return r.json();
+      const txt = await r.text();
+      lastErr = 'Anthropic HTTP '+r.status+': '+txt.slice(0,180);
+      // chỉ thử format khác nếu lỗi do thinking type; lỗi khác → ném ngay
+      if(!(r.status===400 && /thinking|adaptive|enabled|budget/i.test(txt))) throw new Error(lastErr);
+    }
+    throw new Error(lastErr || 'AI lỗi');
   },
   /* lấy đúng khối text (bỏ qua khối thinking nếu có) */
   _text(d){
@@ -370,15 +394,13 @@ const AI = {
     const c=cfg||this.get();
     if(c.mode==='edge'){
       if(!c.edgeFnUrl) throw new Error('Chưa có Edge Function URL');
-      const r=await fetch(c.edgeFnUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({model:c.model,max_tokens:c.maxTokens,thinking_budget:this._budget(c)},payload))});
+      const r=await fetch(c.edgeFnUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({model:c.model,max_tokens:c.maxTokens,thinking_effort:c.thinking},payload))});
       if(!r.ok) throw new Error('Edge HTTP '+r.status);
       return r.json();
     }
     if(!c.apiKey) throw new Error('Chưa có API key');
-    const r=await fetch(c.baseUrl+'/v1/messages',{method:'POST',headers:this._directHeaders(c),
-      body:JSON.stringify(this._msgBody(c, AI_SYSTEM, buildAIPrompt(payload)))});
-    if(!r.ok) throw new Error('Anthropic HTTP '+r.status+': '+(await r.text()).slice(0,160));
-    const d=await r.json(); const text=this._text(d);
+    const d=await this._callMessages(c, AI_SYSTEM, buildAIPrompt(payload));
+    const text=this._text(d);
     const m=text.match(/\{[\s\S]*\}/); let out={}; if(m){try{out=JSON.parse(m[0]);}catch(_){}}
     if(!out.diem_manh) out={diem_manh:text,co_gang:'',goi_y:''};
     return out;
@@ -389,15 +411,13 @@ const AI = {
     if(c.mode==='edge'){
       if(!c.edgeFnUrl) throw new Error('Chưa có Edge Function URL');
       const r=await fetch(c.edgeFnUrl,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'complete',system,prompt,model:c.model,max_tokens:c.maxTokens,thinking_budget:this._budget(c)})});
+        body:JSON.stringify({action:'complete',system,prompt,model:c.model,max_tokens:c.maxTokens,thinking_effort:c.thinking})});
       if(!r.ok) throw new Error('Edge HTTP '+r.status);
       const d=await r.json(); return d.text||'';
     }
     if(!c.apiKey) throw new Error('Chưa có API key');
-    const r=await fetch(c.baseUrl+'/v1/messages',{method:'POST',headers:this._directHeaders(c),
-      body:JSON.stringify(this._msgBody(c, system, prompt))});
-    if(!r.ok) throw new Error('Anthropic HTTP '+r.status+': '+(await r.text()).slice(0,160));
-    const d=await r.json(); return this._text(d);
+    const d=await this._callMessages(c, system, prompt);
+    return this._text(d);
   },
 };
 
@@ -1174,12 +1194,12 @@ function renderAICard(sel){
       <div class="hint">${(c.models||[]).length} model trong danh sách lọc${c.modelsSource?(' · nguồn: '+esc(c.modelsSource)):''}. ${c.mode==='direct'&&!c.apiKey?'Dán API key ở trên để tự nạp danh sách.':''}</div>
 
       <div class="row" style="align-items:flex-end;gap:12px;margin-top:12px">
-        <div class="field" style="flex:1;min-width:200px"><label>Mức suy luận (thinking)</label>
-          <select class="input" id="ai-thinking">${Object.keys(AI.THINKING).map(k=>`<option value="${k}" ${c.thinking===k?'selected':''}>${AI.THINKING_LABEL[k]}${AI.THINKING[k]?(' · '+AI.THINKING[k].toLocaleString('vi-VN')+' tokens'):''}</option>`).join('')}</select>
+        <div class="field" style="flex:1;min-width:200px"><label>Mức suy luận (effort)</label>
+          <select class="input" id="ai-thinking">${AI.THINKING_LEVELS.map(k=>`<option value="${k}" ${c.thinking===k?'selected':''}>${AI.THINKING_LABEL[k]}</option>`).join('')}</select>
         </div>
         <div class="field" style="width:130px"><label>Max tokens trả lời</label><input class="input" id="ai-maxtok" type="number" value="${c.maxTokens}"></div>
       </div>
-      <div class="hint">Suy luận sâu (extended thinking) giúp nhận định/gợi ý chất lượng hơn — chậm & tốn token hơn. Cần model hỗ trợ (Claude 4, 3.7). "Tắt" cho tốc độ.</div>
+      <div class="hint">Suy luận sâu giúp nhận định/gợi ý chất lượng hơn (chậm & tốn token hơn). Hệ thống tự chọn đúng cách cho model: <b>adaptive+effort</b> (Claude 4.6+/4.7/4.8) hoặc <b>budget</b> (model cũ). "Tắt" cho nhanh nhất.</div>
 
       <div class="row" style="justify-content:flex-end;margin-top:14px">
         <button class="btn sm" onclick="CTRC.aiTest()">🧪 Kiểm tra kết nối</button>

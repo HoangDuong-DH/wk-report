@@ -87,40 +87,44 @@ Deno.serve(async (req) => {
 
     const model = (body.model || DEFAULT_MODEL).toString();
     const outTokens = Math.min(2000, Math.max(100, +body.max_tokens || 600));
-    const budget = Math.max(0, +body.thinking_budget || 0);   // extended thinking
-    const maxTokens = budget ? budget + outTokens : outTokens;
+    const effort = String(body.thinking_effort || "off");
+    const EFFORT_BUDGET: Record<string, number> = { low: 2048, medium: 6144, high: 12288, extra: 24576 };
+    const EFFORT_MAXTOK: Record<string, number> = { low: 4000, medium: 8000, high: 16000, extra: 32000 };
+    const isAdaptive = /(opus-4-(6|7|8|9))|(sonnet-4-(6|7|8|9))|mythos/i.test(model);
 
-    // build body messages (kèm thinking nếu có)
-    const msgReq = (system: string, content: string) => {
-      const b: any = { model, max_tokens: maxTokens, system, messages: [{ role: "user", content }] };
-      if (budget) b.thinking = { type: "enabled", budget_tokens: budget };
-      return b;
-    };
     const pickText = (d: any) => {
       const t = (d?.content || []).find((x: any) => x.type === "text");
       return (t?.text || d?.content?.[0]?.text || "").trim();
     };
     const headers = { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" };
 
+    // gọi messages, tự chọn format thinking theo model + fallback nếu sai
+    const callMessages = async (system: string, content: string) => {
+      const styles = effort === "off" ? [null] : (isAdaptive ? ["adaptive", "enabled"] : ["enabled", "adaptive"]);
+      let lastErr = "";
+      for (const style of styles) {
+        const b: any = { model, system, messages: [{ role: "user", content }] };
+        if (!style || effort === "off") { b.max_tokens = outTokens; }
+        else if (style === "adaptive") { b.max_tokens = EFFORT_MAXTOK[effort] || 8000; b.thinking = { type: "adaptive", effort }; }
+        else { const bg = EFFORT_BUDGET[effort] || 6144; b.max_tokens = bg + outTokens; b.thinking = { type: "enabled", budget_tokens: bg }; }
+        const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers, body: JSON.stringify(b) });
+        if (r.ok) return r.json();
+        const txt = await r.text();
+        lastErr = "Anthropic HTTP " + r.status + ": " + txt.slice(0, 180);
+        if (!(r.status === 400 && /thinking|adaptive|enabled|budget/i.test(txt))) throw new Error(lastErr);
+      }
+      throw new Error(lastErr || "AI lỗi");
+    };
+
     // ── Gọi tổng quát (Insights + trợ lý GV): nhận system + prompt, trả {text} ──
     if (body.action === "complete") {
-      const cr = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers,
-        body: JSON.stringify(msgReq(body.system || SYSTEM, String(body.prompt || ""))),
-      });
-      if (!cr.ok) throw new Error("Anthropic HTTP " + cr.status + ": " + (await cr.text()).slice(0, 200));
-      const cd = await cr.json();
+      const cd = await callMessages(body.system || SYSTEM, String(body.prompt || ""));
       return new Response(JSON.stringify({ text: pickText(cd) }), {
         headers: { ...cors, "content-type": "application/json" },
       });
     }
 
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST", headers,
-      body: JSON.stringify(msgReq(SYSTEM, buildPrompt(body))),
-    });
-    if (!resp.ok) throw new Error("Anthropic HTTP " + resp.status + ": " + (await resp.text()).slice(0, 200));
-    const data = await resp.json();
+    const data = await callMessages(SYSTEM, buildPrompt(body));
     const text = pickText(data);
 
     // tách JSON
