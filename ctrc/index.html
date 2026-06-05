@@ -274,10 +274,10 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=10"></script>
-<script src="db.js?v=10"></script>
-<script src="engine.js?v=10"></script>
-<script src="lessons.js?v=10"></script>
+<script src="config.js?v=11"></script>
+<script src="db.js?v=11"></script>
+<script src="engine.js?v=11"></script>
+<script src="lessons.js?v=11"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -390,12 +390,13 @@ const AI = {
   EFFORT_BUDGET:{ low:2048, medium:6144, high:12288, xhigh:20000, max:32000 },   // map cho model cũ (enabled)
   EFFORT_MAXTOK:{ low:4000, medium:8000, high:16000, xhigh:32000, max:48000 },   // room cho adaptive/effort
   // quy tắc nạp từ ctrc/rules/*.md (sửa file là AI bám theo)
-  _rules:{voice:'',perbuoi:'',weekly:''},
+  _rules:{voice:'',perbuoi:'',weekly:'',giaoan:''},
   async loadRules(){
     const get=async n=>{ try{ const r=await fetch('rules/'+n+'.md',{cache:'no-store'}); return r.ok?await r.text():''; }catch(_){ return ''; } };
     this._rules.voice  = await get('giong-thuong-hieu');
     this._rules.perbuoi= await get('bao-cao-per-buoi');
     this._rules.weekly = await get('bao-cao-tuan');
+    this._rules.giaoan = await get('doc-hieu-giao-an');
   },
   _sysFor(kind, baseOverride){
     let s = baseOverride || AI_SYSTEM;
@@ -582,7 +583,7 @@ function buildNav(){
   const tabs = {
     gv:[['cham','Chấm buổi'],['weekly','📅 Báo cáo tuần']],
     cskh:[['queue','Hàng đợi']],
-    manager:[['overview','Tổng quan'],['insights','✨ AI Insights'],['weekly','📅 Báo cáo tuần'],['students','Lớp & Bé'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
+    manager:[['overview','Tổng quan'],['insights','✨ AI Insights'],['weekly','📅 Báo cáo tuần'],['lessons','📚 Thư viện'],['students','Lớp & Bé'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
   }[STAFF.role] || [];
   $('#nav').innerHTML = tabs.map(([k,l])=>`<button data-tab="${k}" onclick="CTRC.go('${k}')">${l}</button>`).join('');
   go(tabs[0][0]);
@@ -590,7 +591,7 @@ function buildNav(){
 function go(tab){
   TAB = tab;
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  ({cham:viewCham, weekly:viewWeekly, queue:viewQueue, overview:viewOverview, insights:viewInsights, students:viewStudents, profiles:viewProfiles, config:viewConfig, audit:viewAudit}[tab]||(()=>{}))();
+  ({cham:viewCham, weekly:viewWeekly, lessons:viewLessonLib, queue:viewQueue, overview:viewOverview, insights:viewInsights, students:viewStudents, profiles:viewProfiles, config:viewConfig, audit:viewAudit}[tab]||(()=>{}))();
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -877,11 +878,158 @@ async function maybeDraftProfile(stu){
    BÁO CÁO TUẦN (nội dung bài học từ thư viện + nhận xét)
    ═══════════════════════════════════════════════════════════ */
 let WK = { classId:'', book:'', week:1, from:'', to:'', childComments:{}, digests:{}, made:[] };
-function LESSONS(){ return window.CTRC_LESSONS || {}; }
+/* ── Thư viện giáo án: seed (lessons.js) + imported (localStorage) ── */
+const LIB = {
+  KEY:'ctrc:lessons:v1',
+  imported(){ try{ return JSON.parse(localStorage.getItem(this.KEY))||{}; }catch(_){ return {}; } },
+  all(){ return Object.assign({}, window.CTRC_LESSONS||{}, this.imported()); },
+  save(map){ const cur=this.imported(); Object.assign(cur, map); try{ localStorage.setItem(this.KEY, JSON.stringify(cur)); }catch(e){ toast('Lưu thư viện lỗi (đầy?)','var(--primary-2)'); } },
+  remove(key){ const cur=this.imported(); delete cur[key]; localStorage.setItem(this.KEY, JSON.stringify(cur)); },
+};
+function LESSONS(){ return LIB.all(); }
 function lessonKey(book, week){ return (book||'').trim() + '-w' + week; }
 function lessonByKey(key){ return LESSONS()[key]; }
 function bookCodes(){ const set=new Set(); Object.values(LESSONS()).forEach(l=>set.add(l.code)); return Array.from(set).sort(); }
+/* mã + tuần từ tên file: 207w1 / 207w 2 / 210+-w1 / 205 Plus -w1 */
+function codeWeekFromName(fname){
+  const base=(fname||'').replace(/\.docx$/i,'');
+  const m=base.match(/(\d+)\s*(\+|plus)?[^0-9]*w\s*([1-4])/i);
+  if(!m) return null;
+  return { code:m[1]+(m[2]?'+':''), week:+m[3] };
+}
+function _normType(t){ const l=(t||'').toLowerCase(); const M={'cơ bản':'Tư duy cơ bản','toán':'Tư duy toán học','logic':'Tư duy logic','sáng tạo':'Tư duy sáng tạo','vận động':'Vận động'}; for(const k in M){ if(l.includes(k)) return M[k]; } return (t||'').trim(); }
+/* parse text giáo án 1 tuần (port parse_lessons.py) */
+function parseLessonText(text, code, week){
+  const lines=(text||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  const isBoiler=p=>{ const low=p.toLowerCase();
+    if(low.startsWith('(ngày')) return true;
+    if(/^l[ớo]p\s*:?\s*$/.test(low)) return true;
+    if(/^b[àa]i\s*h[ọo]c\s*:\s*\d+\+?\s*[-–]?\s*tu[ầa]n/.test(low)) return true;
+    return ['báo cáo tình hình','kính gửi','chương trình: ucrea','hôm nay, em/cô/thầy','dưới đây là phần nhận xét','hẹn gặp lại','một số hình ảnh'].some(b=>low.includes(b));
+  };
+  const body=lines.filter(l=>!isBoiler(l));
+  let title='', skill=''; const knowledge=[]; const pages=[];
+  for(const p of lines){
+    let m;
+    if((m=p.match(/^B[àa]i\s*h[ọo]c\s*:\s*(.+)$/)) && !/tu[ầa]n\s*\d/i.test(m[1]) && !title){ title=m[1].trim(); continue; }
+    if((m=p.match(/^M[ụu]c\s*ti[êe]u\s*k[ỹy]\s*n[ăa]ng\s*:?\s*(.*)$/i))){ skill=m[1].trim(); continue; }
+    if((m=p.match(/^M[ụu]c\s*ti[êe]u\s*(.+)$/i))){ knowledge.push(p.trim()); continue; }
+    if((m=p.match(/^Trang\s*([0-9][0-9\s+\-,–]*?)\s*:\s*(.+)$/))){
+      const rng='Trang '+m[1].replace(/\s+/g,' ').trim(); const rest=m[2].trim();
+      const ci=rest.indexOf(':');
+      if(ci>=0) pages.push({range:rng,type:_normType(rest.slice(0,ci)),desc:rest.slice(ci+1).trim()});
+      else pages.push({range:rng,type:'',desc:rest});
+      continue;
+    }
+  }
+  return { code, week, title, knowledge:knowledge.join('\n'), skill, pages, body, source:'imported' };
+}
 function _sundayStr(mondayStr){ const d=new Date(mondayStr); d.setDate(d.getDate()+6); return d.toISOString().slice(0,10); }
+/* ═══════════════ THƯ VIỆN GIÁO ÁN (import + AI làm giàu) ═══════════════ */
+let LIBV = { staged:null };
+async function viewLessonLib(){
+  const lessons=LESSONS(); const codes=bookCodes(); const imp=LIB.imported();
+  view.innerHTML = `
+    <h2 class="h-title">📚 Thư viện giáo án</h2>
+    <p class="h-sub">${Object.keys(lessons).length} mục (${Object.keys(imp).length} tự nhập). Import docx giáo án (nhiều tuần một lúc) → engine tách cấu trúc + AI tóm tắt cho quản lý & soạn nội dung cho phụ huynh.</p>
+    <div class="card" style="margin-bottom:12px">
+      <div class="ed-head" style="margin-bottom:8px"><span>⬆ Import giáo án (.docx — chọn nhiều file)</span></div>
+      <input type="file" id="lib-files" accept=".docx" multiple style="font:500 12px/1 var(--font)">
+      <div class="row" style="margin-top:10px;align-items:center">
+        <label style="font:600 12px/1 var(--font);display:flex;gap:6px;align-items:center"><input type="checkbox" id="lib-ai" ${AI.usable()?'checked':'disabled'}> ✨ AI làm giàu${AI.usable()?'':' (bấm ⚙ AI để bật)'}</label>
+        <button class="btn primary sm" onclick="CTRC.importLessons()">Nạp file</button>
+      </div>
+      <div class="hint" style="margin-top:6px">Tên file cần có mã + tuần (vd <b>207w1.docx</b>, <b>210+-w1.docx</b>). Engine luôn tách cấu trúc; AI chỉ thêm tóm tắt khi bật.</div>
+      <div id="lib-stage"></div>
+    </div>
+    <div class="card">
+      <div class="ed-head" style="margin-bottom:8px"><span>Danh sách giáo án</span><span class="cc">${codes.length} cuốn</span></div>
+      <div id="lib-list"></div>
+    </div>`;
+  renderLibList();
+}
+function renderLibList(){
+  const box=$('#lib-list'); if(!box)return;
+  const lessons=LESSONS(); const imp=LIB.imported(); const codes=bookCodes();
+  box.innerHTML = codes.map(code=>{
+    const weeks=[1,2,3,4].map(w=>{ const k=code+'-w'+w; const l=lessons[k]; if(!l) return '';
+      const hasAI=!!l.parent_content;
+      return `<tr><td style="white-space:nowrap">Tuần ${w}</td><td>${esc((l.title||'').slice(0,48))}</td>
+        <td>${hasAI?'<span class="badge b-ok">AI</span>':'<span class="badge b-wait">cấu trúc</span>'}${imp[k]?' <span class="badge b-cs">nhập</span>':''}</td>
+        <td style="text-align:right"><button class="btn sm" onclick="CTRC.viewLesson('${k}')">Xem</button></td></tr>`;
+    }).join('');
+    return `<div style="margin-bottom:10px"><b style="font:800 12.5px/1 var(--font-d);color:var(--primary-2)">Cuốn ${esc(code)}</b>
+      <table class="tb" style="margin-top:4px"><tbody>${weeks}</tbody></table></div>`;
+  }).join('') || '<p class="hint" style="margin:0">Thư viện trống — import docx ở trên.</p>';
+}
+async function importLessons(){
+  const inp=$('#lib-files'); const files=Array.from(inp.files||[]);
+  if(!files.length){ toast('Chọn file .docx trước','var(--primary-2)'); return; }
+  const useAI=$('#lib-ai').checked && AI.usable();
+  const stage=$('#lib-stage'); stage.innerHTML='<p class="hint" style="margin-top:10px">Đang đọc file…</p>';
+  try{ if(!window.mammoth) await _loadScript('https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js'); }
+  catch(e){ stage.innerHTML='<p class="voice-warn">Không tải được thư viện đọc docx (cần mạng).</p>'; return; }
+  const staged={}; const errs=[];
+  for(const f of files){
+    const cw=codeWeekFromName(f.name);
+    if(!cw){ errs.push(f.name+' (tên thiếu mã/tuần)'); continue; }
+    try{ const buf=await f.arrayBuffer(); const res=await window.mammoth.extractRawText({arrayBuffer:buf});
+      staged[cw.code+'-w'+cw.week]=parseLessonText(res.value, cw.code, cw.week);
+    }catch(e){ errs.push(f.name+' ('+(e.message||'lỗi')+')'); }
+  }
+  if(useAI){
+    const ks=Object.keys(staged); let done=0;
+    for(const k of ks){ stage.innerHTML='<p class="hint" style="margin-top:10px">✨ AI đang đọc & tóm tắt '+(done+1)+'/'+ks.length+'…</p>';
+      try{ Object.assign(staged[k], await enrichLesson(staged[k])); }catch(_){} done++; }
+  }
+  LIBV.staged=staged; renderStage(staged, errs);
+}
+function renderStage(staged, errs){
+  const stage=$('#lib-stage'); if(!stage)return;
+  const keys=Object.keys(staged).sort();
+  stage.innerHTML = `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
+    <div class="ed-head" style="margin-bottom:6px"><span>Xem trước ${keys.length} tuần — duyệt rồi lưu</span></div>
+    ${errs.length?`<p class="voice-warn">Bỏ qua: ${errs.map(esc).join('; ')}</p>`:''}
+    <table class="tb"><thead><tr><th>Mã-Tuần</th><th>Tiêu đề</th><th>Tóm tắt QL (AI)</th></tr></thead><tbody>
+    ${keys.map(k=>{const l=staged[k];return `<tr><td>${esc(k)}</td><td>${esc((l.title||'').slice(0,38))}</td><td style="color:var(--mute)">${esc((l.manager_summary||'— (engine, chưa AI)').slice(0,72))}</td></tr>`;}).join('')}
+    </tbody></table>
+    <div class="row" style="justify-content:flex-end;margin-top:10px">
+      <button class="btn ghost sm" onclick="CTRC.cancelStage()">Huỷ</button>
+      <button class="btn primary sm" onclick="CTRC.saveStage()">💾 Lưu ${keys.length} tuần vào thư viện</button>
+    </div></div>`;
+}
+function cancelStage(){ LIBV.staged=null; const s=$('#lib-stage'); if(s)s.innerHTML=''; const i=$('#lib-files'); if(i)i.value=''; }
+async function saveStage(){
+  if(!LIBV.staged) return;
+  LIB.save(LIBV.staged);
+  await DB.audit(CENTER.id, STAFF, 'import_lessons','library',null,{count:Object.keys(LIBV.staged).length});
+  toast('✓ Đã lưu '+Object.keys(LIBV.staged).length+' tuần'); cancelStage(); viewLessonLib();
+}
+async function enrichLesson(rec){
+  const skill = AI._rules.giaoan || '';
+  const sys = AI._sysFor('generic', 'Bạn đọc giáo án mầm non, trả JSON thuần.');
+  const prompt = (skill?skill+'\n\n':'')+`GIÁO ÁN (mã ${rec.code} tuần ${rec.week}):\n"""${(rec.body||[]).join('\n')}"""\n\nTrả về DUY NHẤT JSON: {"title":"...","manager_summary":"...","parent_content":"..."}.`;
+  const text=await AI.complete(sys, prompt);
+  const m=text.match(/\{[\s\S]*\}/); const out=m?JSON.parse(m[0]):{};
+  const r={};
+  if(out.manager_summary) r.manager_summary=out.manager_summary;
+  if(out.parent_content) r.parent_content=out.parent_content;
+  if(out.title && !rec.title) r.title=out.title;
+  return r;
+}
+function viewLesson(key){
+  const l=lessonByKey(key); if(!l) return;
+  modal(`<h3>📖 ${esc(key)}${l.title?' — '+esc(l.title):''}</h3>
+    ${l.manager_summary?`<div style="background:var(--cream);border-radius:10px;padding:10px 12px;margin-bottom:10px;font:500 12.5px/1.6 var(--font)"><b style="color:var(--primary-2)">📊 Tóm tắt cho quản lý:</b><br>${esc(l.manager_summary)}</div>`:''}
+    ${l.parent_content?`<div style="background:#eef7ff;border-radius:10px;padding:10px 12px;margin-bottom:10px;font:500 12.5px/1.6 var(--font)"><b style="color:#2f6ea0">👨‍👩‍👧 Nội dung cho phụ huynh:</b><br>${esc(l.parent_content)}</div>`:''}
+    <div>${renderLessonHTML(l)}</div>
+    <div class="row" style="justify-content:space-between;margin-top:12px">
+      ${LIB.imported()[key]?`<button class="btn sm" onclick="CTRC.delLesson('${key}')">🗑 Xoá khỏi thư viện</button>`:'<span></span>'}
+      <button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button>
+    </div>`);
+}
+function delLesson(key){ if(!confirm('Xoá '+key+' khỏi thư viện (chỉ mục tự nhập)?'))return; LIB.remove(key); toast('✓ Đã xoá'); closeModal(); viewLessonLib(); }
+
 function renderLessonHTML(les){
   if(!les) return '<p class="hint" style="margin:0">Chưa có nội dung cho mã + tuần này trong thư viện. Kiểm tra mã cuốn (vd 207) và tuần, hoặc bổ sung docx rồi chạy lại parser.</p>';
   let h='';
@@ -978,7 +1126,7 @@ async function genWeekly(){
   const studs=await DB.listStudents(CENTER.id, WK.classId);
   if(!studs.length){ toast('Lớp chưa có bé','var(--primary-2)'); return; }
   const strengths=await DB.listStrengths(CENTER.id);
-  const lessonSnap = les ? {title:les.title, pages:les.pages, skill:les.skill, body:les.body} : null;
+  const lessonSnap = les ? {title:les.title, pages:les.pages, skill:les.skill, body:les.body, parent_content:les.parent_content||'', manager_summary:les.manager_summary||''} : null;
   const hocGi = ENG.lessonSummary(lessonSnap);
   const made=[];
   for(const s of studs){
@@ -1793,6 +1941,7 @@ window.CTRC = {
   approveProfile, editProfile, saveEditProfile, addTheme,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
   genWeekly, copyWeekly, saveWeeklyImg,
+  importLessons, cancelStage, saveStage, viewLesson, delLesson,
 };
 boot();
 </script>

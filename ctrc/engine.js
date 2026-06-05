@@ -394,9 +394,10 @@
     return { tongHop: tongHop.trim(), coGang: ensureDot(coGang), oNha: ensureDot(oNha) };
   }
 
-  /* tóm tắt "tuần này con học gì" từ lesson snapshot */
+  /* tóm tắt "tuần này con học gì" — ưu tiên nội dung AI soạn cho phụ huynh */
   function lessonSummary(les) {
     if (!les) return '';
+    if (les.parent_content) return les.parent_content;   // AI đã soạn cho PH (doc-hieu-giao-an)
     let s = les.title ? les.title.replace(/\.$/, '') + '. ' : '';
     if (les.pages && les.pages.length) {
       const types = Array.from(new Set(les.pages.map((p) => p.type).filter(Boolean)));
