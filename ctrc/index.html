@@ -1160,7 +1160,8 @@ function renderAICard(sel){
         <div class="ln"><label>API key (Anthropic)</label>
           <input class="input" id="ai-key" type="password" value="${esc(c.apiKey)}" placeholder="sk-ant-... (dán key vào, danh sách model tự hiện)" style="width:100%" onblur="CTRC.aiKeyBlur()">
           <div class="voice-warn">⚠ Chế độ trực tiếp lưu key trong localStorage của <b>máy này</b> và gọi thẳng API từ trình duyệt. Chỉ dùng trên máy tin cậy.</div></div>
-        <div class="ln"><label>Base URL</label><input class="input" id="ai-base" value="${esc(c.baseUrl)}" style="width:100%"></div>
+        <div class="ln"><label>Base URL (gốc API)</label><input class="input" id="ai-base" value="${esc(c.baseUrl)}" style="width:100%">
+          <div class="hint">Chỉ là phần gốc — hệ thống tự thêm <code>/v1/messages</code>. Để nguyên <code>https://api.anthropic.com</code>; chỉ đổi nếu dùng proxy tương thích Anthropic.</div></div>
       `}
 
       <div class="row" style="align-items:flex-end;gap:12px">
