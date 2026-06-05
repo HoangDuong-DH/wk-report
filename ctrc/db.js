@@ -61,6 +61,12 @@
       this._save();
       return clone(rows);
     },
+    async remove(table, match) {
+      const d = this._load(); const before = (d[table] || []).length;
+      d[table] = (d[table] || []).filter((r) => !matchRow(r, match));
+      this._save();
+      return before - d[table].length;
+    },
     async upsert(table, row, conflictKeys) {
       const tbl = this._tbl(table);
       const m = {}; (conflictKeys || ['id']).forEach((k) => (m[k] = row[k]));
@@ -121,6 +127,13 @@
         const { data, error } = await q.select();
         if (error) throw error;
         return data || [];
+      },
+      async remove(table, match) {
+        let q = client.from(table).delete();
+        Object.keys(match).forEach((k) => (q = q.eq(k, match[k])));
+        const { error } = await q;
+        if (error) throw error;
+        return 1;
       },
       async upsert(table, row, conflictKeys) {
         const { data, error } = await client.from(table)
@@ -236,6 +249,9 @@
     async listStaff(centerId) {
       return adapter.select('staff', { center_id: centerId });
     },
+    async addStaff(centerId, name, role, pin) { return adapter.insert('staff', { center_id: centerId, name, role, pin: pin || '', active: true, created_at: nowISO() }); },
+    async updateStaff(id, patch) { return adapter.update('staff', { id }, patch); },
+    async deleteStaff(id) { return adapter.remove('staff', { id }); },
 
     /* lớp + bé */
     async listClasses(centerId) { return adapter.select('classes', { center_id: centerId }, { order: 'name' }); },

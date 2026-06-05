@@ -315,10 +315,10 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=12"></script>
-<script src="db.js?v=12"></script>
-<script src="engine.js?v=12"></script>
-<script src="lessons.js?v=12"></script>
+<script src="config.js?v=13"></script>
+<script src="db.js?v=13"></script>
+<script src="engine.js?v=13"></script>
+<script src="lessons.js?v=13"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -1803,12 +1803,25 @@ async function saveEditProfile(studentId){
 }
 
 let AICFG = null;
+const ROLE_LABEL = {gv:'Giáo viên', cskh:'CSKH', manager:'Quản lý'};
 async function viewConfig(){
   const themes = await DB.listThemes(CENTER.id);
   const strengths = await DB.listStrengths(CENTER.id);
+  const staff = await DB.listStaff(CENTER.id);
   view.innerHTML = `
     <h2 class="h-title">Cấu hình trung tâm</h2>
-    <p class="h-sub">Cấu hình AI · chủ đề tuần (Lớp 2 cá nhân hoá) · 10 điểm mạnh mẫu.</p>
+    <p class="h-sub">Nhân sự · cấu hình AI · chủ đề tuần · 10 điểm mạnh mẫu.</p>
+    <div class="card" style="margin-bottom:14px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">👥 Nhân sự (đổi tên / thêm / xoá)</b>
+        <button class="btn primary sm" onclick="CTRC.addStaff()">+ Thêm</button>
+      </div>
+      <table class="tb" style="margin-top:10px"><thead><tr><th>Tên</th><th>Vai trò</th><th style="text-align:right">Thao tác</th></tr></thead><tbody>
+        ${staff.map(s=>`<tr><td><b>${esc(s.name)}</b></td><td>${esc(ROLE_LABEL[s.role]||s.role)}</td>
+          <td style="text-align:right"><button class="btn sm" onclick="CTRC.editStaff('${s.id}')">Đổi tên</button> <button class="btn sm" onclick="CTRC.delStaff('${s.id}')">🗑</button></td></tr>`).join('')||'<tr><td colspan=3 style="color:var(--mute)">Chưa có nhân sự.</td></tr>'}
+      </tbody></table>
+      <div class="hint" style="margin-top:6px">Đăng nhập = chọn tên. Đổi thành tên thật của giáo viên/CSKH/quản lý trung tâm bạn.</div>
+    </div>
     <div id="ai-card-wrap"></div>
     <div class="card" style="margin:14px 0">
       <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Chủ đề tuần</b>
@@ -1961,6 +1974,36 @@ async function addTheme(){
   toast('✓ Đã thêm chủ đề tuần'); viewConfig();
 }
 
+/* ── Quản lý nhân sự (đổi tên/thêm/xoá) ── */
+function staffForm(s){
+  const editing=!!s;
+  modal(`<h3>${editing?'Đổi thông tin nhân sự':'Thêm nhân sự'}</h3>
+    <div class="ln"><label>Tên hiển thị</label><input class="input" id="st-name" value="${esc(s?s.name:'')}" style="width:100%" placeholder="VD: Cô Hương"></div>
+    <div class="field" style="margin-bottom:12px"><label>Vai trò</label><select class="input" id="st-role">
+      ${Object.entries(ROLE_LABEL).map(([k,v])=>`<option value="${k}" ${s&&s.role===k?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button><button class="btn primary" onclick="CTRC.saveStaff('${s?s.id:''}')">Lưu</button></div>`);
+}
+function addStaff(){ staffForm(null); }
+async function editStaff(id){ const s=(await DB.listStaff(CENTER.id)).find(x=>x.id===id); if(s) staffForm(s); }
+async function saveStaff(id){
+  const name=$('#st-name').value.trim(); if(!name){ toast('Tên không được trống','var(--primary-2)'); return; }
+  const role=$('#st-role').value;
+  if(id){
+    await DB.updateStaff(id,{name,role});
+    if(STAFF && STAFF.id===id){ STAFF.name=name; STAFF.role=role; sessionStorage.setItem('ctrc:staff',JSON.stringify(STAFF));
+      $('#uc-name').textContent=name; const r=$('#uc-role'); r.textContent=role; r.className='role '+role; buildNav(); }
+  } else { await DB.addStaff(CENTER.id, name, role); }
+  await DB.audit(CENTER.id, STAFF, id?'edit_staff':'add_staff','staff',id||null,{name,role});
+  closeModal(); toast('✓ Đã lưu'); viewConfig();
+}
+async function delStaff(id){
+  if(STAFF && STAFF.id===id){ toast('Không thể xoá tài khoản đang đăng nhập','var(--primary-2)'); return; }
+  const s=(await DB.listStaff(CENTER.id)).find(x=>x.id===id);
+  if(!confirm('Xoá nhân sự "'+(s?s.name:'')+'"?')) return;
+  await DB.deleteStaff(id); await DB.audit(CENTER.id, STAFF, 'del_staff','staff',id,{name:s?s.name:''});
+  toast('✓ Đã xoá'); viewConfig();
+}
+
 async function viewAudit(){
   const logs = await DB.listAudit(CENTER.id, 80);
   const A={login:'Đăng nhập',score:'Chấm điểm',generate:'Sinh nháp',approve:'Duyệt tin',send:'Gửi PH',profile_draft:'Sinh hồ sơ',profile_approve:'Duyệt hồ sơ',add_theme:'Thêm chủ đề'};
@@ -1981,6 +2024,7 @@ window.CTRC = {
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
+  addStaff, editStaff, saveStaff, delStaff,
   genWeekly, copyWeekly, saveWeeklyImg,
   importLessons, cancelStage, saveStage, viewLesson, delLesson,
 };
