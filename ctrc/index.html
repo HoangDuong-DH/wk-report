@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CTRC — Báo cáo per-buổi · WonderKids</title>
+<meta name="description" content="Hệ thống báo cáo học tập per-buổi: GV chấm → AI viết → CSKH duyệt → phụ huynh xem.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23ffc24a'/><stop offset='1' stop-color='%23e94e1b'/></linearGradient></defs><circle cx='32' cy='32' r='30' fill='url(%23g)'/><text x='32' y='42' font-family='Arial' font-size='22' font-weight='900' fill='%23fff' text-anchor='middle'>CT</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font:'Be Vietnam Pro',system-ui,sans-serif;
+  --font-d:'Baloo 2','Be Vietnam Pro',system-ui,sans-serif;
+  --primary:#f3811f; --primary-2:#e94e1b; --yellow:#f5b223;
+  --green:#5fb53f; --blue:#4a8cc4; --ink:#3a2e22; --ink-soft:#6b5a48; --mute:#a4886a;
+  --cream:#fff7ec; --cream-2:#fdeede; --card:#fffdf9; --line:#f0e0cc; --line-soft:#f6ebda;
+  --pill:#fff1dd; --shadow:0 4px 18px rgba(233,78,27,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+.hidden{display:none !important}
+
+/* ── Top bar ── */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;
+  padding:10px 18px;background:rgba(255,253,249,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font:800 17px/1 var(--font-d);color:var(--primary-2)}
+.brand .logo{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffc24a,var(--primary) 65%,var(--primary-2));
+  display:flex;align-items:center;justify-content:center;color:#fff;font:800 13px/1 var(--font-d)}
+.brand .sub{font:600 10px/1 var(--font);color:var(--mute);letter-spacing:.05em}
+.nav{display:flex;gap:4px;margin-left:8px;flex-wrap:wrap}
+.nav button{padding:7px 13px;border:1px solid transparent;background:transparent;border-radius:9px;
+  font:700 12.5px/1 var(--font);color:var(--ink-soft)}
+.nav button:hover{background:var(--pill);color:var(--primary-2)}
+.nav button.active{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
+.spacer{flex:1}
+.userchip{display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--line);
+  padding:5px 6px 5px 12px;border-radius:99px;font:700 12px/1 var(--font)}
+.userchip .role{font:700 9.5px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;color:#fff;
+  padding:4px 8px;border-radius:99px;background:var(--mute)}
+.userchip .role.gv{background:var(--green)} .userchip .role.cskh{background:var(--blue)} .userchip .role.manager{background:var(--primary)}
+.userchip button{border:none;background:transparent;color:var(--mute);font-size:15px;padding:2px 4px}
+.demo-banner{background:linear-gradient(90deg,#fff3cd,#ffe9b8);color:#8a6d1a;text-align:center;
+  font:600 11.5px/1.4 var(--font);padding:6px 12px;border-bottom:1px solid #f0d98a}
+
+/* ── Layout ── */
+.wrap{max-width:1080px;margin:0 auto;padding:18px}
+.h-title{font:800 19px/1.2 var(--font-d);color:var(--primary-2);margin:0 0 3px}
+.h-sub{font:500 12.5px/1.5 var(--font);color:var(--ink-soft);margin:0 0 16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font:700 10px/1 var(--font);text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+.field input,.field select,.input{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:500 13px/1.2 var(--font);color:var(--ink)}
+.input:focus,.field input:focus,.field select:focus{outline:2px solid var(--primary);border-color:var(--primary)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:12px}
+.btn{padding:10px 16px;border-radius:11px;border:1px solid var(--line);background:#fff;font:700 13px/1 var(--font);color:var(--ink-soft)}
+.btn:hover{border-color:var(--primary);color:var(--primary-2)}
+.btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none}
+.btn.primary:hover{box-shadow:0 6px 16px rgba(233,78,27,.3);transform:translateY(-1px)}
+.btn.green{background:var(--green);color:#fff;border:none}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sm{padding:7px 11px;font-size:12px}
+
+/* ── Roster ── */
+.roster{display:grid;gap:8px;margin-top:14px}
+.stu-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:13px;cursor:pointer;transition:.15s}
+.stu-row:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+.stu-row .av{width:40px;height:40px;border-radius:50%;background:var(--cream-2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.stu-row .nm{font:700 14px/1.2 var(--font);flex:1}
+.stu-row .nm small{display:block;font:500 11px/1.3 var(--font);color:var(--mute);margin-top:2px}
+.badge{font:700 10px/1 var(--font);padding:5px 10px;border-radius:99px;white-space:nowrap}
+.b-wait{background:#fff1dd;color:#c0691a} .b-cs{background:#e3f0fb;color:#2f6ea0}
+.b-ok{background:#eaf7e0;color:#46901f} .b-sent{background:#e7f5ea;color:#2f8a4e}
+.b-absent{background:#f0e9e2;color:#8a7763} .b-err{background:#fde6dd;color:#c5421c} .b-edit{background:#fbeccf;color:#9a7415}
+
+/* ── Score form ── */
+.dim{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line-soft)}
+.dim .dl{font:700 13px/1 var(--font);flex:1}
+.scale{display:flex;gap:5px}
+.scale button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;font:700 13px/1 var(--font);color:var(--ink-soft)}
+.scale button.on{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.chip{padding:7px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font:600 12px/1.2 var(--font);color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px}
+.chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+.chip .warn{color:var(--yellow);font-weight:800}
+.chip.on .warn{color:#fff}
+textarea.input{width:100%;min-height:64px;resize:vertical;line-height:1.5}
+.gold{border:1.5px solid var(--yellow);background:#fffdf3}
+.hint{font:500 11px/1.4 var(--font);color:var(--mute);margin-top:4px}
+
+/* ── CSKH editor ── */
+.editor{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.editor{grid-template-columns:1fr}}
+.draft-box{background:var(--cream);border:1px dashed var(--line);border-radius:12px;padding:12px 14px;font:500 12.5px/1.6 var(--font);color:var(--ink-soft)}
+.draft-box b{color:var(--primary-2)}
+.ln{margin-bottom:12px}
+.ln label{font:700 11px/1 var(--font);text-transform:uppercase;letter-spacing:.05em;color:var(--mute);display:block;margin-bottom:5px}
+.voice-warn{font:600 11px/1.4 var(--font);color:#c5421c;margin-top:4px}
+.copy-block{background:#10241a;color:#d7ffe6;border-radius:12px;padding:14px;font:500 12px/1.6 'Be Vietnam Pro',monospace;white-space:pre-wrap;margin-top:10px}
+.linkbox{display:flex;gap:8px;margin-top:8px;align-items:center}
+.linkbox input{flex:1;font-size:11.5px;color:var(--blue)}
+
+/* ── KPI ── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .n{font:800 26px/1 var(--font-d);color:var(--primary-2)}
+.kpi .l{font:600 11px/1.3 var(--font);color:var(--mute);margin-top:4px}
+
+/* ── table ── */
+table.tb{width:100%;border-collapse:collapse;font:500 12px/1.4 var(--font)}
+table.tb th{text-align:left;font:700 10.5px/1 var(--font);text-transform:uppercase;color:var(--mute);padding:8px 10px;border-bottom:1px solid var(--line)}
+table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
+
+/* ── modal/toast ── */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
+  background:var(--green);color:#fff;padding:12px 20px;border-radius:12px;font:600 13px/1.4 var(--font);
+  z-index:9999;transition:.25s;max-width:90vw;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal-bg{position:fixed;inset:0;background:rgba(40,25,12,.45);backdrop-filter:blur(3px);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--card);border-radius:18px;padding:22px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:88vh;overflow:auto}
+.modal h3{font:800 17px/1.2 var(--font-d);color:var(--primary-2);margin:0 0 12px}
+
+/* ── login ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(circle at 30% 20%,#fff3e0,var(--cream))}
+.login-card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:30px;max-width:420px;width:100%;box-shadow:0 16px 48px rgba(233,78,27,.12);text-align:center}
+.login-card .big-logo{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;background:radial-gradient(circle at 35% 35%,#ffc24a,var(--primary) 65%,var(--primary-2));
+  display:flex;align-items:center;justify-content:center;color:#fff;font:800 22px/1 var(--font-d)}
+.login-card h1{font:800 22px/1.2 var(--font-d);color:var(--primary-2);margin:0 0 4px}
+.login-card p{font:500 12.5px/1.5 var(--font);color:var(--ink-soft);margin:0 0 20px}
+.staff-pick{display:grid;gap:9px}
+.staff-pick button{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1.5px solid var(--line);border-radius:13px;background:#fff;text-align:left;transition:.15s}
+.staff-pick button:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+.staff-pick .nm{font:700 14px/1.2 var(--font);flex:1}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login" class="login-wrap">
+  <div class="login-card">
+    <div class="big-logo">CT</div>
+    <h1>CTRC</h1>
+    <p>Báo cáo học tập per-buổi · <span id="login-center">WonderKids</span><br>
+       <span id="mode-note" style="font-size:11px;color:var(--mute)"></span></p>
+    <div class="staff-pick" id="staff-pick"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app" class="hidden">
+  <div id="demo-banner" class="demo-banner hidden">⚡ DEMO MODE — dữ liệu lưu trên máy này (localStorage). Điền Supabase trong <b>config.js</b> để đồng bộ nhiều máy.</div>
+  <div class="topbar">
+    <div class="brand">
+      <span class="logo">CT</span>
+      <span>CTRC<br><span class="sub" id="tb-center">WonderKids</span></span>
+    </div>
+    <div class="nav" id="nav"></div>
+    <div class="spacer"></div>
+    <div class="userchip">
+      <span id="uc-name">—</span>
+      <span class="role" id="uc-role">—</span>
+      <button title="Đăng xuất" onclick="CTRC.logout()">⎋</button>
+    </div>
+  </div>
+  <div class="wrap" id="view"></div>
+</div>
+
+<div id="toast"></div>
+<div id="modal-root"></div>
+
+<script src="config.js"></script>
+<script src="db.js"></script>
+<script src="engine.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const DB = window.CTRC_DB, ENG = window.CTRC_ENGINE, CFG = window.CTRC_CONFIG;
+const $ = (s, r = document) => r.querySelector(s);
+const view = $('#view');
+let CENTER = null, STAFF = null, TAB = null;
+
+/* ── helpers ── */
+function toast(msg, color) {
+  const t = $('#toast'); t.textContent = msg; t.style.background = color || 'var(--green)';
+  t.classList.add('show'); clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 2800);
+}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function modal(html) {
+  const root = $('#modal-root');
+  root.innerHTML = `<div class="modal-bg" onclick="if(event.target===this)CTRC.closeModal()"><div class="modal">${html}</div></div>`;
+}
+function closeModal(){ $('#modal-root').innerHTML=''; }
+const todayStr = () => new Date().toISOString().slice(0,10);
+const AV = g => g==='Nữ' ? '👧' : '👦';
+const MOODS = {happy:'😊 Vui',normal:'🙂 Bình thường',sad:'😟 Buồn',tired:'😴 Mệt'};
+const STATUS = {
+  waiting_gv:['Chờ GV','b-wait'], ai_writing:['AI đang viết','b-wait'],
+  waiting_cs:['Chờ CS duyệt','b-cs'], cs_editing:['CS đang sửa','b-edit'],
+  approved:['Đã duyệt','b-ok'], sent:['Đã gửi PH','b-sent'], error:['Lỗi — xem lại','b-err'],
+};
+
+/* ── parent link ── */
+function parentBase(){
+  if (CFG.parentBaseUrl) return CFG.parentBaseUrl;
+  const dir = location.href.replace(/[^/]*$/,'');
+  return dir + 'parent.html';
+}
+
+/* ═══════════════ BOOT ═══════════════ */
+async function boot(){
+  let mode = 'demo';
+  try { mode = await DB.init(); }
+  catch(e){ console.error(e); toast('Lỗi kết nối backend, chạy tạm demo: '+e.message,'var(--primary-2)'); }
+  CENTER = await DB.getCenter();
+  $('#login-center').textContent = CENTER ? CENTER.name : 'WonderKids';
+  $('#tb-center').textContent = CENTER ? CENTER.name : 'WonderKids';
+  $('#mode-note').textContent = mode==='supabase' ? '🟢 Kết nối Supabase' : '⚡ Demo (localStorage)';
+  if (mode==='demo') $('#demo-banner').classList.remove('hidden');
+  // session đã đăng nhập?
+  const saved = sessionStorage.getItem('ctrc:staff');
+  if (saved){ try { STAFF = JSON.parse(saved); enterApp(); return; } catch(_){} }
+  renderLogin();
+}
+
+async function renderLogin(){
+  const staff = CENTER ? await DB.listStaff(CENTER.id) : [];
+  $('#staff-pick').innerHTML = staff.map(s=>{
+    const r = STATUS_ROLE(s.role);
+    return `<button onclick="CTRC.login('${s.id}')">
+      <span style="font-size:22px">${r.emoji}</span>
+      <span class="nm">${esc(s.name)}<small style="display:block;color:var(--mute);font-weight:500">${r.label}</small></span>
+      <span class="role ${s.role}">${s.role}</span>
+    </button>`;
+  }).join('') || '<p style="color:var(--mute)">Chưa có nhân sự. Hãy chạy schema seed hoặc mở demo.</p>';
+}
+function STATUS_ROLE(r){
+  return {gv:{emoji:'👩‍🏫',label:'Giáo viên — chấm buổi'},cskh:{emoji:'💬',label:'CSKH — duyệt & gửi'},manager:{emoji:'📊',label:'Quản lý — hồ sơ & tổng quan'}}[r]||{emoji:'👤',label:r};
+}
+
+async function login(staffId){
+  const staff = await DB.listStaff(CENTER.id);
+  STAFF = staff.find(s=>s.id===staffId);
+  if (!STAFF) return;
+  sessionStorage.setItem('ctrc:staff', JSON.stringify(STAFF));
+  await DB.audit(CENTER.id, STAFF, 'login', 'staff', STAFF.id, {});
+  enterApp();
+}
+function logout(){ sessionStorage.removeItem('ctrc:staff'); STAFF=null; location.reload(); }
+
+function enterApp(){
+  $('#login').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  $('#uc-name').textContent = STAFF.name;
+  const rEl = $('#uc-role'); rEl.textContent = STAFF.role; rEl.className = 'role '+STAFF.role;
+  buildNav();
+}
+
+/* ── nav theo vai trò ── */
+function buildNav(){
+  const tabs = {
+    gv:[['cham','Chấm buổi']],
+    cskh:[['queue','Hàng đợi']],
+    manager:[['overview','Tổng quan'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
+  }[STAFF.role] || [];
+  $('#nav').innerHTML = tabs.map(([k,l])=>`<button data-tab="${k}" onclick="CTRC.go('${k}')">${l}</button>`).join('');
+  go(tabs[0][0]);
+}
+function go(tab){
+  TAB = tab;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  ({cham:viewCham, queue:viewQueue, overview:viewOverview, profiles:viewProfiles, config:viewConfig, audit:viewAudit}[tab]||(()=>{}))();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GV — CHẤM BUỔI
+   ═══════════════════════════════════════════════════════════ */
+let GV = { date: todayStr(), classId: null, classes: [], students: [], session: null };
+async function viewCham(){
+  GV.classes = await DB.listClasses(CENTER.id);
+  if (!GV.classId && GV.classes[0]) GV.classId = GV.classes[0].id;
+  view.innerHTML = `
+    <h2 class="h-title">Chấm buổi học</h2>
+    <p class="h-sub">Chọn ngày + lớp, chấm từng bé (~60 giây/bé). Sau khi lưu, hệ thống tự sinh nháp tin nhắn cho CSKH.</p>
+    <div class="card"><div class="row">
+      <div class="field"><label>Ngày</label><input type="date" id="gv-date" value="${GV.date}"></div>
+      <div class="field"><label>Lớp</label><select id="gv-class">${GV.classes.map(c=>`<option value="${c.id}" ${c.id===GV.classId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+    </div></div>
+    <div id="gv-roster" class="roster"></div>`;
+  $('#gv-date').onchange = e=>{ GV.date=e.target.value; loadRoster(); };
+  $('#gv-class').onchange = e=>{ GV.classId=e.target.value; loadRoster(); };
+  loadRoster();
+}
+async function loadRoster(){
+  const box = $('#gv-roster'); if(!box) return;
+  box.innerHTML = '<p style="color:var(--mute)">Đang tải…</p>';
+  GV.students = await DB.listStudents(CENTER.id, GV.classId);
+  GV.session = await DB.ensureSession(CENTER.id, GV.classId, GV.date, STAFF.id);
+  const recs = await DB.listRecordsBySession(GV.session.id);
+  const recMap = {}; recs.forEach(r=>recMap[r.student_id]=r);
+  const rows = await Promise.all(GV.students.map(async s=>{
+    const rec = recMap[s.id];
+    let badge = ['Chờ chấm','b-wait'];
+    if (rec){
+      if (rec.attendance==='absent') badge=['Nghỉ','b-absent'];
+      else { const m = await DB.getMessage(rec.id); badge = m ? STATUS[m.status] : ['Đã chấm','b-ok']; }
+    }
+    return `<div class="stu-row" onclick="CTRC.openScore('${s.id}')">
+      <span class="av">${AV(s.gender)}</span>
+      <span class="nm">${esc(s.name)}<small>${s.session_count||0} buổi · ${esc((GV.classes.find(c=>c.id===GV.classId)||{}).name||'')}</small></span>
+      <span class="badge ${badge[1]}">${badge[0]}</span>
+    </div>`;
+  }));
+  box.innerHTML = rows.join('') || '<p style="color:var(--mute)">Lớp chưa có bé nào. Thêm ở tab Cấu hình (Manager).</p>';
+}
+
+let SCORE = null;
+async function openScore(studentId){
+  const stu = await DB.getStudent(studentId);
+  const rec = await DB.getRecord(GV.session.id, studentId) || { scores_5d:{}, strengths:[], observation:'', effort:'', mood:'normal', attendance:'present' };
+  const strengths = await DB.listStrengths(CENTER.id);
+  const recent = new Set(await DB.recentFeaturedStrengths(studentId, 5));
+  SCORE = { stu, rec: JSON.parse(JSON.stringify(rec)), strengths, recent };
+  renderScore();
+}
+function renderScore(){
+  const {stu, rec, strengths, recent} = SCORE;
+  const dimRows = ENG.DIMS.map(d=>`
+    <div class="dim"><span class="dl">${d.label}</span>
+      <span class="scale">${[1,2,3,4,5].map(n=>`<button class="${(+rec.scores_5d[d.key])===n?'on':''}" onclick="CTRC.setScore('${d.key}',${n})">${n}</button>`).join('')}</span>
+    </div>`).join('');
+  const chips = strengths.map(s=>{
+    const on = (rec.strengths||[]).includes(s.idx);
+    const warn = recent.has(s.idx);
+    return `<button class="chip ${on?'on':''}" onclick="CTRC.toggleStrength(${s.idx})" title="${warn?'Đã nêu gần đây — ưu tiên điểm khác nếu hợp lý':''}">
+      ${warn?'<span class="warn">↻</span>':''}${esc(s.label)}</button>`;
+  }).join('');
+  const absent = rec.attendance==='absent';
+  modal(`
+    <h3>${AV(stu.gender)} ${esc(stu.name)}</h3>
+    <div class="row" style="margin-bottom:14px">
+      <button class="btn sm ${!absent?'green':''}" onclick="CTRC.setAttendance('present')">Đi học</button>
+      <button class="btn sm ${absent?'primary':''}" onclick="CTRC.setAttendance('absent')">Nghỉ</button>
+    </div>
+    <div id="score-body" class="${absent?'hidden':''}">
+      <div style="margin-bottom:8px">${dimRows}</div>
+      <label style="font:700 11px/1 var(--font);text-transform:uppercase;letter-spacing:.05em;color:var(--mute)">Điểm mạnh hôm nay (tick 1-3)</label>
+      <div class="chips" style="margin-bottom:12px">${chips}</div>
+      <div class="ln">
+        <label style="color:#b8860b">⭐ Quan sát cụ thể (QUAN TRỌNG NHẤT)</label>
+        <textarea class="input gold" id="sc-obs" placeholder="VD: Bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần khi sai">${esc(rec.observation)}</textarea>
+        <div class="hint">Càng cụ thể → tin nhắn càng "đắt". Tránh viết chung chung như "bé ngoan".</div>
+      </div>
+      <div class="ln"><label>Điểm cố gắng (tuỳ chọn)</label>
+        <textarea class="input" id="sc-effort" placeholder="VD: tập đếm to thành tiếng dù còn ngại">${esc(rec.effort)}</textarea></div>
+      <div class="field" style="margin-bottom:14px"><label>Tâm trạng</label>
+        <select class="input" id="sc-mood">${Object.entries(MOODS).map(([k,v])=>`<option value="${k}" ${rec.mood===k?'selected':''}>${v}</option>`).join('')}</select></div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:6px">
+      <button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="CTRC.saveScore()">Lưu & sinh nháp</button>
+    </div>`);
+}
+function setScore(k,n){ SCORE.rec.scores_5d[k]=n; renderScore(); }
+function toggleStrength(idx){
+  const arr = SCORE.rec.strengths||(SCORE.rec.strengths=[]);
+  const i = arr.indexOf(idx);
+  if (i>=0) arr.splice(i,1);
+  else { if (arr.length>=3){ toast('Tối đa 3 điểm mạnh','var(--primary-2)'); return; } arr.push(idx); }
+  renderScore();
+}
+function setAttendance(a){ SCORE.rec.attendance=a; renderScore(); }
+
+async function saveScore(){
+  const rec = SCORE.rec, stu = SCORE.stu;
+  const existed = await DB.getRecord(GV.session.id, stu.id);
+  // chặn ghi đè tin đã duyệt/đã gửi (SO_TAY mục 7)
+  if (existed){
+    const pm = await DB.getMessage(existed.id);
+    if (pm && ['approved','sent'].includes(pm.status)){
+      toast('Buổi này đã được CSKH duyệt — liên hệ CSKH để mở lại','var(--primary-2)');
+      return;
+    }
+  }
+  if (rec.attendance==='present'){
+    rec.observation = $('#sc-obs').value.trim();
+    rec.effort = $('#sc-effort').value.trim();
+    rec.mood = $('#sc-mood').value;
+  }
+  const saved = await DB.saveRecord({
+    session_id: GV.session.id, student_id: stu.id, attendance: rec.attendance,
+    scores_5d: rec.scores_5d, strengths: rec.strengths, observation: rec.observation,
+    effort: rec.effort, mood: rec.mood, created_by: STAFF.id,
+  });
+  await DB.audit(CENTER.id, STAFF, 'score', 'record', saved.id, {student:stu.name});
+
+  if (rec.attendance==='absent'){
+    toast('✓ Đã ghi nhận bé nghỉ'); closeModal(); loadRoster(); return;
+  }
+
+  // đếm buổi (chỉ khi lần đầu present cho session này)
+  if (!existed || existed.attendance!=='present'){
+    await DB.softUpdateSessionCount(stu.id, +1).catch(()=>{});
+  }
+
+  // sinh nháp bằng engine (idempotent theo record)
+  await generateForRecord(saved, stu);
+  toast('✓ Đã lưu & sinh nháp → chuyển CSKH');
+  closeModal(); loadRoster();
+}
+
+/* sinh nội dung cho 1 record + lưu message */
+async function generateForRecord(rec, stu){
+  const theme = await DB.getThemeFor(CENTER.id, GV.date);
+  const profile = await DB.getProfile(stu.id);
+  const strengths = await DB.listStrengths(CENTER.id);
+  const recent = await DB.recentFeaturedStrengths(stu.id, 5);
+  const out = ENG.generate({
+    student: stu, record: rec, strengths,
+    theme, profile: (profile && profile.status==='active') ? profile : null,
+    recentFeatured: recent, date: GV.date,
+  });
+  await DB.saveMessage({
+    record_id: rec.id, student_id: stu.id, status:'waiting_cs', source:'engine',
+    diem_manh: out.diem_manh, co_gang: out.co_gang, goi_y: out.goi_y,
+    ai_draft: {diem_manh:out.diem_manh,co_gang:out.co_gang,goi_y:out.goi_y},
+    featured_strength: out.featured_strength,
+  });
+  await DB.audit(CENTER.id, STAFF, 'generate', 'message', rec.id, {student:stu.name, source:'engine'});
+  // kích hoạt hồ sơ sau ≥3 buổi
+  await maybeDraftProfile(stu);
+}
+
+async function maybeDraftProfile(stu){
+  const prof = await DB.getProfile(stu.id);
+  if (prof && prof.status==='active') return;
+  // gom tất cả record present của bé
+  const allSessions = await DB._allSessionsOfStudent(stu.id);
+  if (allSessions.length < 3) {
+    if (!prof) await DB.saveProfile({student_id:stu.id, status:'observing'});
+    return;
+  }
+  const inferred = ENG.inferProfile(allSessions);
+  await DB.saveProfile({
+    student_id: stu.id, status:'draft', introversion: inferred.introversion,
+    learning_style: inferred.learning_style, concerns: inferred.concerns,
+    baseline_5d: inferred.baseline_5d, summary: inferred.summary, generated_at: new Date().toISOString(),
+  });
+  await DB.audit(CENTER.id, STAFF, 'profile_draft','profile',stu.id,{student:stu.name});
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CSKH — HÀNG ĐỢI
+   ═══════════════════════════════════════════════════════════ */
+let Q = { tab:'pending' };
+async function viewQueue(){
+  view.innerHTML = `
+    <h2 class="h-title">Hàng đợi báo cáo</h2>
+    <p class="h-sub">Duyệt nháp AI, sửa nếu cần, rồi Copy gửi Zalo cho phụ huynh.</p>
+    <div class="row" style="margin-bottom:8px">
+      ${[['pending','Chờ duyệt'],['approved','Đã duyệt'],['sent','Đã gửi'],['error','Lỗi']].map(([k,l])=>
+        `<button class="btn sm ${Q.tab===k?'primary':''}" onclick="CTRC.qTab('${k}')">${l}</button>`).join('')}
+    </div>
+    <div id="q-list" class="roster"></div>`;
+  loadQueue();
+}
+function qTab(t){ Q.tab=t; viewQueue(); }
+async function loadQueue(){
+  const box=$('#q-list'); if(!box)return; box.innerHTML='<p style="color:var(--mute)">Đang tải…</p>';
+  const all = await DB.listMessages(CENTER.id);
+  const filt = {
+    pending: m=>['waiting_cs','cs_editing','ai_writing'].includes(m.status),
+    approved: m=>m.status==='approved', sent: m=>m.status==='sent', error: m=>m.status==='error',
+  }[Q.tab];
+  const list = all.filter(filt);
+  const rows = await Promise.all(list.map(async m=>{
+    const stu = await DB.getStudent(m.student_id);
+    const st = STATUS[m.status];
+    return `<div class="stu-row" onclick="CTRC.openMsg('${m.id}')">
+      <span class="av">${AV(stu?stu.gender:'')}</span>
+      <span class="nm">${esc(stu?stu.name:'?')}<small>${esc((m.diem_manh||'').slice(0,60))}…</small></span>
+      <span class="badge ${st[1]}">${st[0]}</span></div>`;
+  }));
+  box.innerHTML = rows.join('') || '<p style="color:var(--mute)">Không có tin nào ở mục này.</p>';
+}
+
+let MSG = null;
+async function openMsg(id){
+  const m = await DB.getMessageById(id);
+  const stu = await DB.getStudent(m.student_id);
+  // ngày buổi học thật (từ record→session)
+  let date = todayStr();
+  try { const rec = await DB._getRecordById(m.record_id); if(rec){ const ses = await DB._getSessionById(rec.session_id); if(ses) date = ses.date; } } catch(_){}
+  MSG = { m, stu, date };
+  if (m.status==='waiting_cs'){
+    try { const upd = await DB.updateMessageGuarded(m.id, m.version, {status:'cs_editing', lock_owner:STAFF.id, lock_at:new Date().toISOString()}); MSG.m = upd; }
+    catch(e){ toast(e.message,'var(--primary-2)'); }
+  } else if (m.status==='cs_editing' && m.lock_owner && m.lock_owner!==STAFF.id){
+    const mins = m.lock_at ? Math.round((Date.now()-new Date(m.lock_at))/60000) : 99;
+    if (mins<5) toast('⚠ Tin đang được thành viên khác mở sửa','var(--primary-2)');
+  }
+  renderMsg();
+}
+function renderMsg(){
+  const {m, stu} = MSG;
+  const ai = m.ai_draft || {};
+  const approved = ['approved','sent'].includes(m.status);
+  const aiBtn = CFG.edgeFnUrl ? `<button class="btn sm" onclick="CTRC.genAI()">✨ Sinh bằng AI</button>` : '';
+  modal(`
+    <h3>${AV(stu.gender)} ${esc(stu.name)} — ${ENG.fmtDate(MSG_DATE())}</h3>
+    <div class="editor">
+      <div>
+        <label class="ln" style="display:block">Nháp tham khảo (${esc(m.source)})</label>
+        <div class="draft-box">
+          <div class="ln"><b>👍 Điểm mạnh:</b> ${esc(ai.diem_manh||m.diem_manh)}</div>
+          <div class="ln"><b>🎯 Cố gắng:</b> ${esc(ai.co_gang||m.co_gang)}</div>
+          <div><b>🏠 Gợi ý:</b> ${esc(ai.goi_y||m.goi_y)}</div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn sm" onclick="CTRC.regen()">↻ Sinh lại (engine)</button>
+          <button class="btn sm" onclick="CTRC.pasteAI()">📋 Dán nháp AI</button>
+          ${aiBtn}
+        </div>
+      </div>
+      <div>
+        <div class="ln"><label>👍 Điểm mạnh hôm nay</label>
+          <textarea class="input" id="m-dm" ${approved?'disabled':''} oninput="CTRC.voiceCheck()">${esc(m.diem_manh)}</textarea></div>
+        <div class="ln"><label>🎯 Điểm cố gắng</label>
+          <textarea class="input" id="m-cg" ${approved?'disabled':''} oninput="CTRC.voiceCheck()">${esc(m.co_gang)}</textarea></div>
+        <div class="ln"><label>🏠 Gợi ý ở nhà</label>
+          <textarea class="input" id="m-gy" ${approved?'disabled':''} oninput="CTRC.voiceCheck()">${esc(m.goi_y)}</textarea></div>
+        <div id="voice-warn" class="voice-warn"></div>
+      </div>
+    </div>
+    <div id="approve-zone">${approved?renderCopyZone():`
+      <div class="row" style="justify-content:flex-end;margin-top:14px">
+        <button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button>
+        <button class="btn green" onclick="CTRC.approve()">✓ Duyệt</button>
+      </div>`}</div>
+  `);
+  voiceCheck();
+}
+function MSG_DATE(){ return (MSG && MSG.date) || todayStr(); }
+
+function readEdits(){
+  return { diem_manh:$('#m-dm').value.trim(), co_gang:$('#m-cg').value.trim(), goi_y:$('#m-gy').value.trim() };
+}
+function voiceCheck(){
+  const w=$('#voice-warn'); if(!w)return;
+  const all = [$('#m-dm'),$('#m-cg'),$('#m-gy')].map(e=>e?e.value:'').join(' ');
+  const r = ENG.checkVoice(all);
+  w.textContent = r.ok ? '' : '⚠ Có từ nên tránh theo giọng thương hiệu: '+r.banned.join(', ');
+}
+async function regen(){
+  const rec = await DB._getRecordById(MSG.m.record_id);
+  const stu = MSG.stu;
+  const theme = await DB.getThemeFor(CENTER.id, todayStr());
+  const profile = await DB.getProfile(stu.id);
+  const strengths = await DB.listStrengths(CENTER.id);
+  const recent = await DB.recentFeaturedStrengths(stu.id,5);
+  const out = ENG.generate({student:stu,record:rec,strengths,theme,profile:(profile&&profile.status==='active')?profile:null,recentFeatured:recent,date:todayStr()});
+  Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang,goi_y:out.goi_y,ai_draft:out,source:'engine',featured_strength:out.featured_strength});
+  renderMsg(); toast('↻ Đã sinh lại bằng engine');
+}
+function pasteAI(){
+  modal(`<h3>Dán nháp từ Claude.ai / ChatGPT</h3>
+    <p class="h-sub">Dán nguyên đoạn. Hệ thống tự tách 3 dòng nếu thấy "Điểm mạnh/Cố gắng/Gợi ý"; nếu không, dán vào ô đang chọn.</p>
+    <textarea class="input" id="paste-src" style="min-height:160px"></textarea>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn ghost" onclick="CTRC.renderMsg()">Huỷ</button>
+      <button class="btn primary" onclick="CTRC.applyPaste()">Áp dụng</button>
+    </div>`);
+}
+function applyPaste(){
+  const src = $('#paste-src').value;
+  const grab = (re)=>{ const m=src.match(re); return m?m[1].trim():''; };
+  const dm = grab(/(?:điểm mạnh|👍)[:\-–]?\s*([\s\S]*?)(?:\n.*?(?:cố gắng|🎯)|$)/i);
+  const cg = grab(/(?:cố gắng|🎯)[:\-–]?\s*([\s\S]*?)(?:\n.*?(?:gợi ý|🏠)|$)/i);
+  const gy = grab(/(?:gợi ý|🏠)[:\-–]?\s*([\s\S]*?)$/i);
+  if (dm||cg||gy){
+    Object.assign(MSG.m,{diem_manh:dm||MSG.m.diem_manh,co_gang:cg||MSG.m.co_gang,goi_y:gy||MSG.m.goi_y,ai_draft:{diem_manh:dm,co_gang:cg,goi_y:gy},source:'ai'});
+    renderMsg(); toast('✓ Đã tách & áp nháp AI');
+  } else {
+    MSG.m.diem_manh = src.trim(); MSG.m.source='ai'; renderMsg();
+    toast('Đã dán vào ô Điểm mạnh (không thấy nhãn 3 dòng)','var(--primary-2)');
+  }
+}
+async function genAI(){
+  if (!CFG.edgeFnUrl) return;
+  toast('✨ Đang gọi AI…','var(--blue)');
+  try {
+    const rec = await DB._getRecordById(MSG.m.record_id);
+    const stu = MSG.stu;
+    const theme = await DB.getThemeFor(CENTER.id, todayStr());
+    const profile = await DB.getProfile(stu.id);
+    const strengths = await DB.listStrengths(CENTER.id);
+    const res = await fetch(CFG.edgeFnUrl,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({student:stu,record:rec,theme,profile,strengths,center:CENTER})});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const out = await res.json();
+    if(!out.diem_manh) throw new Error('Phản hồi AI thiếu nội dung');
+    Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang,goi_y:out.goi_y,ai_draft:out,source:'ai'});
+    renderMsg(); toast('✨ AI đã viết xong');
+  } catch(e){ toast('Lỗi AI: '+e.message+' — giữ nháp engine','var(--primary-2)'); }
+}
+async function approve(){
+  const edits = readEdits();
+  if(!edits.diem_manh||!edits.co_gang||!edits.goi_y){ toast('Cần đủ 3 dòng trước khi duyệt','var(--primary-2)'); return; }
+  try {
+    const upd = await DB.updateMessageGuarded(MSG.m.id, MSG.m.version, Object.assign({
+      status:'approved', approved_by:STAFF.id, approved_at:new Date().toISOString(), edited_by:STAFF.id,
+    }, edits));
+    MSG.m = upd;
+    // token phụ huynh
+    let tok = await DB.getExistingToken(MSG.m.id);
+    if(!tok){ const t = await DB.createParentToken(MSG.m.id); tok={token:t}; }
+    MSG.token = tok.token;
+    await DB.audit(CENTER.id, STAFF, 'approve','message',MSG.m.id,{student:MSG.stu.name});
+    $('#approve-zone').innerHTML = renderCopyZone();
+    toast('✓ Đã duyệt — bấm Copy để gửi Zalo');
+  } catch(e){ toast(e.message,'var(--primary-2)'); }
+}
+function renderCopyZone(){
+  const link = parentBase()+'#t='+(MSG.token||'');
+  const block = ENG.composeZalo(MSG.stu, MSG_DATE(), MSG.m, link);
+  return `
+    <div class="copy-block" id="copy-src">${esc(block)}</div>
+    <div class="linkbox"><input class="input" id="p-link" readonly value="${esc(link)}">
+      <button class="btn sm" onclick="CTRC.copyLink()">Copy link</button></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn primary" onclick="CTRC.copyBlock()">📋 Copy nội dung</button>
+      ${MSG.m.status!=='sent'?`<button class="btn green" onclick="CTRC.markSent()">✓ Đánh dấu đã gửi</button>`:'<span class="badge b-sent">Đã gửi PH</span>'}
+    </div>`;
+}
+async function copyBlock(){
+  const link = parentBase()+'#t='+(MSG.token||'');
+  const block = ENG.composeZalo(MSG.stu, MSG_DATE(), MSG.m, link);
+  try { await navigator.clipboard.writeText(block); toast('📋 Đã copy — dán vào Zalo phụ huynh'); }
+  catch(_){ toast('Trình duyệt chặn clipboard — copy thủ công trong khung','var(--primary-2)'); }
+}
+async function copyLink(){
+  try { await navigator.clipboard.writeText($('#p-link').value); toast('📋 Đã copy link'); } catch(_){}
+}
+async function markSent(){
+  try {
+    const upd = await DB.updateMessageGuarded(MSG.m.id, MSG.m.version, {status:'sent', sent_at:new Date().toISOString()});
+    MSG.m = upd;
+    await DB.audit(CENTER.id, STAFF, 'send','message',MSG.m.id,{student:MSG.stu.name});
+    $('#approve-zone').innerHTML = renderCopyZone();
+    toast('✓ Đã đánh dấu gửi xong'); loadQueue();
+  } catch(e){ toast(e.message,'var(--primary-2)'); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MANAGER — TỔNG QUAN / HỒ SƠ / CẤU HÌNH / NHẬT KÝ
+   ═══════════════════════════════════════════════════════════ */
+async function viewOverview(){
+  const students = await DB.listStudents(CENTER.id);
+  const msgs = await DB.listMessages(CENTER.id);
+  const profiles = await DB.listProfiles(CENTER.id,'draft');
+  const today = todayStr();
+  const pending = msgs.filter(m=>['waiting_cs','cs_editing'].includes(m.status)).length;
+  const sentToday = msgs.filter(m=>m.status==='sent' && (m.sent_at||'').slice(0,10)===today).length;
+  view.innerHTML = `
+    <h2 class="h-title">Tổng quan</h2>
+    <p class="h-sub">Trung tâm ${esc(CENTER.name)} · ${ENG.fmtDate(today)}</p>
+    <div class="kpis">
+      <div class="kpi"><div class="n">${students.length}</div><div class="l">Bé đang học</div></div>
+      <div class="kpi"><div class="n">${pending}</div><div class="l">Tin chờ CSKH duyệt</div></div>
+      <div class="kpi"><div class="n">${sentToday}</div><div class="l">Đã gửi PH hôm nay</div></div>
+      <div class="kpi"><div class="n">${profiles.length}</div><div class="l">Hồ sơ chờ duyệt</div></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Pipeline tin nhắn gần đây</b>
+      <table class="tb" style="margin-top:10px"><thead><tr><th>Bé</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead>
+      <tbody>${msgs.slice(0,10).map(m=>{const st=STATUS[m.status];const stu=students.find(s=>s.id===m.student_id);
+        return `<tr><td>${esc(stu?stu.name:'?')}</td><td><span class="badge ${st[1]}">${st[0]}</span></td><td>${fmtTime(m.updated_at)}</td></tr>`;}).join('')||'<tr><td colspan=3 style="color:var(--mute)">Chưa có tin.</td></tr>'}</tbody></table>
+    </div>`;
+}
+function fmtTime(iso){ if(!iso)return''; const d=new Date(iso); return d.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+
+async function viewProfiles(){
+  const profiles = await DB.listProfiles(CENTER.id);
+  const students = await DB.listStudents(CENTER.id);
+  const sMap={}; students.forEach(s=>sMap[s.id]=s);
+  const STL={visual:'Thị giác',auditory:'Thính giác',kinesthetic:'Vận động',mixed:'Hỗn hợp'};
+  const INT={introvert:'Hướng nội',extrovert:'Hướng ngoại',balanced:'Cân bằng'};
+  const PST={observing:['Đang quan sát','b-wait'],draft:['Hồ sơ nháp','b-edit'],active:['Đã duyệt','b-ok']};
+  view.innerHTML = `
+    <h2 class="h-title">Hồ sơ tính cách bé</h2>
+    <p class="h-sub">AI sinh nháp sau ≥3 buổi. Manager duyệt trước khi áp dụng để cá nhân hoá tin nhắn.</p>
+    <div class="grid">${students.map(s=>{
+      const p = profiles.find(x=>x.student_id===s.id) || {status:'observing'};
+      const st = PST[p.status]||PST.observing;
+      return `<div class="card">
+        <div class="row" style="justify-content:space-between">
+          <b style="font:700 15px/1 var(--font)">${AV(s.gender)} ${esc(s.name)}</b>
+          <span class="badge ${st[1]}">${st[0]}</span></div>
+        ${p.status==='observing'?`<p class="hint" style="margin-top:8px">Bé đã đi ${s.session_count||0} buổi — cần ≥3 buổi để sinh hồ sơ. AI viết giọng trung tính trong giai đoạn này.</p>`:`
+          <p style="margin:8px 0;font:500 12.5px/1.6 var(--font);color:var(--ink-soft)">${esc(p.summary||'')}</p>
+          <div class="hint">Tính cách: <b>${INT[p.introversion]||'?'}</b> · Kiểu học: <b>${STL[p.learning_style]||'?'}</b>${(p.concerns||[]).length?' · Theo dõi: '+esc((p.concerns||[]).join('; ')):''}</div>
+          ${p.status==='draft'?`<div class="row" style="margin-top:12px"><button class="btn green sm" onclick="CTRC.approveProfile('${s.id}')">✓ Duyệt hồ sơ</button><button class="btn sm" onclick="CTRC.editProfile('${s.id}')">Sửa</button></div>`:''}
+        `}
+      </div>`;
+    }).join('')}</div>`;
+}
+async function approveProfile(studentId){
+  const p = await DB.getProfile(studentId);
+  if(!p) return;
+  await DB.saveProfile({student_id:studentId, status:'active', approved_by:STAFF.id, approved_at:new Date().toISOString()});
+  const stu = await DB.getStudent(studentId);
+  await DB.audit(CENTER.id, STAFF, 'profile_approve','profile',studentId,{student:stu.name});
+  toast('✓ Đã duyệt hồ sơ — AI sẽ dùng để cá nhân hoá'); viewProfiles();
+}
+async function editProfile(studentId){
+  const p = await DB.getProfile(studentId);
+  modal(`<h3>Sửa hồ sơ</h3>
+    <div class="field" style="margin-bottom:10px"><label>Tính cách</label>
+      <select class="input" id="ep-int">${Object.entries({introvert:'Hướng nội',extrovert:'Hướng ngoại',balanced:'Cân bằng'}).map(([k,v])=>`<option value="${k}" ${p.introversion===k?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="field" style="margin-bottom:10px"><label>Kiểu học</label>
+      <select class="input" id="ep-stl">${Object.entries({visual:'Thị giác',auditory:'Thính giác',kinesthetic:'Vận động',mixed:'Hỗn hợp'}).map(([k,v])=>`<option value="${k}" ${p.learning_style===k?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="ln"><label>Tóm tắt</label><textarea class="input" id="ep-sum">${esc(p.summary||'')}</textarea></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button><button class="btn primary" onclick="CTRC.saveEditProfile('${studentId}')">Lưu</button></div>`);
+}
+async function saveEditProfile(studentId){
+  await DB.saveProfile({student_id:studentId, introversion:$('#ep-int').value, learning_style:$('#ep-stl').value, summary:$('#ep-sum').value.trim()});
+  toast('✓ Đã lưu hồ sơ'); closeModal(); viewProfiles();
+}
+
+async function viewConfig(){
+  const themes = await DB.listThemes(CENTER.id);
+  const strengths = await DB.listStrengths(CENTER.id);
+  view.innerHTML = `
+    <h2 class="h-title">Cấu hình trung tâm</h2>
+    <p class="h-sub">Chủ đề tuần (Lớp 2 cá nhân hoá) · 10 điểm mạnh mẫu · lời nhắn kết.</p>
+    <div class="card" style="margin-bottom:14px">
+      <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Chủ đề tuần</b>
+      <div class="row" style="margin:10px 0">
+        <div class="field"><label>Tuần (thứ 2)</label><input type="date" id="th-week" value="${DB._mondayOf(new Date())}"></div>
+        <div class="field" style="flex:1;min-width:200px"><label>Tiêu đề chủ đề</label><input class="input" id="th-title" placeholder="VD: Ghép hình & nhận biết hình khối"></div>
+        <button class="btn primary sm" style="align-self:flex-end" onclick="CTRC.addTheme()">+ Thêm</button>
+      </div>
+      <table class="tb"><thead><tr><th>Tuần</th><th>Chủ đề</th></tr></thead><tbody>
+        ${themes.map(t=>`<tr><td>${esc(t.week_start)}</td><td>${esc(t.title)}</td></tr>`).join('')||'<tr><td colspan=2 style="color:var(--mute)">Chưa có.</td></tr>'}</tbody></table>
+    </div>
+    <div class="card">
+      <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">10 điểm mạnh mẫu</b>
+      <div class="chips" style="margin-top:10px">${strengths.map(s=>`<span class="chip">${s.idx}. ${esc(s.label)}</span>`).join('')}</div>
+    </div>`;
+}
+async function addTheme(){
+  const week=$('#th-week').value, title=$('#th-title').value.trim();
+  if(!title){ toast('Nhập tiêu đề chủ đề','var(--primary-2)'); return; }
+  await DB.addTheme({center_id:CENTER.id, week_start:week, title});
+  await DB.audit(CENTER.id, STAFF, 'add_theme','theme',null,{title});
+  toast('✓ Đã thêm chủ đề tuần'); viewConfig();
+}
+
+async function viewAudit(){
+  const logs = await DB.listAudit(CENTER.id, 80);
+  const A={login:'Đăng nhập',score:'Chấm điểm',generate:'Sinh nháp',approve:'Duyệt tin',send:'Gửi PH',profile_draft:'Sinh hồ sơ',profile_approve:'Duyệt hồ sơ',add_theme:'Thêm chủ đề'};
+  view.innerHTML = `
+    <h2 class="h-title">Nhật ký hệ thống</h2>
+    <p class="h-sub">Mọi thao tác có truy vết (NĐ 13/2023). ${logs.length} bản ghi gần nhất.</p>
+    <div class="card"><table class="tb"><thead><tr><th>Thời gian</th><th>Người</th><th>Hành động</th><th>Chi tiết</th></tr></thead>
+    <tbody>${logs.map(l=>`<tr><td>${fmtTime(l.created_at)}</td><td>${esc(l.actor_name||'?')}</td><td>${A[l.action]||l.action}</td><td style="color:var(--mute)">${esc(JSON.stringify(l.meta||{}).slice(0,60))}</td></tr>`).join('')||'<tr><td colspan=4 style="color:var(--mute)">Chưa có log.</td></tr>'}</tbody></table></div>`;
+}
+
+/* ── export API ── */
+window.CTRC = {
+  login, logout, go, closeModal,
+  openScore, setScore, toggleStrength, setAttendance, saveScore,
+  qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck,
+  approveProfile, editProfile, saveEditProfile, addTheme,
+};
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Báo cáo của bé · WonderKids</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23f3811f'/><text x='32' y='44' font-size='30' text-anchor='middle'>🧸</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font:'Be Vietnam Pro',system-ui,sans-serif;
+  --font-d:'Baloo 2','Be Vietnam Pro',system-ui,sans-serif;
+  --primary:#f3811f; --primary-2:#e94e1b; --ink:#3a2e22; --ink-soft:#6b5a48; --mute:#a4886a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:var(--font);color:var(--ink);
+  background:radial-gradient(circle at 50% 0%,#fff3e0,#fff7ec 60%)}
+.wrap{max-width:560px;margin:0 auto;padding:22px 18px 40px}
+.head{text-align:center;padding:18px 0 8px}
+.head .center{font:800 22px/1.2 var(--font-d);color:var(--primary-2)}
+.head .tag{font:600 12px/1.4 var(--font);color:var(--mute);margin-top:2px}
+.card{background:#fffdf9;border:1px solid #f0e0cc;border-radius:20px;padding:22px;box-shadow:0 8px 30px rgba(233,78,27,.1)}
+.kid{text-align:center;margin-bottom:18px}
+.kid .em{font-size:48px}
+.kid h1{font:800 21px/1.2 var(--font-d);color:var(--ink);margin:6px 0 2px}
+.kid .meta{font:600 12.5px/1.5 var(--font);color:var(--mute)}
+.sect{border-radius:16px;padding:16px 18px;margin-bottom:13px}
+.sect .t{display:flex;align-items:center;gap:8px;font:800 13px/1 var(--font-d);margin-bottom:7px}
+.sect p{margin:0;font:500 14px/1.65 var(--font);color:var(--ink)}
+.s-strong{background:#f1fae8;border:1px solid #cfe9ad} .s-strong .t{color:#4a901f}
+.s-effort{background:#fff7e0;border:1px solid #f3e1a8} .s-effort .t{color:#b5860c}
+.s-tip{background:#eaf3fb;border:1px solid #c4ddf2} .s-tip .t{color:#2f6ea0}
+.closing{text-align:center;font:600 13px/1.7 var(--font);color:var(--ink-soft);margin:20px 6px 0;font-style:italic}
+.foot{text-align:center;font:500 10.5px/1.6 var(--font);color:var(--mute);margin-top:22px;padding-top:14px;border-top:1px dashed #e8d8c2}
+.state{text-align:center;padding:60px 20px;color:var(--ink-soft)}
+.state .em{font-size:54px} .state h2{font:800 19px/1.3 var(--font-d);color:var(--primary-2);margin:12px 0 6px}
+.state p{font:500 13px/1.6 var(--font);color:var(--mute);margin:0}
+</style>
+</head>
+<body>
+<div class="wrap" id="root">
+  <div class="state"><div class="em">⏳</div><h2>Đang tải báo cáo…</h2></div>
+</div>
+
+<script src="config.js"></script>
+<script src="db.js"></script>
+<script>
+const DB = window.CTRC_DB;
+const root = document.getElementById('root');
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate = d => { if(!d) return ''; const p=String(d).slice(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d; };
+
+function getToken(){
+  const h = location.hash.replace(/^#/,'');
+  const m = h.match(/t=([^&]+)/);
+  if (m) return decodeURIComponent(m[1]);
+  const q = new URLSearchParams(location.search);
+  return q.get('t') || '';
+}
+function stateView(em,h,p){
+  root.innerHTML = `<div class="state"><div class="em">${em}</div><h2>${h}</h2><p>${p}</p></div>`;
+}
+
+async function load(){
+  const token = getToken();
+  if (!token){ stateView('🔗','Liên kết không hợp lệ','Vui lòng mở đúng đường link trong tin nhắn Zalo.'); return; }
+  try { await DB.init(); }
+  catch(e){ stateView('📡','Không kết nối được','Vui lòng thử lại sau ít phút.'); return; }
+  let r;
+  try { r = await DB.parentReport(token); }
+  catch(e){ stateView('⚠️','Có lỗi xảy ra','Vui lòng thử lại sau.'); return; }
+  if (!r || r.error){
+    const msg = {not_found:['🔍','Không tìm thấy báo cáo','Liên kết có thể đã sai. Liên hệ trung tâm để được hỗ trợ.'],
+      expired:['⌛','Liên kết đã hết hạn','Báo cáo chỉ xem được trong 30 ngày. Liên hệ trung tâm nếu cần.'],
+      not_ready:['✍️','Báo cáo đang hoàn thiện','Vui lòng quay lại sau ít phút nhé.']}[(r&&r.error)||'not_found'];
+    stateView(msg[0],msg[1],msg[2]); return;
+  }
+  render(r);
+}
+
+function render(r){
+  const brand = r.brand_color || '#f3811f';
+  document.documentElement.style.setProperty('--primary', brand);
+  root.innerHTML = `
+    <div class="head">
+      <div class="center">${esc(r.center_name||'WonderKids')}</div>
+      ${r.tagline?`<div class="tag">${esc(r.tagline)}</div>`:''}
+    </div>
+    <div class="card">
+      <div class="kid">
+        <div class="em">🧸</div>
+        <h1>${esc(r.student_name)}</h1>
+        <div class="meta">Buổi học ngày ${esc(fmtDate(r.date))}${r.theme?` · ${esc(r.theme)}`:''}</div>
+      </div>
+      <div class="sect s-strong"><div class="t">👍 Điểm mạnh hôm nay</div><p>${esc(r.diem_manh)}</p></div>
+      <div class="sect s-effort"><div class="t">🎯 Điểm cố gắng</div><p>${esc(r.co_gang)}</p></div>
+      <div class="sect s-tip"><div class="t">🏠 Gợi ý ở nhà</div><p>${esc(r.goi_y)}</p></div>
+      <div class="closing">${esc(r.closing_line||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.')}</div>
+    </div>
+    <div class="foot">
+      Báo cáo riêng cho phụ huynh ${esc(r.student_name)} · ${esc(r.center_name||'WonderKids')}<br>
+      Dữ liệu được bảo vệ theo Nghị định 13/2023/NĐ-CP · Liên kết tự hết hạn sau 30 ngày.
+    </div>`;
+}
+load();
+window.addEventListener('hashchange', load);
+</script>
+</body>
+</html>
