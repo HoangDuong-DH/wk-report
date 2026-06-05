@@ -41,6 +41,9 @@ input,select,textarea{font-family:inherit}
 .nav button:hover{background:var(--pill);color:var(--primary-2)}
 .nav button.active{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
 .spacer{flex:1}
+.topbar-gear{border:1px solid var(--line);background:#fff;color:var(--ink-soft);font:700 12px/1 var(--font);
+  padding:7px 11px;border-radius:9px;margin-right:8px;white-space:nowrap}
+.topbar-gear:hover{border-color:var(--primary);color:var(--primary-2)}
 .userchip{display:flex;align-items:center;gap:2px;background:var(--cream);border:1px solid var(--line);
   padding:3px 4px 3px 4px;border-radius:99px;font:700 12px/1 var(--font)}
 .userchip .uc-switch{display:flex;align-items:center;gap:8px;border:none;background:transparent;
@@ -191,6 +194,7 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
     </a>
     <div class="nav" id="nav"></div>
     <div class="spacer"></div>
+    <button class="topbar-gear" onclick="CTRC.openAIConfig()" title="Cấu hình AI (model + API)">⚙ AI</button>
     <div class="userchip">
       <button class="uc-switch" onclick="CTRC.toggleAccountMenu(event)" title="Đổi tài khoản / vai trò">
         <span id="uc-name">—</span>
@@ -948,12 +952,24 @@ async function viewConfig(){
       <div class="chips" style="margin-top:10px">${strengths.map(s=>`<span class="chip">${s.idx}. ${esc(s.label)}</span>`).join('')}</div>
     </div>`;
   AICFG = AI.get();
-  renderAICard();
+  renderAICard('#ai-card-wrap');
+}
+
+/* Mở cấu hình AI dạng popup — cho MỌI vai trò (nút ⚙ AI trên thanh trên) */
+function openAIConfig(){
+  AICFG = AI.get();
+  modal(`<h3>⚙ Cấu hình AI</h3>
+    <p class="h-sub" style="margin:-4px 0 10px">Chọn model + cách kết nối. Engine offline vẫn luôn chạy nếu không cấu hình.</p>
+    <div id="ai-modal-wrap"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button></div>`);
+  renderAICard('#ai-modal-wrap');
 }
 
 /* ── Card cấu hình AI ── */
-function renderAICard(){
-  const wrap = $('#ai-card-wrap'); if(!wrap) return;
+let AI_TARGET = '#ai-card-wrap';
+function renderAICard(sel){
+  if (sel) AI_TARGET = sel;
+  const wrap = $(AI_TARGET); if(!wrap) return;
   const c = AICFG;
   const usable = c.mode==='edge' ? !!c.edgeFnUrl : !!c.apiKey;
   wrap.innerHTML = `
@@ -1004,14 +1020,16 @@ function renderAICard(){
     </div>`;
 }
 function aiReadForm(){
-  const has=id=>$('#'+id), val=id=>{const e=$('#'+id);return e?e.value:undefined;};
-  const m=(document.querySelector('input[name="ai-mode"]:checked')||{}).value; if(m) AICFG.mode=m;
-  if(has('ai-provider')) AICFG.provider=val('ai-provider');
-  if(has('ai-edge')) AICFG.edgeFnUrl=val('ai-edge').trim();
-  if(has('ai-key')) AICFG.apiKey=val('ai-key').trim();
-  if(has('ai-base')) AICFG.baseUrl=val('ai-base').trim();
-  if(has('ai-model')) AICFG.model=val('ai-model').trim();
-  if(has('ai-maxtok')) AICFG.maxTokens=+val('ai-maxtok')||600;
+  const root = $(AI_TARGET) || document;     // đọc trong đúng container (tab hoặc modal)
+  const el=id=>root.querySelector('#'+id);
+  const val=id=>{const e=el(id);return e?e.value:undefined;};
+  const m=(root.querySelector('input[name="ai-mode"]:checked')||{}).value; if(m) AICFG.mode=m;
+  if(el('ai-provider')) AICFG.provider=val('ai-provider');
+  if(el('ai-edge')) AICFG.edgeFnUrl=val('ai-edge').trim();
+  if(el('ai-key')) AICFG.apiKey=val('ai-key').trim();
+  if(el('ai-base')) AICFG.baseUrl=val('ai-base').trim();
+  if(el('ai-model')) AICFG.model=val('ai-model').trim();
+  if(el('ai-maxtok')) AICFG.maxTokens=+val('ai-maxtok')||600;
 }
 function aiSetMode(mode){ aiReadForm(); AICFG.mode=mode; renderAICard(); }
 async function aiLoadModels(){
@@ -1071,7 +1089,7 @@ window.CTRC = {
   openScore, setScore, toggleStrength, setAttendance, saveScore,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck,
   approveProfile, editProfile, saveEditProfile, addTheme,
-  aiSetMode, aiLoadModels, aiTest, aiSave,
+  aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig,
 };
 boot();
 </script>
