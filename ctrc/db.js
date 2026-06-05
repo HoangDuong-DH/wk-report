@@ -277,6 +277,16 @@
       const recs = await adapter.select('session_records', { student_id: studentId });
       return recs.filter((r) => r.attendance === 'present');
     },
+    /* các buổi của 1 bé trong khoảng ngày [from..to] (kèm .date) — cho báo cáo tuần */
+    async studentRecordsInRange(studentId, fromDate, toDate) {
+      const recs = await adapter.select('session_records', { student_id: studentId });
+      const out = [];
+      for (const r of recs) {
+        const ses = await this._getSessionById(r.session_id);
+        if (ses && ses.date >= fromDate && ses.date <= toDate) out.push(Object.assign({ date: ses.date }, r));
+      }
+      return out.sort((a, b) => (a.date < b.date ? -1 : 1));
+    },
     /* tăng/giảm bộ đếm buổi đã đi */
     async softUpdateSessionCount(studentId, delta) {
       const s = await this.getStudent(studentId);
@@ -415,7 +425,8 @@
       return {
         type: 'weekly',
         student_name: stu.name || '', date: w.sent_date || '',
-        book: w.book, week: w.week, lesson: w.lesson_snapshot || null,
+        range_from: w.range_from || w.sent_date, range_to: w.range_to || w.sent_date,
+        book: w.book, week: w.week, lesson: w.lesson_snapshot || null, summary: w.summary || null,
         class_comment: w.class_comment || '', child_comment: w.child_comment || '',
         center_name: center.name || 'WonderKids', tagline: center.tagline || '',
         brand_color: center.brand_color || '#f3811f',

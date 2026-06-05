@@ -198,14 +198,15 @@
     return { ok: hits.length === 0, banned: hits };
   }
 
-  /* Ghép khối Copy cho CSKH paste Zalo */
+  /* Ghép khối Copy cho CSKH paste Zalo. KHÔNG link (gui-phu-huynh.md);
+     chỉ thêm link nếu truyền vào (mặc định không). */
   function composeZalo(student, dateStr, msg, link) {
     return (
       `Báo cáo buổi ${fmtDate(dateStr)} của bé ${student.name}\n\n` +
       `👍 Điểm mạnh: ${msg.diem_manh}\n` +
       `🎯 Cố gắng: ${msg.co_gang}\n` +
-      `🏠 Gợi ý ở nhà: ${msg.goi_y}\n\n` +
-      (link ? `Xem chi tiết: ${link}` : '')
+      `🏠 Gợi ý ở nhà: ${msg.goi_y}` +
+      (link ? `\n\nXem chi tiết: ${link}` : '')
     ).trim();
   }
   function fmtDate(d) {
@@ -346,5 +347,64 @@
     };
   }
 
-  window.CTRC_ENGINE = { DIMS, generate, checkVoice, composeZalo, inferProfile, fmtDate, seedOf, suggestFromObservation, computeInsights };
+  /* ════════ BÁO CÁO TUẦN: gom các buổi của 1 bé → tổng hợp ════════
+     records: session_records của bé trong tuần (kèm .date). */
+  function weeklyDigest(records, strengthsBank) {
+    const present = (records || []).filter((r) => r.attendance === 'present');
+    const absent = (records || []).filter((r) => r.attendance === 'absent');
+    const cnt = {};
+    present.forEach((r) => (r.strengths || []).forEach((i) => (cnt[i] = (cnt[i] || 0) + 1)));
+    const topStrengths = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([i]) => ((strengthsBank || []).find((s) => s.idx === +i) || {}).label).filter(Boolean);
+    const highlights = present.map((r) => (r.observation || '').trim())
+      .filter((o) => o.split(/\s+/).length >= 4).slice(0, 3);
+    const avgs = present.map(avg5).filter((x) => x > 0);
+    const overall = avgs.length ? Math.round(avgs.reduce((a, b) => a + b, 0) / avgs.length * 10) / 10 : 0;
+    let trend = 0;
+    if (avgs.length >= 2) { const h = Math.floor(avgs.length / 2); const m = (a) => a.reduce((x, y) => x + y, 0) / a.length; trend = Math.round((m(avgs.slice(h)) - m(avgs.slice(0, h))) * 10) / 10; }
+    const dimSum = {}, dimCnt = {};
+    DIMS.forEach((d) => { dimSum[d.key] = 0; dimCnt[d.key] = 0; });
+    present.forEach((r) => DIMS.forEach((d) => { const v = +((r.scores_5d || {})[d.key]) || 0; if (v > 0) { dimSum[d.key] += v; dimCnt[d.key]++; } }));
+    const ranked = DIMS.filter((d) => dimCnt[d.key]).sort((a, b) => (dimSum[a.key] / dimCnt[a.key]) - (dimSum[b.key] / dimCnt[b.key]));
+    return {
+      sessions: present.length, absent: absent.length,
+      topStrengths, highlights, overall, trend,
+      weakest: ranked[0] || null, strongest: ranked[ranked.length - 1] || null,
+      moods: present.map((r) => r.mood),
+    };
+  }
+
+  /* dệt lời kể từ digest (offline, theo bao-cao-tuan.md) */
+  function weeklyNarrative(dg, ten, learningStyle) {
+    let tongHop;
+    if (!dg || dg.sessions === 0) {
+      tongHop = `Tuần này ${ten} chưa có buổi học nào được ghi nhận.`;
+    } else {
+      tongHop = `Tuần này ${ten} tham gia ${dg.sessions} buổi học` + (dg.absent ? ` (nghỉ ${dg.absent} buổi)` : '') + '. ';
+      if (dg.topStrengths.length) tongHop += `Con thường xuyên thể hiện ${dg.topStrengths.join(', ').toLowerCase()}. `;
+      if (dg.highlights.length) tongHop += 'Một vài khoảnh khắc đáng nhớ: ' + dg.highlights.map((h) => ensureDot(lowerFirst(h))).join(' ') + ' ';
+      if (dg.trend >= 0.3) tongHop += 'Càng về cuối tuần con càng tự tin và chủ động hơn.';
+    }
+    let coGang;
+    if (dg && dg.weakest) coGang = `${ten} đang luyện thêm ở mảng ${dg.weakest.label.toLowerCase()}, và ngày càng chủ động thử sức hơn.`;
+    else coGang = `${ten} đang làm quen với nhiều hoạt động mới và tham gia ngày một tích cực.`;
+    const wk = (dg && dg.weakest) ? dg.weakest.key : 'creativity';
+    const style = learningStyle || 'mixed';
+    const oNha = (TIPS[wk] && (TIPS[wk][style] || TIPS[wk].mixed)) || TIPS.creativity.mixed;
+    return { tongHop: tongHop.trim(), coGang: ensureDot(coGang), oNha: ensureDot(oNha) };
+  }
+
+  /* tóm tắt "tuần này con học gì" từ lesson snapshot */
+  function lessonSummary(les) {
+    if (!les) return '';
+    let s = les.title ? les.title.replace(/\.$/, '') + '. ' : '';
+    if (les.pages && les.pages.length) {
+      const types = Array.from(new Set(les.pages.map((p) => p.type).filter(Boolean)));
+      if (types.length) s += 'Các con rèn: ' + types.join(', ').toLowerCase() + '. ';
+    }
+    if (les.skill) s += les.skill;
+    return s.trim();
+  }
+
+  window.CTRC_ENGINE = { DIMS, generate, checkVoice, composeZalo, inferProfile, fmtDate, seedOf, suggestFromObservation, computeInsights, weeklyDigest, weeklyNarrative, lessonSummary };
 })();

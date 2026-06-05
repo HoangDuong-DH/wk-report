@@ -196,6 +196,20 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .wk-child:last-child{border-bottom:none}
 .wk-res-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line-soft)}
 .wk-res-row:last-child{border-bottom:none}
+.wk-out{border-bottom:1px dashed var(--line);padding-top:4px}
+.wk-out:last-child{border-bottom:none}
+/* thẻ báo cáo tuần (hiển thị + xuất ảnh) */
+.wk-card-print{background:#fffaf0;border:1.5px solid var(--line);border-radius:16px;padding:18px 20px;max-width:480px;font-family:var(--font)}
+.wcp-head{font:700 11px/1.3 var(--font);color:var(--primary-2);text-align:center;letter-spacing:.02em}
+.wcp-title{font:800 18px/1.2 var(--font-d);color:var(--primary-2);text-align:center;margin-top:8px}
+.wcp-kid{font:800 16px/1.2 var(--font-d);color:var(--ink);text-align:center;margin-top:6px}
+.wcp-meta{font:600 11.5px/1.3 var(--font);color:var(--mute);text-align:center;margin-bottom:12px}
+.wcp-sec{border-radius:12px;padding:11px 13px;margin-bottom:9px;font:500 13px/1.6 var(--font);color:var(--ink)}
+.wcp-sec .wcp-t{font:800 12px/1.3 var(--font-d);margin-bottom:4px}
+.wcp-sec.b{background:#eaf3fb;border:1px solid #cfe} .wcp-sec.b .wcp-t{color:#2f6ea0}
+.wcp-sec.g{background:#f1fae8;border:1px solid #cfe9ad} .wcp-sec.g .wcp-t{color:#4a901f}
+.wcp-sec.y{background:#fff7e0;border:1px solid #f3e1a8} .wcp-sec.y .wcp-t{color:#b5860c}
+.wcp-close{text-align:center;font:600 12px/1.6 var(--font);color:var(--ink-soft);font-style:italic;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
 
 /* ── login ── */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
@@ -260,10 +274,10 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=9"></script>
-<script src="db.js?v=9"></script>
-<script src="engine.js?v=9"></script>
-<script src="lessons.js?v=9"></script>
+<script src="config.js?v=10"></script>
+<script src="db.js?v=10"></script>
+<script src="engine.js?v=10"></script>
+<script src="lessons.js?v=10"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -375,6 +389,21 @@ const AI = {
   THINKING_LABEL:{ off:'Tắt (nhanh nhất)', low:'Thấp', medium:'Vừa', high:'Cao (mặc định)', xhigh:'Rất cao (xhigh)', max:'Tối đa (max)' },
   EFFORT_BUDGET:{ low:2048, medium:6144, high:12288, xhigh:20000, max:32000 },   // map cho model cũ (enabled)
   EFFORT_MAXTOK:{ low:4000, medium:8000, high:16000, xhigh:32000, max:48000 },   // room cho adaptive/effort
+  // quy tắc nạp từ ctrc/rules/*.md (sửa file là AI bám theo)
+  _rules:{voice:'',perbuoi:'',weekly:''},
+  async loadRules(){
+    const get=async n=>{ try{ const r=await fetch('rules/'+n+'.md',{cache:'no-store'}); return r.ok?await r.text():''; }catch(_){ return ''; } };
+    this._rules.voice  = await get('giong-thuong-hieu');
+    this._rules.perbuoi= await get('bao-cao-per-buoi');
+    this._rules.weekly = await get('bao-cao-tuan');
+  },
+  _sysFor(kind, baseOverride){
+    let s = baseOverride || AI_SYSTEM;
+    if(this._rules.voice)   s += '\n\n--- GIỌNG THƯƠNG HIỆU (rules, bám sát) ---\n'+this._rules.voice;
+    if(kind==='perbuoi' && this._rules.perbuoi) s += '\n\n--- QUY TẮC BÁO CÁO PER-BUỔI ---\n'+this._rules.perbuoi;
+    if(kind==='weekly'  && this._rules.weekly)  s += '\n\n--- QUY TẮC BÁO CÁO TUẦN ---\n'+this._rules.weekly;
+    return s;
+  },
   get(){
     const base = Object.assign({
       provider:'anthropic', mode: (CFG.edgeFnUrl?'edge':'edge'),
@@ -439,7 +468,7 @@ const AI = {
       return r.json();
     }
     if(!c.apiKey) throw new Error('Chưa có API key');
-    const d=await this._callMessages(c, AI_SYSTEM, buildAIPrompt(payload));
+    const d=await this._callMessages(c, this._sysFor('perbuoi'), buildAIPrompt(payload));
     const text=this._text(d);
     const m=text.match(/\{[\s\S]*\}/); let out={}; if(m){try{out=JSON.parse(m[0]);}catch(_){}}
     if(!out.diem_manh) out={diem_manh:text,co_gang:'',goi_y:''};
@@ -456,7 +485,7 @@ const AI = {
       const d=await r.json(); return d.text||'';
     }
     if(!c.apiKey) throw new Error('Chưa có API key');
-    const d=await this._callMessages(c, system, prompt);
+    const d=await this._callMessages(c, this._sysFor('generic', system), prompt);
     return this._text(d);
   },
 };
@@ -473,6 +502,7 @@ async function boot(){
   if (mode==='demo') $('#demo-banner').classList.remove('hidden');
   // tự dọn lock "CS đang sửa" bị kẹt (demo: tất cả; supabase: chỉ lock cũ >15')
   if (CENTER) await DB.healLocks(CENTER.id, mode==='demo');
+  AI.loadRules().catch(()=>{});   // nạp quy tắc từ rules/*.md để AI bám theo
   // session đã đăng nhập?
   const saved = sessionStorage.getItem('ctrc:staff');
   if (saved){ try { STAFF = JSON.parse(saved); enterApp(); return; } catch(_){} }
@@ -846,14 +876,12 @@ async function maybeDraftProfile(stu){
 /* ═══════════════════════════════════════════════════════════
    BÁO CÁO TUẦN (nội dung bài học từ thư viện + nhận xét)
    ═══════════════════════════════════════════════════════════ */
-let WK = { classId:'', book:'', week:1, childComments:{} };
+let WK = { classId:'', book:'', week:1, from:'', to:'', childComments:{}, digests:{}, made:[] };
 function LESSONS(){ return window.CTRC_LESSONS || {}; }
 function lessonKey(book, week){ return (book||'').trim() + '-w' + week; }
 function lessonByKey(key){ return LESSONS()[key]; }
-function bookCodes(){
-  const set=new Set(); Object.values(LESSONS()).forEach(l=>set.add(l.code));
-  return Array.from(set).sort();
-}
+function bookCodes(){ const set=new Set(); Object.values(LESSONS()).forEach(l=>set.add(l.code)); return Array.from(set).sort(); }
+function _sundayStr(mondayStr){ const d=new Date(mondayStr); d.setDate(d.getDate()+6); return d.toISOString().slice(0,10); }
 function renderLessonHTML(les){
   if(!les) return '<p class="hint" style="margin:0">Chưa có nội dung cho mã + tuần này trong thư viện. Kiểm tra mã cuốn (vd 207) và tuần, hoặc bổ sung docx rồi chạy lại parser.</p>';
   let h='';
@@ -873,36 +901,41 @@ async function viewWeekly(){
   if(!WK.classId && classes[0]) WK.classId = classes[0].id;
   const codes = bookCodes();
   if(!WK.book && codes[0]) WK.book = codes[0];
-  const total = Object.keys(LESSONS()).length;
+  if(!WK.from){ WK.from=DB._mondayOf(new Date()); WK.to=_sundayStr(WK.from); }
   view.innerHTML = `
     <h2 class="h-title">📅 Báo cáo tuần</h2>
-    <p class="h-sub">Chọn lớp + cuốn + tuần → nội dung bài học tự hiện từ thư viện (${total} mục). Thêm nhận xét chung cả lớp + riêng từng bé → tạo link gửi phụ huynh.</p>
+    <p class="h-sub">Tổng hợp <b>các buổi trong tuần của từng bé</b> + nội dung bài học → một báo cáo gửi phụ huynh. Gửi dạng <b>văn bản hoặc ảnh</b> (không link).</p>
     <div class="card" style="margin-bottom:12px">
       <div class="row" style="align-items:flex-end">
         <div class="field"><label>Lớp</label><select class="input" id="wk-class">${classes.map(c=>`<option value="${c.id}" ${WK.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
-        <div class="field"><label>Cuốn (mã sách)</label><input class="input" id="wk-book" list="wk-books" value="${esc(WK.book)}" placeholder="207" style="width:120px"><datalist id="wk-books">${codes.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
-        <div class="field"><label>Tuần</label><select class="input" id="wk-week">${[1,2,3,4].map(w=>`<option value="${w}" ${WK.week===w?'selected':''}>Tuần ${w}</option>`).join('')}</select></div>
-        <div class="field"><label>Ngày gửi</label><input type="date" class="input" id="wk-date" value="${todayStr()}"></div>
+        <div class="field"><label>Từ ngày</label><input type="date" class="input" id="wk-from" value="${WK.from}"></div>
+        <div class="field"><label>Đến ngày</label><input type="date" class="input" id="wk-to" value="${WK.to}"></div>
+      </div>
+      <div class="row" style="align-items:flex-end;margin-top:10px">
+        <div class="field"><label>Cuốn sách (bài học tuần)</label><input class="input" id="wk-book" list="wk-books" value="${esc(WK.book)}" placeholder="207" style="width:120px"><datalist id="wk-books">${codes.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+        <div class="field"><label>Tuần (trong sách)</label><select class="input" id="wk-week">${[1,2,3,4].map(w=>`<option value="${w}" ${WK.week===w?'selected':''}>Tuần ${w}</option>`).join('')}</select></div>
       </div>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div class="ed-head" style="margin-bottom:8px"><span>📖 Nội dung bài học (tự động từ thư viện)</span><span class="cc" id="wk-key"></span></div>
+      <div class="ed-head" style="margin-bottom:8px"><span>📖 Tuần này lớp học gì (từ thư viện)</span><span class="cc" id="wk-key"></span></div>
       <div id="wk-lesson"></div>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div class="ed-head" style="margin-bottom:6px"><span>💬 Nhận xét chung cả lớp</span></div>
-      <textarea class="input" id="wk-class-comment" style="width:100%;min-height:70px" placeholder="VD: Tuần này cả lớp tham gia rất sôi nổi, đặc biệt ở phần trò chơi vận động…"></textarea>
+      <div class="ed-head" style="margin-bottom:6px"><span>💬 Lời nhắn thêm của cô — chung cả lớp (tuỳ chọn)</span></div>
+      <textarea class="input" id="wk-class-comment" style="width:100%;min-height:64px" placeholder="VD: Tuần này cả lớp rất sôi nổi, mong các con duy trì nề nếp…"></textarea>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div class="ed-head" style="margin-bottom:6px"><span>👶 Nhận xét riêng từng bé (tuỳ chọn)</span><span class="cc">để trống nếu không có</span></div>
-      <div id="wk-children"></div>
+      <div class="ed-head" style="margin-bottom:6px"><span>👶 Tổng hợp theo từng bé (tự gom từ các buổi)</span><span class="cc">thêm lời nhắn riêng nếu muốn</span></div>
+      <div id="wk-children"><p class="hint" style="margin:0">Đang tổng hợp…</p></div>
     </div>
     <div class="row" style="justify-content:flex-end">
-      <button class="btn primary" onclick="CTRC.genWeekly()">📨 Tạo báo cáo tuần &amp; link phụ huynh</button>
+      <button class="btn primary" onclick="CTRC.genWeekly()">📨 Tạo báo cáo tuần</button>
     </div>
     <div id="wk-result"></div>
     <div id="wk-recent" style="margin-top:18px"></div>`;
   $('#wk-class').onchange = e=>{ WK.classId=e.target.value; loadWeeklyChildren(); loadWeeklyRecent(); };
+  $('#wk-from').onchange = e=>{ WK.from=e.target.value; loadWeeklyChildren(); };
+  $('#wk-to').onchange = e=>{ WK.to=e.target.value; loadWeeklyChildren(); };
   $('#wk-book').oninput = e=>{ WK.book=e.target.value; renderWeeklyLesson(); };
   $('#wk-week').onchange = e=>{ WK.week=+e.target.value; renderWeeklyLesson(); };
   renderWeeklyLesson();
@@ -916,12 +949,23 @@ function renderWeeklyLesson(){
 }
 async function loadWeeklyChildren(){
   const box=$('#wk-children'); if(!box) return;
+  box.innerHTML='<p class="hint" style="margin:0">Đang tổng hợp các buổi…</p>';
   const studs=await DB.listStudents(CENTER.id, WK.classId);
-  box.innerHTML = studs.map(s=>`<div class="wk-child">
-    <span class="av" style="width:30px;height:30px;font-size:16px">${AV(s.gender)}</span>
-    <span style="font:600 12.5px/1.3 var(--font);min-width:110px">${esc(s.name)}</span>
-    <input class="input wk-cc" data-sid="${s.id}" placeholder="nhận xét riêng (tuỳ chọn)…" value="${esc(WK.childComments[s.id]||'')}" style="flex:1">
-  </div>`).join('') || '<p class="hint" style="margin:0">Lớp chưa có bé.</p>';
+  const strengths=await DB.listStrengths(CENTER.id);
+  WK.digests={};
+  const rows=[];
+  for(const s of studs){
+    const recs=await DB.studentRecordsInRange(s.id, WK.from, WK.to);
+    const dg=ENG.weeklyDigest(recs, strengths);
+    WK.digests[s.id]=dg;
+    const sub = dg.sessions? `${dg.sessions} buổi`+(dg.topStrengths.length?` · ${dg.topStrengths.slice(0,2).join(', ')}`:'') : 'chưa có buổi nào trong khoảng này';
+    rows.push(`<div class="wk-child">
+      <span class="av" style="width:30px;height:30px;font-size:16px">${AV(s.gender)}</span>
+      <span style="min-width:130px"><span style="font:700 12.5px/1.3 var(--font)">${esc(s.name)}</span><small style="display:block;color:var(--mute);font:500 10.5px/1.3 var(--font)">${esc(sub)}</small></span>
+      <input class="input wk-cc" data-sid="${s.id}" placeholder="lời nhắn riêng (tuỳ chọn)…" value="${esc(WK.childComments[s.id]||'')}" style="flex:1">
+    </div>`);
+  }
+  box.innerHTML = rows.join('') || '<p class="hint" style="margin:0">Lớp chưa có bé.</p>';
 }
 function _readWeeklyChildComments(){
   document.querySelectorAll('#wk-children .wk-cc').forEach(i=>{ WK.childComments[i.dataset.sid]=i.value.trim(); });
@@ -930,75 +974,106 @@ async function genWeekly(){
   const key=lessonKey(WK.book, WK.week);
   const les=lessonByKey(key);
   const classComment=$('#wk-class-comment').value.trim();
-  const sentDate=$('#wk-date').value || todayStr();
-  if(!les && !classComment){ toast('Chưa có nội dung bài + chưa có nhận xét','var(--primary-2)'); return; }
   _readWeeklyChildComments();
   const studs=await DB.listStudents(CENTER.id, WK.classId);
   if(!studs.length){ toast('Lớp chưa có bé','var(--primary-2)'); return; }
-  const snapshot = les ? {title:les.title, pages:les.pages, skill:les.skill, body:les.body} : null;
+  const strengths=await DB.listStrengths(CENTER.id);
+  const lessonSnap = les ? {title:les.title, pages:les.pages, skill:les.skill, body:les.body} : null;
+  const hocGi = ENG.lessonSummary(lessonSnap);
   const made=[];
   for(const s of studs){
+    const dg = WK.digests[s.id] || ENG.weeklyDigest(await DB.studentRecordsInRange(s.id, WK.from, WK.to), strengths);
+    const prof = await DB.getProfile(s.id);
+    const nar = ENG.weeklyNarrative(dg, s.name, (prof&&prof.status==='active')?prof.learning_style:'mixed');
+    const summary = { hocGi, tongHop:nar.tongHop, coGang:nar.coGang, oNha:nar.oNha, sessions:dg.sessions };
     const w=await DB.createWeekly({
       center_id:CENTER.id, class_id:WK.classId, student_id:s.id,
-      book:WK.book, week:WK.week, sent_date:sentDate, lesson_key:key,
-      lesson_snapshot:snapshot, class_comment:classComment, child_comment:WK.childComments[s.id]||'',
-      created_by:STAFF.id,
+      book:WK.book, week:WK.week, sent_date:WK.to, range_from:WK.from, range_to:WK.to,
+      lesson_key:key, lesson_snapshot:lessonSnap, summary,
+      class_comment:classComment, child_comment:WK.childComments[s.id]||'', created_by:STAFF.id,
     });
     made.push({stu:s, w});
   }
   await DB.audit(CENTER.id, STAFF, 'weekly_report','class',WK.classId,{book:WK.book,week:WK.week,count:made.length});
-  WK.childComments={};
-  toast('✓ Đã tạo '+made.length+' báo cáo tuần');
+  WK.childComments={}; WK.made=made;
+  toast('✓ Đã tạo '+made.length+' báo cáo tuần — Copy hoặc lưu ảnh để gửi');
   renderWeeklyResult(made);
   loadWeeklyRecent();
 }
-function weeklyParentLink(token){ return parentBase()+'#t='+token; }
-function composeWeeklyZalo(stu, les, classComment, childComment, sentDate, link){
-  let t=`Báo cáo tuần — bé ${stu.name} (${ENG.fmtDate(sentDate)})\n`;
-  if(les){
-    if(les.title) t+=`\n📖 Bài học: ${les.title}\n`;
-    (les.pages||[]).forEach(p=>{ t+=`• ${p.range}${p.type?' ('+p.type+')':''}: ${p.desc}\n`; });
-    if(les.skill) t+=`🎯 Kỹ năng: ${les.skill}\n`;
-  }
-  if(classComment) t+=`\n💬 Nhận xét lớp: ${classComment}\n`;
-  if(childComment) t+=`👶 Riêng bé ${stu.name}: ${childComment}\n`;
-  if(link) t+=`\nXem chi tiết: ${link}`;
+function _dateLabel(from,to){ return ENG.fmtDate(from)+' – '+ENG.fmtDate(to); }
+/* văn bản gửi Zalo — KHÔNG link (gui-phu-huynh.md) */
+function composeWeekly(stu, w){
+  const s=w.summary||{};
+  let t=`📅 BÁO CÁO TUẦN — bé ${stu.name}\n(${_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date)})\n`;
+  if(s.hocGi) t+=`\n📖 Tuần này con học: ${s.hocGi}\n`;
+  if(s.tongHop) t+=`\n🌟 Tổng hợp tuần của con: ${s.tongHop}\n`;
+  if(s.coGang) t+=`\n🎯 Điều con đang cố gắng: ${s.coGang}\n`;
+  if(s.oNha) t+=`\n🏠 Đồng hành ở nhà: ${s.oNha}\n`;
+  if(w.class_comment) t+=`\n💬 Lời nhắn của cô: ${w.class_comment}\n`;
+  if(w.child_comment) t+=`👶 Riêng ${stu.name}: ${w.child_comment}\n`;
+  t+=`\n${(CENTER&&CENTER.closing_line)||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.'}`;
   return t.trim();
+}
+/* thẻ báo cáo (để hiển thị + xuất ảnh) */
+function weeklyCardHTML(stu, w){
+  const s=w.summary||{};
+  const sec=(icon,title,body,cls)=> body?`<div class="wcp-sec ${cls}"><div class="wcp-t">${icon} ${title}</div><div>${esc(body)}</div></div>`:'';
+  return `<div class="wk-card-print" id="wcp-${w.id}">
+    <div class="wcp-head">${esc((CENTER&&CENTER.name)||'WonderKids')}${CENTER&&CENTER.tagline?` · ${esc(CENTER.tagline)}`:''}</div>
+    <div class="wcp-title">📅 Báo cáo tuần</div>
+    <div class="wcp-kid">${AV(stu.gender)} ${esc(stu.name)}</div>
+    <div class="wcp-meta">${esc(_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date))}</div>
+    ${sec('📖','Tuần này con học', s.hocGi,'b')}
+    ${sec('🌟','Tổng hợp tuần của con', s.tongHop,'g')}
+    ${sec('🎯','Điều con đang cố gắng', s.coGang,'y')}
+    ${sec('🏠','Đồng hành ở nhà', s.oNha,'b')}
+    ${sec('💬','Lời nhắn của cô', w.class_comment,'g')}
+    ${w.child_comment?sec('👶','Riêng '+stu.name, w.child_comment,'y'):''}
+    <div class="wcp-close">${esc((CENTER&&CENTER.closing_line)||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.')}</div>
+  </div>`;
 }
 function renderWeeklyResult(made){
   const box=$('#wk-result'); if(!box) return;
-  const les=lessonByKey(lessonKey(WK.book,WK.week));
   box.innerHTML = `<div class="card" style="margin-top:12px;border-color:#cce8a5;background:#f7fcef">
-    <div class="ed-head" style="margin-bottom:8px"><span>✅ Đã tạo ${made.length} báo cáo — Copy gửi từng phụ huynh</span></div>
-    ${made.map(({stu,w})=>{
-      const link=weeklyParentLink(w.token);
-      return `<div class="wk-res-row">
-        <span style="font:700 12.5px/1.3 var(--font);min-width:120px">${AV(stu.gender)} ${esc(stu.name)}</span>
-        <button class="btn sm" onclick="CTRC.copyWeekly('${w.id}')">📋 Copy nội dung</button>
-        <input class="input" readonly value="${esc(link)}" style="flex:1;font-size:11px;color:var(--blue)" onclick="this.select()">
-      </div>`;
-    }).join('')}
+    <div class="ed-head" style="margin-bottom:10px"><span>✅ Đã tạo ${made.length} báo cáo — gửi từng phụ huynh (văn bản hoặc ảnh, không link)</span></div>
+    ${made.map(({stu,w})=>`<div class="wk-out">
+      ${weeklyCardHTML(stu,w)}
+      <div class="row" style="gap:8px;margin:8px 0 16px">
+        <button class="btn sm primary" onclick="CTRC.copyWeekly('${w.id}')">📋 Copy văn bản</button>
+        <button class="btn sm" onclick="CTRC.saveWeeklyImg('${w.id}')">🖼 Lưu ảnh</button>
+      </div>
+    </div>`).join('')}
   </div>`;
 }
 async function copyWeekly(weeklyId){
-  const w=(await DB.listWeekly(CENTER.id)).find(x=>x.id===weeklyId);
+  const w=WK.made.find(m=>m.w.id===weeklyId)?.w || (await DB.listWeekly(CENTER.id)).find(x=>x.id===weeklyId);
   if(!w) return;
   const stu=await DB.getStudent(w.student_id);
-  const link=weeklyParentLink(w.token);
-  const txt=composeWeeklyZalo(stu, w.lesson_snapshot, w.class_comment, w.child_comment, w.sent_date, link);
-  try{ await navigator.clipboard.writeText(txt); toast('📋 Đã copy — dán vào Zalo PH '+stu.name); }
-  catch(_){ toast('Trình duyệt chặn clipboard','var(--primary-2)'); }
+  try{ await navigator.clipboard.writeText(composeWeekly(stu,w)); toast('📋 Đã copy — dán vào Zalo PH '+stu.name); }
+  catch(_){ toast('Trình duyệt chặn clipboard — bôi đen thẻ để copy','var(--primary-2)'); }
+}
+function _loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('Không tải được '+src)); document.head.appendChild(s); }); }
+async function saveWeeklyImg(weeklyId){
+  const el=document.getElementById('wcp-'+weeklyId); if(!el){ toast('Không thấy thẻ','var(--primary-2)'); return; }
+  toast('🖼 Đang tạo ảnh…','var(--blue)');
+  try{
+    if(!window.html2canvas) await _loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+    const canvas=await window.html2canvas(el,{scale:2,backgroundColor:'#fffaf0'});
+    const w=WK.made.find(m=>m.w.id===weeklyId);
+    const name=(w?w.stu.name:'bao-cao').replace(/\s+/g,'_');
+    const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download='BaoCaoTuan_'+name+'.png'; a.click();
+    toast('✓ Đã lưu ảnh — gửi như hình trên Zalo');
+  }catch(e){ toast('Lỗi tạo ảnh: '+e.message+' (cần mạng để tải thư viện)','var(--primary-2)'); }
 }
 async function loadWeeklyRecent(){
   const box=$('#wk-recent'); if(!box) return;
   const all=await DB.listWeekly(CENTER.id, WK.classId);
-  // gom theo book+week+date
   const groups={};
-  all.forEach(w=>{ const k=w.book+'|'+w.week+'|'+w.sent_date; (groups[k]=groups[k]||[]).push(w); });
-  const keys=Object.keys(groups).slice(0,8);
+  all.forEach(w=>{ const k=(w.range_to||w.sent_date); (groups[k]=groups[k]||[]).push(w); });
+  const keys=Object.keys(groups).sort().reverse().slice(0,8);
   box.innerHTML = keys.length?`<div class="card"><div class="ed-head" style="margin-bottom:8px"><span>🗂 Báo cáo tuần đã tạo (lớp này)</span></div>
-    <table class="tb"><thead><tr><th>Cuốn · Tuần</th><th>Ngày gửi</th><th>Số bé</th></tr></thead><tbody>
-    ${keys.map(k=>{const g=groups[k];const [b,w,d]=k.split('|');return `<tr><td>Cuốn ${esc(b)} · Tuần ${esc(w)}</td><td>${esc(ENG.fmtDate(d))}</td><td>${g.length}</td></tr>`;}).join('')}
+    <table class="tb"><thead><tr><th>Tuần (đến ngày)</th><th>Cuốn</th><th>Số bé</th></tr></thead><tbody>
+    ${keys.map(k=>{const g=groups[k];return `<tr><td>${esc(ENG.fmtDate(k))}</td><td>${esc(g[0].book||'—')} · T${esc(g[0].week||'')}</td><td>${g.length}</td></tr>`;}).join('')}
     </tbody></table></div>`:'';
 }
 
@@ -1265,16 +1340,16 @@ async function approve(){
     toast('✓ Đã duyệt — bấm Copy để gửi Zalo');
   } catch(e){ toast(e.message,'var(--primary-2)'); }
 }
+function _includeLink(){ return !!(CFG.delivery && CFG.delivery.includeLink); }
 function renderCopyZone(){
-  const link = parentBase()+'#t='+(MSG.token||'');
+  const link = _includeLink() ? (parentBase()+'#t='+(MSG.token||'')) : '';
   const block = ENG.composeZalo(MSG.stu, MSG_DATE(), MSG.m, link);
   const sent = MSG.m.status==='sent';
   return `
     <div style="border-top:1px solid var(--line);margin:14px 0 12px"></div>
     <div class="ed-head" style="margin-bottom:6px"><span>${sent?'✅ Đã gửi phụ huynh':'✅ Đã duyệt — nội dung sẵn sàng gửi Zalo'}</span><span class="cc">${block.length} ký tự</span></div>
     <div class="copy-card" id="copy-src"><span class="cc-badge">paste vào Zalo</span>${esc(block)}</div>
-    <div class="linkbox"><input class="input" id="p-link" readonly value="${esc(link)}">
-      <button class="btn sm" onclick="CTRC.copyLink()">🔗 Copy link</button></div>
+    ${link?`<div class="linkbox"><input class="input" id="p-link" readonly value="${esc(link)}"><button class="btn sm" onclick="CTRC.copyLink()">🔗 Copy link</button></div>`:''}
     <div class="row" style="justify-content:space-between;align-items:center;margin-top:12px">
       <button class="btn ghost sm" onclick="CTRC.closeModal()">Đóng</button>
       <div class="row" style="gap:8px">
@@ -1284,7 +1359,7 @@ function renderCopyZone(){
     </div>`;
 }
 async function copyBlock(){
-  const link = parentBase()+'#t='+(MSG.token||'');
+  const link = _includeLink() ? (parentBase()+'#t='+(MSG.token||'')) : '';
   const block = ENG.composeZalo(MSG.stu, MSG_DATE(), MSG.m, link);
   try { await navigator.clipboard.writeText(block); toast('📋 Đã copy — dán vào Zalo phụ huynh'); }
   catch(_){ toast('Trình duyệt chặn clipboard — copy thủ công trong khung','var(--primary-2)'); }
@@ -1717,7 +1792,7 @@ window.CTRC = {
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
-  genWeekly, copyWeekly,
+  genWeekly, copyWeekly, saveWeeklyImg,
 };
 boot();
 </script>

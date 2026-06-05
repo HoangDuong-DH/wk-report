@@ -26,7 +26,10 @@ window.CTRC_CONFIG = {
   // ── Trung tâm mặc định khi nhiều center (để trống = lấy center đầu tiên) ──
   centerId: '',
 
-  // ── Link phụ huynh ──
-  parentBaseUrl: '',         // để trống = tự suy ra (cùng thư mục) → '.../ctrc/parent.html'
+  // ── Cách gửi phụ huynh (xem rules/gui-phu-huynh.md) ──
+  delivery: {
+    includeLink: false,      // KHÔNG gắn link vào nội dung gửi PH (PH e ngại link)
+  },
+  parentBaseUrl: '',         // (chỉ dùng nếu includeLink=true) tự suy ra cùng thư mục
   tokenTtlDays: 30,
 };
