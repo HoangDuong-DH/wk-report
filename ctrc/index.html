@@ -41,12 +41,31 @@ input,select,textarea{font-family:inherit}
 .nav button:hover{background:var(--pill);color:var(--primary-2)}
 .nav button.active{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
 .spacer{flex:1}
-.userchip{display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--line);
-  padding:5px 6px 5px 12px;border-radius:99px;font:700 12px/1 var(--font)}
+.userchip{display:flex;align-items:center;gap:2px;background:var(--cream);border:1px solid var(--line);
+  padding:3px 4px 3px 4px;border-radius:99px;font:700 12px/1 var(--font)}
+.userchip .uc-switch{display:flex;align-items:center;gap:8px;border:none;background:transparent;
+  padding:4px 8px;border-radius:99px;font:inherit;color:var(--ink)}
+.userchip .uc-switch:hover{background:#fff}
+.userchip .uc-switch .caret{color:var(--mute);font-size:10px}
 .userchip .role{font:700 9.5px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;color:#fff;
   padding:4px 8px;border-radius:99px;background:var(--mute)}
 .userchip .role.gv{background:var(--green)} .userchip .role.cskh{background:var(--blue)} .userchip .role.manager{background:var(--primary)}
-.userchip button{border:none;background:transparent;color:var(--mute);font-size:15px;padding:2px 4px}
+.userchip .uc-logout{border:none;background:transparent;color:var(--mute);font-size:15px;padding:4px 8px;border-radius:99px}
+.userchip .uc-logout:hover{background:#fff;color:var(--primary-2)}
+
+/* dropdown đổi tài khoản */
+.account-menu{position:fixed;inset:0;z-index:300}
+.account-menu.hidden{display:none}
+.account-menu .am-bg{position:absolute;inset:0}
+.account-menu .am-panel{position:absolute;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;box-shadow:0 14px 40px rgba(60,30,10,.22);padding:7px;min-width:248px}
+.am-head{font:700 9.5px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--mute);padding:8px 10px 6px}
+.am-item{display:flex;align-items:center;gap:10px;width:100%;border:none;background:transparent;
+  padding:9px 10px;border-radius:10px;text-align:left;font:inherit}
+.am-item:hover{background:var(--pill)}
+.am-item.cur{background:var(--cream-2)}
+.am-item .am-nm{flex:1;font:700 13px/1.2 var(--font);color:var(--ink)}
+.am-item .am-nm small{display:block;font:500 10.5px/1.3 var(--font);color:var(--mute);margin-top:2px}
 .demo-banner{background:linear-gradient(90deg,#fff3cd,#ffe9b8);color:#8a6d1a;text-align:center;
   font:600 11.5px/1.4 var(--font);padding:6px 12px;border-bottom:1px solid #f0d98a}
 
@@ -172,12 +191,20 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
     <div class="nav" id="nav"></div>
     <div class="spacer"></div>
     <div class="userchip">
-      <span id="uc-name">—</span>
-      <span class="role" id="uc-role">—</span>
-      <button title="Đăng xuất" onclick="CTRC.logout()">⎋</button>
+      <button class="uc-switch" onclick="CTRC.toggleAccountMenu(event)" title="Đổi tài khoản / vai trò">
+        <span id="uc-name">—</span>
+        <span class="role" id="uc-role">—</span>
+        <span class="caret">▾</span>
+      </button>
+      <button class="uc-logout" title="Đăng xuất" onclick="CTRC.logout()">⎋</button>
     </div>
   </div>
   <div class="wrap" id="view"></div>
+</div>
+
+<div id="account-menu" class="account-menu hidden">
+  <div class="am-bg" onclick="CTRC.closeAccountMenu()"></div>
+  <div class="am-panel" id="am-panel"></div>
 </div>
 
 <div id="toast"></div>
@@ -384,6 +411,41 @@ function enterApp(){
   $('#uc-name').textContent = STAFF.name;
   const rEl = $('#uc-role'); rEl.textContent = STAFF.role; rEl.className = 'role '+STAFF.role;
   buildNav();
+}
+
+/* ── Đổi tài khoản nhanh (không cần đăng xuất) ── */
+async function toggleAccountMenu(ev){
+  const menu = $('#account-menu');
+  if(!menu.classList.contains('hidden')){ menu.classList.add('hidden'); return; }
+  const panel = $('#am-panel');
+  const staff = await DB.listStaff(CENTER.id);
+  panel.innerHTML = `<div class="am-head">Đổi tài khoản · test mọi vai trò</div>` + staff.map(s=>{
+    const r = STATUS_ROLE(s.role), cur = s.id===STAFF.id;
+    return `<button class="am-item ${cur?'cur':''}" onclick="CTRC.switchAccount('${s.id}')">
+      <span style="font-size:20px">${r.emoji}</span>
+      <span class="am-nm">${esc(s.name)}<small>${esc(r.label)}</small></span>
+      <span class="role ${s.role}">${s.role}</span>${cur?'<span style="color:var(--green);font-weight:800;margin-left:4px">✓</span>':''}</button>`;
+  }).join('');
+  // đặt panel ngay dưới chip
+  const chip = (ev && ev.currentTarget) ? ev.currentTarget.closest('.userchip') : document.querySelector('.userchip');
+  const rect = chip.getBoundingClientRect();
+  panel.style.top = (rect.bottom + 6) + 'px';
+  panel.style.right = (window.innerWidth - rect.right) + 'px';
+  menu.classList.remove('hidden');
+}
+function closeAccountMenu(){ $('#account-menu').classList.add('hidden'); }
+async function switchAccount(id){
+  closeAccountMenu();
+  const staff = await DB.listStaff(CENTER.id);
+  const next = staff.find(s=>s.id===id);
+  if(!next || (STAFF && next.id===STAFF.id)) return;
+  STAFF = next;
+  sessionStorage.setItem('ctrc:staff', JSON.stringify(STAFF));
+  await DB.audit(CENTER.id, STAFF, 'login', 'staff', STAFF.id, {via:'switch'});
+  $('#uc-name').textContent = STAFF.name;
+  const rEl = $('#uc-role'); rEl.textContent = STAFF.role; rEl.className = 'role '+STAFF.role;
+  buildNav();
+  toast('✓ Đang là '+STAFF.name+' · '+STAFF.role.toUpperCase());
 }
 
 /* ── nav theo vai trò ── */
@@ -1004,6 +1066,7 @@ async function viewAudit(){
 /* ── export API ── */
 window.CTRC = {
   login, logout, go, closeModal, helpSupabase,
+  toggleAccountMenu, closeAccountMenu, switchAccount,
   openScore, setScore, toggleStrength, setAttendance, saveScore,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck,
   approveProfile, editProfile, saveEditProfile, addTheme,
