@@ -151,6 +151,35 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .modal-bg{position:fixed;inset:0;background:rgba(40,25,12,.45);backdrop-filter:blur(3px);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal{background:var(--card);border-radius:18px;padding:22px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:88vh;overflow:auto}
 .modal h3{font:800 17px/1.2 var(--font-d);color:var(--primary-2);margin:0 0 12px}
+.modal.wide{max-width:760px}
+
+/* ── CSKH editor v2 ── */
+.msg-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.msg-head h3{margin:0}
+.msg-context{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:14px}
+.ctx-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctx-dim{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font:600 11px/1 var(--font);color:var(--ink-soft)}
+.ctx-dim b{font-weight:800}
+.ctx-dim.lo b{color:var(--primary-2)} .ctx-dim.mid b{color:var(--yellow)} .ctx-dim.hi b{color:var(--green)}
+.ctx-mood{background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font:600 11px/1 var(--font)}
+.ctx-obs{margin-top:8px;font:500 12.5px/1.55 var(--font);color:var(--ink);background:#fffdf3;border-left:3px solid var(--yellow);padding:7px 11px;border-radius:0 8px 8px 0}
+.ctx-obs .lbl{font:800 10px/1 var(--font);color:#b8860b;letter-spacing:.04em;display:block;margin-bottom:3px}
+
+.ed-line{margin-bottom:13px}
+.ed-head{display:flex;justify-content:space-between;align-items:baseline;font:800 12.5px/1 var(--font-d);color:var(--ink);margin-bottom:6px}
+.ed-head .cc{font:600 10.5px/1 var(--font);color:var(--mute)}
+.msg-edit textarea{width:100%;min-height:58px;line-height:1.65;font-size:14px;overflow:hidden;resize:none;padding:10px 12px}
+.msg-edit textarea:disabled{background:#faf6ee;color:var(--ink-soft)}
+.zalo-meter{font:600 11.5px/1.4 var(--font);padding:8px 11px;border-radius:9px;margin:4px 0 2px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.zalo-ok{background:#eaf7e0;color:#46901f} .zalo-long{background:#fff3cd;color:#8a6d1a}
+.ref-draft{margin-top:8px;border:1px solid var(--line);border-radius:11px;background:#fffdf9;overflow:hidden}
+.ref-draft summary{cursor:pointer;font:700 12px/1 var(--primary-2);padding:11px 13px;list-style:none;user-select:none}
+.ref-draft summary::-webkit-details-marker{display:none}
+.ref-draft summary::before{content:'▸';color:var(--mute);margin-right:6px;display:inline-block}
+.ref-draft[open] summary::before{content:'▾'}
+.ref-draft .ref-body{padding:0 13px 12px}
+.copy-card{background:#10241a;color:#d7ffe6;border-radius:12px;padding:14px;font:500 12.5px/1.7 var(--font);white-space:pre-wrap;margin-top:4px;position:relative}
+.copy-card .cc-badge{position:absolute;top:8px;right:10px;font:700 10px/1 var(--font);background:rgba(255,255,255,.15);padding:4px 8px;border-radius:6px;color:#bfe}
 
 /* ── login ── */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
@@ -215,9 +244,9 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=6"></script>
-<script src="db.js?v=6"></script>
-<script src="engine.js?v=6"></script>
+<script src="config.js?v=7"></script>
+<script src="db.js?v=7"></script>
+<script src="engine.js?v=7"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -233,9 +262,9 @@ function toast(msg, color) {
   t.classList.add('show'); clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 2800);
 }
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function modal(html) {
+function modal(html, cls) {
   const root = $('#modal-root');
-  root.innerHTML = `<div class="modal-bg" onclick="if(event.target===this)CTRC.closeModal()"><div class="modal">${html}</div></div>`;
+  root.innerHTML = `<div class="modal-bg" onclick="if(event.target===this)CTRC.closeModal()"><div class="modal ${cls||''}">${html}</div></div>`;
 }
 let EDITING_MSG = null;   // id tin CSKH đang giữ lock (để nhả khi đóng)
 async function closeModal(){
@@ -798,10 +827,10 @@ async function openMsg(id){
   const m = await DB.getMessageById(id);
   if (!m){ toast('Tin không còn tồn tại — tải lại danh sách','var(--primary-2)'); loadQueue(); return; }
   const stu = await DB.getStudent(m.student_id);
-  // ngày buổi học thật (từ record→session)
-  let date = todayStr();
-  try { const rec = await DB._getRecordById(m.record_id); if(rec){ const ses = await DB._getSessionById(rec.session_id); if(ses) date = ses.date; } } catch(_){}
-  MSG = { m, stu, date };
+  // ngày buổi học thật + record (để hiện ngữ cảnh)
+  let date = todayStr(); let rec = null;
+  try { rec = await DB._getRecordById(m.record_id); if(rec){ const ses = await DB._getSessionById(rec.session_id); if(ses) date = ses.date; } } catch(_){}
+  MSG = { m, stu, date, rec };
   EDITING_MSG = null;
   if (m.status==='waiting_cs'){
     try { const upd = await DB.updateMessageGuarded(m.id, m.version, {status:'cs_editing', lock_owner:STAFF.id, lock_at:new Date().toISOString()}); MSG.m = upd; EDITING_MSG = m.id; }
@@ -819,19 +848,58 @@ async function openMsg(id){
   renderMsg();
 }
 function renderMsg(){
-  const {m, stu} = MSG;
+  const {m, stu, rec} = MSG;
   const ai = m.ai_draft || {};
   const approved = ['approved','sent'].includes(m.status);
-  const aiBtn = `<button class="btn sm" onclick="CTRC.genAI()" title="${AI.usable()?'Model: '+AI.get().model:'Chưa cấu hình — vào Cấu hình → AI (Manager)'}">✨ Sinh bằng AI${AI.usable()?'':' ⚙'}</button>`;
+  const st = STATUS[m.status]||['',''];
+  const aiBtn = `<button class="btn sm" onclick="CTRC.genAI()" title="${AI.usable()?'Model: '+AI.get().model:'Chưa cấu hình — bấm ⚙ AI'}">✨ Sinh bằng AI${AI.usable()?'':' ⚙'}</button>`;
+
+  // ── ngữ cảnh: nắm tình hình ──
+  let ctx = '';
+  if(rec){
+    const dims = ENG.DIMS.map(d=>{
+      const v = +((rec.scores_5d||{})[d.key])||0;
+      const cls = v>=4?'hi':v>=3?'mid':v>0?'lo':'';
+      return v?`<span class="ctx-dim ${cls}">${esc(d.label)} <b>${v}</b></span>`:'';
+    }).join('');
+    const mood = MOODS[rec.mood]||'';
+    ctx = `<div class="msg-context">
+      <div class="ctx-row">${dims}${mood?`<span class="ctx-mood">${esc(mood)}</span>`:''}</div>
+      ${(rec.observation||'').trim()?`<div class="ctx-obs"><span class="lbl">⭐ QUAN SÁT CỦA GIÁO VIÊN</span>${esc(rec.observation)}</div>`:''}
+    </div>`;
+  }
+
+  const editAttr = approved?'disabled':'';
   modal(`
-    <h3>${AV(stu.gender)} ${esc(stu.name)} — ${ENG.fmtDate(MSG_DATE())}</h3>
-    <div class="editor">
-      <div>
-        <label class="ln" style="display:block">Nháp tham khảo (${esc(m.source)})</label>
-        <div class="draft-box">
-          <div class="ln"><b>👍 Điểm mạnh:</b> ${esc(ai.diem_manh||m.diem_manh)}</div>
-          <div class="ln"><b>🎯 Cố gắng:</b> ${esc(ai.co_gang||m.co_gang)}</div>
-          <div><b>🏠 Gợi ý:</b> ${esc(ai.goi_y||m.goi_y)}</div>
+    <div class="msg-head">
+      <h3>${AV(stu.gender)} ${esc(stu.name)} · ${ENG.fmtDate(MSG_DATE())}</h3>
+      <span class="badge ${st[1]}">${st[0]}</span>
+    </div>
+    ${ctx}
+    <div class="msg-edit">
+      <div class="ed-line">
+        <div class="ed-head"><span>👍 Điểm mạnh hôm nay</span><span class="cc" id="cc-dm"></span></div>
+        <textarea class="input" id="m-dm" ${editAttr} oninput="CTRC.edInput(this)">${esc(m.diem_manh)}</textarea>
+      </div>
+      <div class="ed-line">
+        <div class="ed-head"><span>🎯 Điểm cố gắng</span><span class="cc" id="cc-cg"></span></div>
+        <textarea class="input" id="m-cg" ${editAttr} oninput="CTRC.edInput(this)">${esc(m.co_gang)}</textarea>
+      </div>
+      <div class="ed-line">
+        <div class="ed-head"><span>🏠 Gợi ý ở nhà</span><span class="cc" id="cc-gy"></span></div>
+        <textarea class="input" id="m-gy" ${editAttr} oninput="CTRC.edInput(this)">${esc(m.goi_y)}</textarea>
+      </div>
+      <div class="zalo-meter" id="zalo-meter"></div>
+      <div id="voice-warn" class="voice-warn"></div>
+    </div>
+
+    ${approved?'':`<details class="ref-draft">
+      <summary>Nháp tham khảo (${esc(m.source)}) &amp; công cụ AI</summary>
+      <div class="ref-body">
+        <div class="draft-box" style="margin-top:0">
+          <div class="ln"><b>👍</b> ${esc(ai.diem_manh||m.diem_manh)}</div>
+          <div class="ln"><b>🎯</b> ${esc(ai.co_gang||m.co_gang)}</div>
+          <div><b>🏠</b> ${esc(ai.goi_y||m.goi_y)}</div>
         </div>
         <div class="row" style="margin-top:10px">
           <button class="btn sm" onclick="CTRC.regen()">↻ Sinh lại (engine)</button>
@@ -839,34 +907,48 @@ function renderMsg(){
           ${aiBtn}
         </div>
       </div>
-      <div>
-        <div class="ln"><label>👍 Điểm mạnh hôm nay</label>
-          <textarea class="input" id="m-dm" ${approved?'disabled':''} oninput="CTRC.voiceCheck()">${esc(m.diem_manh)}</textarea></div>
-        <div class="ln"><label>🎯 Điểm cố gắng</label>
-          <textarea class="input" id="m-cg" ${approved?'disabled':''} oninput="CTRC.voiceCheck()">${esc(m.co_gang)}</textarea></div>
-        <div class="ln"><label>🏠 Gợi ý ở nhà</label>
-          <textarea class="input" id="m-gy" ${approved?'disabled':''} oninput="CTRC.voiceCheck()">${esc(m.goi_y)}</textarea></div>
-        <div id="voice-warn" class="voice-warn"></div>
-      </div>
-    </div>
+    </details>`}
+
     <div id="approve-zone">${approved?renderCopyZone():`
       <div class="row" style="justify-content:flex-end;margin-top:14px">
         <button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button>
         <button class="btn green" onclick="CTRC.approve()">✓ Duyệt</button>
       </div>`}</div>
-  `);
+  `, 'wide');
+  // auto-grow + đếm ký tự ban đầu
+  ['m-dm','m-cg','m-gy'].forEach(id=>{ const e=$('#'+id); if(e){ _autogrow(e); } });
   voiceCheck();
 }
 function MSG_DATE(){ return (MSG && MSG.date) || todayStr(); }
 
+function _autogrow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
+/* gõ trong editor: auto-grow + đếm ký tự + đo độ dài Zalo + check giọng */
+function edInput(el){
+  _autogrow(el);
+  voiceCheck();
+}
 function readEdits(){
-  return { diem_manh:$('#m-dm').value.trim(), co_gang:$('#m-cg').value.trim(), goi_y:$('#m-gy').value.trim() };
+  return { diem_manh:($('#m-dm')||{}).value?.trim()||'', co_gang:($('#m-cg')||{}).value?.trim()||'', goi_y:($('#m-gy')||{}).value?.trim()||'' };
 }
 function voiceCheck(){
-  const w=$('#voice-warn'); if(!w)return;
-  const all = [$('#m-dm'),$('#m-cg'),$('#m-gy')].map(e=>e?e.value:'').join(' ');
-  const r = ENG.checkVoice(all);
-  w.textContent = r.ok ? '' : '⚠ Có từ nên tránh theo giọng thương hiệu: '+r.banned.join(', ');
+  const dm=($('#m-dm')||{}).value||'', cg=($('#m-cg')||{}).value||'', gy=($('#m-gy')||{}).value||'';
+  // đếm ký tự từng dòng
+  const set=(id,v)=>{ const e=$(id); if(e) e.textContent=v+' ký tự'; };
+  set('#cc-dm', dm.length); set('#cc-cg', cg.length); set('#cc-gy', gy.length);
+  // đo tổng (ước lượng độ dài tin Zalo, mục tiêu gọn ~280)
+  const meter=$('#zalo-meter');
+  if(meter){
+    const total = dm.length+cg.length+gy.length;
+    const ok = total<=320;
+    meter.className = 'zalo-meter '+(ok?'zalo-ok':'zalo-long');
+    meter.innerHTML = `<span>📨 Tổng nội dung: <b>${total}</b> ký tự</span><span>${ok?'✓ Gọn, vừa 1 tin Zalo':'Hơi dài — cân nhắc rút gọn cho dễ đọc'}</span>`;
+  }
+  // check giọng thương hiệu
+  const w=$('#voice-warn');
+  if(w){
+    const r = ENG.checkVoice([dm,cg,gy].join(' '));
+    w.textContent = r.ok ? '' : '⚠ Có từ nên tránh theo giọng thương hiệu: '+r.banned.join(', ');
+  }
 }
 async function regen(){
   const rec = await DB._getRecordById(MSG.m.record_id);
@@ -937,13 +1019,19 @@ async function approve(){
 function renderCopyZone(){
   const link = parentBase()+'#t='+(MSG.token||'');
   const block = ENG.composeZalo(MSG.stu, MSG_DATE(), MSG.m, link);
+  const sent = MSG.m.status==='sent';
   return `
-    <div class="copy-block" id="copy-src">${esc(block)}</div>
+    <div style="border-top:1px solid var(--line);margin:14px 0 12px"></div>
+    <div class="ed-head" style="margin-bottom:6px"><span>${sent?'✅ Đã gửi phụ huynh':'✅ Đã duyệt — nội dung sẵn sàng gửi Zalo'}</span><span class="cc">${block.length} ký tự</span></div>
+    <div class="copy-card" id="copy-src"><span class="cc-badge">paste vào Zalo</span>${esc(block)}</div>
     <div class="linkbox"><input class="input" id="p-link" readonly value="${esc(link)}">
-      <button class="btn sm" onclick="CTRC.copyLink()">Copy link</button></div>
-    <div class="row" style="justify-content:flex-end;margin-top:12px">
-      <button class="btn primary" onclick="CTRC.copyBlock()">📋 Copy nội dung</button>
-      ${MSG.m.status!=='sent'?`<button class="btn green" onclick="CTRC.markSent()">✓ Đánh dấu đã gửi</button>`:'<span class="badge b-sent">Đã gửi PH</span>'}
+      <button class="btn sm" onclick="CTRC.copyLink()">🔗 Copy link</button></div>
+    <div class="row" style="justify-content:space-between;align-items:center;margin-top:12px">
+      <button class="btn ghost sm" onclick="CTRC.closeModal()">Đóng</button>
+      <div class="row" style="gap:8px">
+        <button class="btn primary" onclick="CTRC.copyBlock()">📋 Copy nội dung gửi PH</button>
+        ${sent?'<span class="badge b-sent" style="padding:9px 14px">Đã gửi PH</span>':`<button class="btn green" onclick="CTRC.markSent()">✓ Đánh dấu đã gửi</button>`}
+      </div>
     </div>`;
 }
 async function copyBlock(){
@@ -1278,7 +1366,7 @@ window.CTRC = {
   toggleAccountMenu, closeAccountMenu, switchAccount,
   openScore, setScore, toggleStrength, setAttendance, saveScore,
   gvSuggest, applySuggestStrength, gvSuggestAI,
-  qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck,
+  qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
 };

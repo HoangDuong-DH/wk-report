@@ -185,10 +185,16 @@
 
   function lowerFirst(s) { return s ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
 
-  /* Guard giọng thương hiệu — quét từ cấm, trả về cảnh báo (không tự sửa nội dung của người) */
+  /* Guard giọng thương hiệu — quét TỪ cấm theo ranh giới từ (tránh "hư" khớp trong "như").
+     Coi mọi chữ cái (kể cả có dấu) là ký tự từ; chỉ báo khi đứng riêng thành từ. */
   function checkVoice(text) {
     const low = (text || '').toLowerCase();
-    const hits = BANNED.filter((w) => low.includes(w));
+    const hits = BANNED.filter((w) => {
+      try {
+        const re = new RegExp('(^|[^\\p{L}])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^\\p{L}])', 'u');
+        return re.test(low);
+      } catch (_) { return low.includes(w); }
+    });
     return { ok: hits.length === 0, banned: hits };
   }
 
