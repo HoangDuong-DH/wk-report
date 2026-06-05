@@ -150,19 +150,29 @@
     let diem_manh = ensureDot(opener);
     if (obs) diem_manh += ' Cụ thể, ' + ensureDot(lowerFirst(obs));
 
+    /* có điểm chấm hợp lệ không? (GV có thể lưu mà chưa tap chiều nào) */
+    const hasScores = Object.values(rec.scores_5d || {}).some((v) => +v > 0);
+
     /* Điểm cố gắng */
     let co_gang;
     if ((rec.effort || '').trim()) {
       co_gang = `${ten} cũng đang cố gắng ${ensureDot(lowerFirst(rec.effort.trim()))}`;
-    } else {
+    } else if (hasScores) {
       const wd = weakestDim(rec.scores_5d);
       co_gang = ensureDot(`${ten} ${EFFORT_BANK[wd.key]}`);
+    } else {
+      co_gang = ensureDot(`${ten} đang làm quen với nhiều hoạt động mới và ngày càng tham gia tích cực hơn`);
     }
 
     /* Gợi ý ở nhà theo chiều yếu nhất × kiểu học + hook chủ đề */
-    const wd = weakestDim(rec.scores_5d);
     const style = prof.learning_style || 'mixed';
-    let goi_y = (TIPS[wd.key] && TIPS[wd.key][style]) || TIPS[wd.key].mixed;
+    let goi_y;
+    if (hasScores) {
+      const wd = weakestDim(rec.scores_5d);
+      goi_y = (TIPS[wd.key] && TIPS[wd.key][style]) || TIPS[wd.key].mixed;
+    } else {
+      goi_y = (TIPS.creativity[style]) || TIPS.creativity.mixed;
+    }
     goi_y = ensureDot(goi_y) + themeHook(input.theme && input.theme.title, ten);
 
     return {

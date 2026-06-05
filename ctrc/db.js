@@ -300,6 +300,21 @@
       return rows[0];
     },
 
+    /* tự dọn lock kẹt: demo → nhả mọi cs_editing; supabase → chỉ nhả lock cũ >15' */
+    async healLocks(centerId, demoMode) {
+      try {
+        const msgs = await this.listMessages(centerId);
+        const cutoff = Date.now() - 15 * 60000;
+        for (const m of msgs) {
+          if (m.status !== 'cs_editing') continue;
+          const stale = !m.lock_at || new Date(m.lock_at).getTime() < cutoff;
+          if (demoMode || stale) {
+            try { await this.updateMessageGuarded(m.id, m.version, { status: 'waiting_cs', lock_owner: null, lock_at: null }); } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    },
+
     /* lịch sử điểm mạnh gần nhất (anti-lặp) */
     async recentFeaturedStrengths(studentId, n) {
       const msgs = await adapter.select('session_messages', { student_id: studentId }, { order: 'created_at', desc: true, limit: n || 5 });

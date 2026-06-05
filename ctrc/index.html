@@ -27,7 +27,11 @@ input,select,textarea{font-family:inherit}
 /* ── Top bar ── */
 .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;
   padding:10px 18px;background:rgba(255,253,249,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:10px;font:800 17px/1 var(--font-d);color:var(--primary-2)}
+.home-link{display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:var(--ink-soft);
+  font:700 12px/1 var(--font);padding:7px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;white-space:nowrap}
+.home-link:hover{border-color:var(--primary);color:var(--primary-2)}
+.brand{display:flex;align-items:center;gap:10px;font:800 17px/1 var(--font-d);color:var(--primary-2);text-decoration:none}
+.demo-banner a{color:#8a5a00;font-weight:800;text-decoration:underline;cursor:pointer}
 .brand .logo{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffc24a,var(--primary) 65%,var(--primary-2));
   display:flex;align-items:center;justify-content:center;color:#fff;font:800 13px/1 var(--font-d)}
 .brand .sub{font:600 10px/1 var(--font);color:var(--mute);letter-spacing:.05em}
@@ -155,12 +159,16 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 
 <!-- ══ APP ══ -->
 <div id="app" class="hidden">
-  <div id="demo-banner" class="demo-banner hidden">⚡ DEMO MODE — dữ liệu lưu trên máy này (localStorage). Điền Supabase trong <b>config.js</b> để đồng bộ nhiều máy.</div>
+  <div id="demo-banner" class="demo-banner hidden">⚡ Chế độ DEMO — dữ liệu lưu tạm trên <b>máy này</b>, vẫn dùng tốt cho 1 máy. <a href="#" onclick="CTRC.helpSupabase();return false;">Kết nối nhiều máy? →</a></div>
   <div class="topbar">
-    <div class="brand">
+    <a href="../index.html" class="home-link" title="Về trang chính WonderKids">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Trang chính
+    </a>
+    <a href="../index.html" class="brand" title="Về trang chính WonderKids">
       <span class="logo">CT</span>
       <span>CTRC<br><span class="sub" id="tb-center">WonderKids</span></span>
-    </div>
+    </a>
     <div class="nav" id="nav"></div>
     <div class="spacer"></div>
     <div class="userchip">
@@ -175,9 +183,9 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js"></script>
-<script src="db.js"></script>
-<script src="engine.js"></script>
+<script src="config.js?v=2"></script>
+<script src="db.js?v=2"></script>
+<script src="engine.js?v=2"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -197,7 +205,40 @@ function modal(html) {
   const root = $('#modal-root');
   root.innerHTML = `<div class="modal-bg" onclick="if(event.target===this)CTRC.closeModal()"><div class="modal">${html}</div></div>`;
 }
-function closeModal(){ $('#modal-root').innerHTML=''; }
+let EDITING_MSG = null;   // id tin CSKH đang giữ lock (để nhả khi đóng)
+async function closeModal(){
+  const editId = EDITING_MSG; EDITING_MSG = null;
+  // đọc nháp đang sửa (nếu editor còn mở) để KHÔNG mất công sửa
+  let edits = null;
+  if (editId && $('#m-dm')) edits = readEdits();
+  $('#modal-root').innerHTML = '';
+  if (editId){
+    try {
+      const cur = await DB.getMessageById(editId);
+      if (cur && cur.status === 'cs_editing' && cur.lock_owner === STAFF.id){
+        const patch = { status:'waiting_cs', lock_owner:null, lock_at:null };
+        if (edits && (edits.diem_manh || edits.co_gang || edits.goi_y)) Object.assign(patch, edits);
+        await DB.updateMessageGuarded(editId, cur.version, patch);  // nhả lock + lưu nháp
+      }
+    } catch(_){}
+    if ($('#q-list')) loadQueue();
+  }
+}
+/* Giải thích "điền Supabase là gì" */
+function helpSupabase(){
+  modal(`<h3>🔗 Kết nối nhiều máy (Supabase)</h3>
+    <p class="h-sub">Bản DEMO lưu dữ liệu trên <b>chính máy này</b> nên GV (điện thoại) và CSKH (máy tính) <b>không thấy chung</b>. Muốn dùng chung, cần một "kho dữ liệu" miễn phí tên <b>Supabase</b>. Làm 1 lần, ~10 phút:</p>
+    <ol style="font:500 12.5px/1.7 var(--font);color:var(--ink-soft);padding-left:18px;margin:0 0 12px">
+      <li>Vào <b>supabase.com</b> → tạo project miễn phí.</li>
+      <li>Mở <b>SQL Editor</b> → dán nội dung file <b>ctrc/schema.sql</b> → Run (tạo bảng + dữ liệu mẫu).</li>
+      <li>Vào <b>Settings → API</b>, copy 2 thứ: <b>Project URL</b> và <b>anon public key</b>.</li>
+      <li>Mở file <b>ctrc/config.js</b>, điền 2 dòng:</li>
+    </ol>
+    <div class="copy-block" style="margin:0">supabaseUrl:    'https://xxxx.supabase.co',
+supabaseAnonKey:'eyJhbG...'  (anon public key)</div>
+    <p class="hint" style="margin-top:10px">Lưu lại → mở lại app, banner sẽ đổi thành <b>🟢 Kết nối Supabase</b>. Hướng dẫn đầy đủ + bảo mật ở file <b>ctrc/SETUP.md</b>.</p>
+    <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn primary" onclick="CTRC.closeModal()">Đã hiểu</button></div>`);
+}
 const todayStr = () => new Date().toISOString().slice(0,10);
 const AV = g => g==='Nữ' ? '👧' : '👦';
 const MOODS = {happy:'😊 Vui',normal:'🙂 Bình thường',sad:'😟 Buồn',tired:'😴 Mệt'};
@@ -304,6 +345,8 @@ async function boot(){
   $('#tb-center').textContent = CENTER ? CENTER.name : 'WonderKids';
   $('#mode-note').textContent = mode==='supabase' ? '🟢 Kết nối Supabase' : '⚡ Demo (localStorage)';
   if (mode==='demo') $('#demo-banner').classList.remove('hidden');
+  // tự dọn lock "CS đang sửa" bị kẹt (demo: tất cả; supabase: chỉ lock cũ >15')
+  if (CENTER) await DB.healLocks(CENTER.id, mode==='demo');
   // session đã đăng nhập?
   const saved = sessionStorage.getItem('ctrc:staff');
   if (saved){ try { STAFF = JSON.parse(saved); enterApp(); return; } catch(_){} }
@@ -474,6 +517,7 @@ async function saveScore(){
     rec.effort = $('#sc-effort').value.trim();
     rec.mood = $('#sc-mood').value;
   }
+  const wasPresent = !!(existed && existed.attendance === 'present');
   const saved = await DB.saveRecord({
     session_id: GV.session.id, student_id: stu.id, attendance: rec.attendance,
     scores_5d: rec.scores_5d, strengths: rec.strengths, observation: rec.observation,
@@ -481,13 +525,12 @@ async function saveScore(){
   });
   await DB.audit(CENTER.id, STAFF, 'score', 'record', saved.id, {student:stu.name});
 
+  // đếm buổi: chỉ đổi khi trạng thái present thay đổi (chống tăng trùng + có giảm)
+  if (rec.attendance === 'present' && !wasPresent) await DB.softUpdateSessionCount(stu.id, +1).catch(()=>{});
+  if (rec.attendance === 'absent'  &&  wasPresent) await DB.softUpdateSessionCount(stu.id, -1).catch(()=>{});
+
   if (rec.attendance==='absent'){
     toast('✓ Đã ghi nhận bé nghỉ'); closeModal(); loadRoster(); return;
-  }
-
-  // đếm buổi (chỉ khi lần đầu present cho session này)
-  if (!existed || existed.attendance!=='present'){
-    await DB.softUpdateSessionCount(stu.id, +1).catch(()=>{});
   }
 
   // sinh nháp bằng engine (idempotent theo record)
@@ -574,17 +617,25 @@ async function loadQueue(){
 let MSG = null;
 async function openMsg(id){
   const m = await DB.getMessageById(id);
+  if (!m){ toast('Tin không còn tồn tại — tải lại danh sách','var(--primary-2)'); loadQueue(); return; }
   const stu = await DB.getStudent(m.student_id);
   // ngày buổi học thật (từ record→session)
   let date = todayStr();
   try { const rec = await DB._getRecordById(m.record_id); if(rec){ const ses = await DB._getSessionById(rec.session_id); if(ses) date = ses.date; } } catch(_){}
   MSG = { m, stu, date };
+  EDITING_MSG = null;
   if (m.status==='waiting_cs'){
-    try { const upd = await DB.updateMessageGuarded(m.id, m.version, {status:'cs_editing', lock_owner:STAFF.id, lock_at:new Date().toISOString()}); MSG.m = upd; }
+    try { const upd = await DB.updateMessageGuarded(m.id, m.version, {status:'cs_editing', lock_owner:STAFF.id, lock_at:new Date().toISOString()}); MSG.m = upd; EDITING_MSG = m.id; }
     catch(e){ toast(e.message,'var(--primary-2)'); }
-  } else if (m.status==='cs_editing' && m.lock_owner && m.lock_owner!==STAFF.id){
-    const mins = m.lock_at ? Math.round((Date.now()-new Date(m.lock_at))/60000) : 99;
-    if (mins<5) toast('⚠ Tin đang được thành viên khác mở sửa','var(--primary-2)');
+  } else if (m.status==='cs_editing'){
+    if (m.lock_owner === STAFF.id){ EDITING_MSG = m.id; }          // lấy lại lock của chính mình
+    else if (m.lock_owner){
+      const mins = m.lock_at ? Math.round((Date.now()-new Date(m.lock_at))/60000) : 99;
+      if (mins<5) toast('⚠ Tin đang được thành viên khác mở sửa','var(--primary-2)');
+      else { // lock cũ >5' → tiếp quản
+        try { const upd = await DB.updateMessageGuarded(m.id, m.version, {lock_owner:STAFF.id, lock_at:new Date().toISOString()}); MSG.m = upd; EDITING_MSG = m.id; } catch(_){}
+      }
+    }
   }
   renderMsg();
 }
@@ -692,9 +743,9 @@ async function approve(){
   if(!edits.diem_manh||!edits.co_gang||!edits.goi_y){ toast('Cần đủ 3 dòng trước khi duyệt','var(--primary-2)'); return; }
   try {
     const upd = await DB.updateMessageGuarded(MSG.m.id, MSG.m.version, Object.assign({
-      status:'approved', approved_by:STAFF.id, approved_at:new Date().toISOString(), edited_by:STAFF.id,
+      status:'approved', approved_by:STAFF.id, approved_at:new Date().toISOString(), edited_by:STAFF.id, lock_owner:null, lock_at:null,
     }, edits));
-    MSG.m = upd;
+    MSG.m = upd; EDITING_MSG = null;
     // token phụ huynh
     let tok = await DB.getExistingToken(MSG.m.id);
     if(!tok){ const t = await DB.createParentToken(MSG.m.id); tok={token:t}; }
@@ -728,7 +779,7 @@ async function copyLink(){
 async function markSent(){
   try {
     const upd = await DB.updateMessageGuarded(MSG.m.id, MSG.m.version, {status:'sent', sent_at:new Date().toISOString()});
-    MSG.m = upd;
+    MSG.m = upd; EDITING_MSG = null;
     await DB.audit(CENTER.id, STAFF, 'send','message',MSG.m.id,{student:MSG.stu.name});
     $('#approve-zone').innerHTML = renderCopyZone();
     toast('✓ Đã đánh dấu gửi xong'); loadQueue();
@@ -952,7 +1003,7 @@ async function viewAudit(){
 
 /* ── export API ── */
 window.CTRC = {
-  login, logout, go, closeModal,
+  login, logout, go, closeModal, helpSupabase,
   openScore, setScore, toggleStrength, setAttendance, saveScore,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck,
   approveProfile, editProfile, saveEditProfile, addTheme,
