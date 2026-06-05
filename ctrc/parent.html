@@ -33,6 +33,10 @@ html,body{margin:0;padding:0;font-family:var(--font);color:var(--ink);
 .s-strong{background:#f1fae8;border:1px solid #cfe9ad} .s-strong .t{color:#4a901f}
 .s-effort{background:#fff7e0;border:1px solid #f3e1a8} .s-effort .t{color:#b5860c}
 .s-tip{background:#eaf3fb;border:1px solid #c4ddf2} .s-tip .t{color:#2f6ea0}
+.lessons{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.lp{background:#fff;border:1px solid #d8e9f5;border-radius:12px;padding:10px 12px;font:500 13.5px/1.55 var(--font)}
+.lp-h{font:700 12.5px/1.4 var(--font);color:#2f6ea0;margin-bottom:3px}
+.lp-t{font-weight:600;color:#3a7fb5}
 .closing{text-align:center;font:600 13px/1.7 var(--font);color:var(--ink-soft);margin:20px 6px 0;font-style:italic}
 .foot{text-align:center;font:500 10.5px/1.6 var(--font);color:var(--mute);margin-top:22px;padding-top:14px;border-top:1px dashed #e8d8c2}
 .state{text-align:center;padding:60px 20px;color:var(--ink-soft)}
@@ -45,8 +49,8 @@ html,body{margin:0;padding:0;font-family:var(--font);color:var(--ink);
   <div class="state"><div class="em">⏳</div><h2>Đang tải báo cáo…</h2></div>
 </div>
 
-<script src="config.js?v=2"></script>
-<script src="db.js?v=2"></script>
+<script src="config.js?v=9"></script>
+<script src="db.js?v=9"></script>
 <script>
 const DB = window.CTRC_DB;
 const root = document.getElementById('root');
@@ -84,11 +88,30 @@ async function load(){
 function render(r){
   const brand = r.brand_color || '#f3811f';
   document.documentElement.style.setProperty('--primary', brand);
-  root.innerHTML = `
-    <div class="head">
-      <div class="center">${esc(r.center_name||'WonderKids')}</div>
-      ${r.tagline?`<div class="tag">${esc(r.tagline)}</div>`:''}
-    </div>
+  const head = `<div class="head"><div class="center">${esc(r.center_name||'WonderKids')}</div>${r.tagline?`<div class="tag">${esc(r.tagline)}</div>`:''}</div>`;
+  const foot = `<div class="foot">Báo cáo riêng cho phụ huynh ${esc(r.student_name)} · ${esc(r.center_name||'WonderKids')}<br>Dữ liệu được bảo vệ theo Nghị định 13/2023/NĐ-CP · Liên kết tự hết hạn sau 30 ngày.</div>`;
+  const closing = `<div class="closing">${esc(r.closing_line||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.')}</div>`;
+
+  if(r.type==='weekly'){
+    const les=r.lesson||{};
+    const pages=(les.pages||[]).map(p=>`<div class="lp"><div class="lp-h"><b>${esc(p.range)}</b>${p.type?` · <span class="lp-t">${esc(p.type)}</span>`:''}</div><div>${esc(p.desc)}</div></div>`).join('');
+    const bodyFallback=(!les.pages||!les.pages.length)&&les.body?les.body.map(b=>esc(b)).join('<br>'):'';
+    root.innerHTML = head + `
+      <div class="card">
+        <div class="kid"><div class="em">📅</div><h1>${esc(r.student_name)}</h1>
+          <div class="meta">Báo cáo tuần · ${esc(fmtDate(r.date))}${r.book?` · Cuốn ${esc(r.book)} Tuần ${esc(r.week)}`:''}</div></div>
+        ${(les.title||pages||bodyFallback)?`<div class="sect s-tip"><div class="t">📖 Nội dung bài học tuần này</div>
+          ${les.title?`<p style="font-weight:700;margin-bottom:8px">${esc(les.title)}</p>`:''}
+          ${pages?`<div class="lessons">${pages}</div>`:(bodyFallback?`<p>${bodyFallback}</p>`:'')}
+          ${les.skill?`<p style="margin-top:8px"><b>Mục tiêu kỹ năng:</b> ${esc(les.skill)}</p>`:''}</div>`:''}
+        ${r.class_comment?`<div class="sect s-strong"><div class="t">💬 Nhận xét của cô (cả lớp)</div><p>${esc(r.class_comment)}</p></div>`:''}
+        ${r.child_comment?`<div class="sect s-effort"><div class="t">👶 Nhận xét riêng cho ${esc(r.student_name)}</div><p>${esc(r.child_comment)}</p></div>`:''}
+        ${closing}
+      </div>` + foot;
+    return;
+  }
+
+  root.innerHTML = head + `
     <div class="card">
       <div class="kid">
         <div class="em">🧸</div>
@@ -98,12 +121,8 @@ function render(r){
       <div class="sect s-strong"><div class="t">👍 Điểm mạnh hôm nay</div><p>${esc(r.diem_manh)}</p></div>
       <div class="sect s-effort"><div class="t">🎯 Điểm cố gắng</div><p>${esc(r.co_gang)}</p></div>
       <div class="sect s-tip"><div class="t">🏠 Gợi ý ở nhà</div><p>${esc(r.goi_y)}</p></div>
-      <div class="closing">${esc(r.closing_line||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.')}</div>
-    </div>
-    <div class="foot">
-      Báo cáo riêng cho phụ huynh ${esc(r.student_name)} · ${esc(r.center_name||'WonderKids')}<br>
-      Dữ liệu được bảo vệ theo Nghị định 13/2023/NĐ-CP · Liên kết tự hết hạn sau 30 ngày.
-    </div>`;
+      ${closing}
+    </div>` + foot;
 }
 load();
 window.addEventListener('hashchange', load);

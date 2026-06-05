@@ -390,8 +390,44 @@
       return adapter.select('audit_logs', { center_id: centerId }, { order: 'created_at', desc: true, limit: limit || 50 });
     },
 
+    /* ═══ BÁO CÁO TUẦN (lesson content + nhận xét) ═══ */
+    async createWeekly(row) {
+      const token = 'w_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const days = CFG.tokenTtlDays || 30;
+      const r = await adapter.insert('weekly_reports', Object.assign({
+        token, expires_at: new Date(Date.now() + days * 86400000).toISOString(),
+        status: 'sent', created_at: nowISO(),
+      }, row));
+      return r;
+    },
+    async listWeekly(centerId, classId) {
+      const m = { center_id: centerId };
+      if (classId) m.class_id = classId;
+      return adapter.select('weekly_reports', m, { order: 'created_at', desc: true });
+    },
+    async weeklyByToken(token) {
+      const rows = await adapter.select('weekly_reports', { token });
+      const w = rows[0];
+      if (!w) return { error: 'not_found' };
+      if (w.expires_at && new Date(w.expires_at) < new Date()) return { error: 'expired' };
+      const stu = (await adapter.select('students', { id: w.student_id }))[0] || {};
+      const center = (await adapter.select('centers', { id: w.center_id }))[0] || {};
+      return {
+        type: 'weekly',
+        student_name: stu.name || '', date: w.sent_date || '',
+        book: w.book, week: w.week, lesson: w.lesson_snapshot || null,
+        class_comment: w.class_comment || '', child_comment: w.child_comment || '',
+        center_name: center.name || 'WonderKids', tagline: center.tagline || '',
+        brand_color: center.brand_color || '#f3811f',
+        closing_line: center.closing_line || 'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.',
+      };
+    },
+
     /* parent report (qua RPC — cùng cho cả 2 adapter) */
-    async parentReport(token) { return adapter.rpc('get_parent_report', { p_token: token }); },
+    async parentReport(token) {
+      if (String(token).startsWith('w_')) return this.weeklyByToken(token);
+      return adapter.rpc('get_parent_report', { p_token: token });
+    },
 
     /* tiện ích lộ ra ngoài */
     _mondayOf: mondayOf,
