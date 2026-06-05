@@ -88,8 +88,8 @@ Deno.serve(async (req) => {
     const model = (body.model || DEFAULT_MODEL).toString();
     const outTokens = Math.min(2000, Math.max(100, +body.max_tokens || 600));
     const effort = String(body.thinking_effort || "off");
-    const EFFORT_BUDGET: Record<string, number> = { low: 2048, medium: 6144, high: 12288, extra: 24576 };
-    const EFFORT_MAXTOK: Record<string, number> = { low: 4000, medium: 8000, high: 16000, extra: 32000 };
+    const EFFORT_BUDGET: Record<string, number> = { low: 2048, medium: 6144, high: 12288, xhigh: 20000, max: 32000 };
+    const EFFORT_MAXTOK: Record<string, number> = { low: 4000, medium: 8000, high: 16000, xhigh: 32000, max: 48000 };
     const isAdaptive = /(opus-4-(6|7|8|9))|(sonnet-4-(6|7|8|9))|mythos/i.test(model);
 
     const pickText = (d: any) => {
@@ -98,20 +98,23 @@ Deno.serve(async (req) => {
     };
     const headers = { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" };
 
-    // gọi messages, tự chọn format thinking theo model + fallback nếu sai
+    // danh sách variant để thử (model mới: adaptive+output_config.effort; cũ: enabled+budget) + fallback
+    const variants = (): any[] => {
+      const plain = { max_tokens: outTokens };
+      if (effort === "off") return [plain];
+      const adaptive = { thinking: { type: "adaptive" }, output_config: { effort }, max_tokens: EFFORT_MAXTOK[effort] || 16000 };
+      const enabled = { thinking: { type: "enabled", budget_tokens: EFFORT_BUDGET[effort] || 6144 }, max_tokens: (EFFORT_BUDGET[effort] || 6144) + outTokens };
+      return isAdaptive ? [adaptive, enabled, plain] : [enabled, adaptive, plain];
+    };
     const callMessages = async (system: string, content: string) => {
-      const styles = effort === "off" ? [null] : (isAdaptive ? ["adaptive", "enabled"] : ["enabled", "adaptive"]);
       let lastErr = "";
-      for (const style of styles) {
-        const b: any = { model, system, messages: [{ role: "user", content }] };
-        if (!style || effort === "off") { b.max_tokens = outTokens; }
-        else if (style === "adaptive") { b.max_tokens = EFFORT_MAXTOK[effort] || 8000; b.thinking = { type: "adaptive", effort }; }
-        else { const bg = EFFORT_BUDGET[effort] || 6144; b.max_tokens = bg + outTokens; b.thinking = { type: "enabled", budget_tokens: bg }; }
+      for (const v of variants()) {
+        const b = Object.assign({ model, system, messages: [{ role: "user", content }] }, v);
         const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers, body: JSON.stringify(b) });
         if (r.ok) return r.json();
         const txt = await r.text();
         lastErr = "Anthropic HTTP " + r.status + ": " + txt.slice(0, 180);
-        if (!(r.status === 400 && /thinking|adaptive|enabled|budget/i.test(txt))) throw new Error(lastErr);
+        if (!(r.status === 400 && /thinking|adaptive|enabled|budget|effort|output_config/i.test(txt))) throw new Error(lastErr);
       }
       throw new Error(lastErr || "AI lỗi");
     };

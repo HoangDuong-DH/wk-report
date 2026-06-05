@@ -215,9 +215,9 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=5"></script>
-<script src="db.js?v=5"></script>
-<script src="engine.js?v=5"></script>
+<script src="config.js?v=6"></script>
+<script src="db.js?v=6"></script>
+<script src="engine.js?v=6"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -323,11 +323,12 @@ const AI = {
     {id:'claude-sonnet-4-5',      name:'Claude Sonnet 4.5 — cân bằng (khuyên dùng)'},
     {id:'claude-3-5-haiku-latest',name:'Claude Haiku 3.5 — nhanh, tiết kiệm'},
   ],
-  // mức suy luận (effort). Model mới dùng adaptive+effort; model cũ dùng enabled+budget_tokens.
-  THINKING_LEVELS:['off','low','medium','high','extra'],
-  THINKING_LABEL:{ off:'Tắt (nhanh)', low:'Thấp', medium:'Vừa', high:'Cao', extra:'Tối đa (extra)' },
-  EFFORT_BUDGET:{ low:2048, medium:6144, high:12288, extra:24576 },   // map cho model cũ (enabled)
-  EFFORT_MAXTOK:{ low:4000, medium:8000, high:16000, extra:32000 },   // room cho adaptive
+  // mức effort (output_config.effort) — đúng giá trị API. Model mới: adaptive + effort;
+  // model cũ: enabled + budget_tokens (quy đổi từ effort).
+  THINKING_LEVELS:['off','low','medium','high','xhigh','max'],
+  THINKING_LABEL:{ off:'Tắt (nhanh nhất)', low:'Thấp', medium:'Vừa', high:'Cao (mặc định)', xhigh:'Rất cao (xhigh)', max:'Tối đa (max)' },
+  EFFORT_BUDGET:{ low:2048, medium:6144, high:12288, xhigh:20000, max:32000 },   // map cho model cũ (enabled)
+  EFFORT_MAXTOK:{ low:4000, medium:8000, high:16000, xhigh:32000, max:48000 },   // room cho adaptive/effort
   get(){
     const base = Object.assign({
       provider:'anthropic', mode: (CFG.edgeFnUrl?'edge':'edge'),
@@ -340,34 +341,27 @@ const AI = {
   save(cfg){ try{ localStorage.setItem(this.KEY, JSON.stringify(cfg)); }catch(e){ toast('Lưu cấu hình lỗi','var(--primary-2)'); } },
   usable(){ const c=this.get(); return c.mode==='edge' ? !!c.edgeFnUrl : !!c.apiKey; },
   _directHeaders(c){ return {'content-type':'application/json','x-api-key':c.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}; },
-  /* model mới (4.6+/4.7/4.8/mythos) → dùng adaptive; còn lại → enabled */
+  /* model mới (4.6+/4.7/4.8/mythos) → adaptive + output_config.effort; còn lại → enabled+budget */
   _isAdaptive(model){ return /(opus-4-(6|7|8|9))|(sonnet-4-(6|7|8|9))|mythos/i.test(model||''); },
-  _thinkingObj(effort, style){
-    if(!effort || effort==='off') return null;
-    if(style==='adaptive') return { type:'adaptive', effort };
-    return { type:'enabled', budget_tokens: this.EFFORT_BUDGET[effort] || 6144 };
+  /* danh sách body-variant để thử theo thứ tự (có fallback) */
+  _variants(c){
+    const eff = c.thinking || 'off', out = c.maxTokens || 600;
+    const plain = { max_tokens: out };
+    if(eff==='off') return [plain];
+    const adaptive = { thinking:{type:'adaptive'}, output_config:{effort:eff}, max_tokens: this.EFFORT_MAXTOK[eff]||16000 };
+    const enabled  = { thinking:{type:'enabled', budget_tokens:this.EFFORT_BUDGET[eff]||6144}, max_tokens:(this.EFFORT_BUDGET[eff]||6144)+out };
+    return this._isAdaptive(c.model) ? [adaptive, enabled, plain] : [enabled, adaptive, plain];
   },
-  _maxTokensFor(effort, style, out){
-    if(!effort || effort==='off' || !style) return out;
-    if(style==='adaptive') return this.EFFORT_MAXTOK[effort] || 8000;
-    return (this.EFFORT_BUDGET[effort] || 6144) + out;   // enabled: budget + output
-  },
-  /* gọi /v1/messages, tự chọn format thinking theo model + fallback nếu sai */
+  /* gọi /v1/messages, thử lần lượt các variant; lỗi 400 liên quan thinking/effort → thử variant kế */
   async _callMessages(c, system, content){
-    const effort = c.thinking || 'off';
-    const out = c.maxTokens || 600;
-    const styles = (effort==='off') ? [null]
-      : (this._isAdaptive(c.model) ? ['adaptive','enabled'] : ['enabled','adaptive']);
     let lastErr;
-    for(const style of styles){
-      const body = { model:c.model, max_tokens:this._maxTokensFor(effort,style,out), system, messages:[{role:'user',content}] };
-      const th = this._thinkingObj(effort, style); if(th) body.thinking = th;
+    for(const v of this._variants(c)){
+      const body = Object.assign({ model:c.model, system, messages:[{role:'user',content}] }, v);
       const r = await fetch(c.baseUrl+'/v1/messages',{method:'POST',headers:this._directHeaders(c),body:JSON.stringify(body)});
       if(r.ok) return r.json();
       const txt = await r.text();
       lastErr = 'Anthropic HTTP '+r.status+': '+txt.slice(0,180);
-      // chỉ thử format khác nếu lỗi do thinking type; lỗi khác → ném ngay
-      if(!(r.status===400 && /thinking|adaptive|enabled|budget/i.test(txt))) throw new Error(lastErr);
+      if(!(r.status===400 && /thinking|adaptive|enabled|budget|effort|output_config/i.test(txt))) throw new Error(lastErr);
     }
     throw new Error(lastErr || 'AI lỗi');
   },
@@ -1199,7 +1193,7 @@ function renderAICard(sel){
         </div>
         <div class="field" style="width:130px"><label>Max tokens trả lời</label><input class="input" id="ai-maxtok" type="number" value="${c.maxTokens}"></div>
       </div>
-      <div class="hint">Suy luận sâu giúp nhận định/gợi ý chất lượng hơn (chậm & tốn token hơn). Hệ thống tự chọn đúng cách cho model: <b>adaptive+effort</b> (Claude 4.6+/4.7/4.8) hoặc <b>budget</b> (model cũ). "Tắt" cho nhanh nhất.</div>
+      <div class="hint">Effort cao = nhận định/gợi ý sâu hơn (chậm & tốn token hơn). Hệ thống tự gửi đúng API cho model: <b>adaptive + output_config.effort</b> (Claude 4.6+/4.7/4.8) hoặc <b>budget_tokens</b> (model cũ), tự fallback nếu cần. <b>xhigh/max</b> chỉ có ở Opus 4.7/4.8.</div>
 
       <div class="row" style="justify-content:flex-end;margin-top:14px">
         <button class="btn sm" onclick="CTRC.aiTest()">🧪 Kiểm tra kết nối</button>
