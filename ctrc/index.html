@@ -101,6 +101,10 @@ input,select,textarea{font-family:inherit}
 .stu-row .nm{font:700 14px/1.2 var(--font);flex:1}
 .stu-row .nm small{display:block;font:500 11px/1.3 var(--font);color:var(--mute);margin-top:2px}
 .badge{font:700 10px/1 var(--font);padding:5px 10px;border-radius:99px;white-space:nowrap}
+.stu-row.overdue{border-color:#f0a98f;background:#fff6f2}
+.q-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.sla{font:600 10px/1 var(--font);color:var(--mute);white-space:nowrap}
+.sla.over{color:#c5421c;font-weight:800}
 .b-wait{background:#fff1dd;color:#c0691a} .b-cs{background:#e3f0fb;color:#2f6ea0}
 .b-ok{background:#eaf7e0;color:#46901f} .b-sent{background:#e7f5ea;color:#2f8a4e}
 .b-absent{background:#f0e9e2;color:#8a7763} .b-err{background:#fde6dd;color:#c5421c} .b-edit{background:#fbeccf;color:#9a7415}
@@ -244,9 +248,9 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=7"></script>
-<script src="db.js?v=7"></script>
-<script src="engine.js?v=7"></script>
+<script src="config.js?v=8"></script>
+<script src="db.js?v=8"></script>
+<script src="engine.js?v=8"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -535,7 +539,7 @@ function buildNav(){
   const tabs = {
     gv:[['cham','Chấm buổi']],
     cskh:[['queue','Hàng đợi']],
-    manager:[['overview','Tổng quan'],['insights','✨ AI Insights'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
+    manager:[['overview','Tổng quan'],['insights','✨ AI Insights'],['students','Lớp & Bé'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
   }[STAFF.role] || [];
   $('#nav').innerHTML = tabs.map(([k,l])=>`<button data-tab="${k}" onclick="CTRC.go('${k}')">${l}</button>`).join('');
   go(tabs[0][0]);
@@ -543,26 +547,32 @@ function buildNav(){
 function go(tab){
   TAB = tab;
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  ({cham:viewCham, queue:viewQueue, overview:viewOverview, insights:viewInsights, profiles:viewProfiles, config:viewConfig, audit:viewAudit}[tab]||(()=>{}))();
+  ({cham:viewCham, queue:viewQueue, overview:viewOverview, insights:viewInsights, students:viewStudents, profiles:viewProfiles, config:viewConfig, audit:viewAudit}[tab]||(()=>{}))();
 }
 
 /* ═══════════════════════════════════════════════════════════
    GV — CHẤM BUỔI
    ═══════════════════════════════════════════════════════════ */
-let GV = { date: todayStr(), classId: null, classes: [], students: [], session: null };
+let GV = { date: todayStr(), classId: null, classes: [], students: [], session: null, search:'', filter:'all', roster:[] };
 async function viewCham(){
   GV.classes = await DB.listClasses(CENTER.id);
   if (!GV.classId && GV.classes[0]) GV.classId = GV.classes[0].id;
   view.innerHTML = `
     <h2 class="h-title">Chấm buổi học</h2>
-    <p class="h-sub">Chọn ngày + lớp, chấm từng bé (~60 giây/bé). Sau khi lưu, hệ thống tự sinh nháp tin nhắn cho CSKH.</p>
-    <div class="card"><div class="row">
-      <div class="field"><label>Ngày</label><input type="date" id="gv-date" value="${GV.date}"></div>
-      <div class="field"><label>Lớp</label><select id="gv-class">${GV.classes.map(c=>`<option value="${c.id}" ${c.id===GV.classId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
-    </div></div>
+    <p class="h-sub">Chọn ngày + lớp, chấm từng bé (~60 giây/bé). Lưu xong tự sinh nháp tin cho CSKH.</p>
+    <div class="card" style="margin-bottom:12px">
+      <div class="row" style="align-items:flex-end">
+        <div class="field"><label>Ngày</label><input type="date" id="gv-date" value="${GV.date}"></div>
+        <div class="field"><label>Lớp</label><select id="gv-class">${GV.classes.map(c=>`<option value="${c.id}" ${c.id===GV.classId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+        <div class="field" style="flex:1;min-width:170px"><label>Tìm bé</label><input class="input" id="gv-search" placeholder="🔍 Gõ tên bé…" value="${esc(GV.search)}"></div>
+      </div>
+      <div id="gv-progress" style="margin-top:14px"></div>
+      <div class="row" id="gv-filters" style="margin-top:11px;gap:6px"></div>
+    </div>
     <div id="gv-roster" class="roster"></div>`;
   $('#gv-date').onchange = e=>{ GV.date=e.target.value; loadRoster(); };
-  $('#gv-class').onchange = e=>{ GV.classId=e.target.value; loadRoster(); };
+  $('#gv-class').onchange = e=>{ GV.classId=e.target.value; GV.search=''; loadRoster(); };
+  $('#gv-search').oninput = e=>{ GV.search=e.target.value; renderRoster(); };
   loadRoster();
 }
 async function loadRoster(){
@@ -572,21 +582,54 @@ async function loadRoster(){
   GV.session = await DB.ensureSession(CENTER.id, GV.classId, GV.date, STAFF.id);
   const recs = await DB.listRecordsBySession(GV.session.id);
   const recMap = {}; recs.forEach(r=>recMap[r.student_id]=r);
-  const rows = await Promise.all(GV.students.map(async s=>{
+  GV.roster = await Promise.all(GV.students.map(async s=>{
     const rec = recMap[s.id];
-    let badge = ['Chờ chấm','b-wait'];
+    let cat='todo', badge=['Chờ chấm','b-wait'];
     if (rec){
-      if (rec.attendance==='absent') badge=['Nghỉ','b-absent'];
-      else { const m = await DB.getMessage(rec.id); badge = m ? STATUS[m.status] : ['Đã chấm','b-ok']; }
+      if (rec.attendance==='absent'){ cat='absent'; badge=['Nghỉ','b-absent']; }
+      else { cat='done'; const m = await DB.getMessage(rec.id); badge = m ? STATUS[m.status] : ['Đã chấm','b-ok']; }
     }
-    return `<div class="stu-row" onclick="CTRC.openScore('${s.id}')">
-      <span class="av">${AV(s.gender)}</span>
-      <span class="nm">${esc(s.name)}<small>${s.session_count||0} buổi · ${esc((GV.classes.find(c=>c.id===GV.classId)||{}).name||'')}</small></span>
-      <span class="badge ${badge[1]}">${badge[0]}</span>
-    </div>`;
+    return { stu:s, cat, badge };
   }));
-  box.innerHTML = rows.join('') || '<p style="color:var(--mute)">Lớp chưa có bé nào. Thêm ở tab Cấu hình (Manager).</p>';
+  renderRoster();
 }
+function renderRoster(){
+  const box = $('#gv-roster'); if(!box) return;
+  const total = GV.roster.length;
+  const counts = { all:total, todo:0, done:0, absent:0 };
+  GV.roster.forEach(r=>counts[r.cat]++);
+  const handled = counts.done + counts.absent;
+  // thanh tiến độ
+  const pb = $('#gv-progress');
+  if(pb){
+    const pct = total ? Math.round(handled/total*100) : 0;
+    pb.innerHTML = `<div style="display:flex;justify-content:space-between;font:600 12px/1 var(--font);margin-bottom:6px">
+        <span>Tiến độ chấm lớp này</span><span><b style="color:var(--primary-2)">${handled}/${total}</b> · còn ${total-handled} bé</span></div>
+      <div style="height:9px;background:#f0e8d8;border-radius:5px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--green),#7ed957);transition:width .3s"></div></div>`;
+  }
+  // bộ lọc + đếm
+  const fb = $('#gv-filters');
+  if(fb){
+    const F=[['all','Tất cả'],['todo','Chưa chấm'],['done','Đã chấm'],['absent','Nghỉ']];
+    fb.innerHTML = F.map(([k,l])=>`<button class="btn sm ${GV.filter===k?'primary':''}" onclick="CTRC.gvFilter('${k}')">${l} (${counts[k]})</button>`).join('');
+  }
+  // lọc + tìm + sắp xếp (chưa chấm lên đầu)
+  const q=(GV.search||'').toLowerCase().trim();
+  let list = GV.roster.filter(r=>{
+    if(GV.filter!=='all' && r.cat!==GV.filter) return false;
+    if(q && !r.stu.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const ord={todo:0,done:1,absent:2};
+  list.sort((a,b)=> (ord[a.cat]-ord[b.cat]) || a.stu.name.localeCompare(b.stu.name,'vi'));
+  const clsName=(GV.classes.find(c=>c.id===GV.classId)||{}).name||'';
+  box.innerHTML = list.map(r=>`<div class="stu-row" onclick="CTRC.openScore('${r.stu.id}')">
+      <span class="av">${AV(r.stu.gender)}</span>
+      <span class="nm">${esc(r.stu.name)}<small>${r.stu.session_count||0} buổi · ${esc(clsName)}</small></span>
+      <span class="badge ${r.badge[1]}">${r.badge[0]}</span></div>`).join('')
+    || `<p style="color:var(--mute);padding:8px">${total?'Không có bé khớp bộ lọc/tìm kiếm.':'Lớp chưa có bé nào — thêm ở tab “Lớp & Bé” (Manager).'}</p>`;
+}
+function gvFilter(k){ GV.filter=k; renderRoster(); }
 
 let SCORE = null;
 async function openScore(studentId){
@@ -790,36 +833,70 @@ async function maybeDraftProfile(stu){
 /* ═══════════════════════════════════════════════════════════
    CSKH — HÀNG ĐỢI
    ═══════════════════════════════════════════════════════════ */
-let Q = { tab:'pending' };
+let Q = { tab:'pending', classId:'', search:'', items:[], classes:[] };
+function _hoursSince(iso){ if(!iso) return 0; return (Date.now()-new Date(iso).getTime())/3600000; }
+function timeAgo(iso){
+  if(!iso) return '';
+  const m=(Date.now()-new Date(iso).getTime())/60000;
+  if(m<1) return 'vừa xong'; if(m<60) return Math.round(m)+' phút trước';
+  const h=m/60; if(h<24) return Math.round(h)+' giờ trước';
+  return Math.round(h/24)+' ngày trước';
+}
+function _qCat(m){ return ['waiting_cs','cs_editing','ai_writing'].includes(m.status)?'pending':(m.status==='approved'?'approved':(m.status==='sent'?'sent':(m.status==='error'?'error':'other'))); }
 async function viewQueue(){
+  Q.classes = await DB.listClasses(CENTER.id);
   view.innerHTML = `
     <h2 class="h-title">Hàng đợi báo cáo</h2>
-    <p class="h-sub">Duyệt nháp AI, sửa nếu cần, rồi Copy gửi Zalo cho phụ huynh.</p>
-    <div class="row" style="margin-bottom:8px">
-      ${[['pending','Chờ duyệt'],['approved','Đã duyệt'],['sent','Đã gửi'],['error','Lỗi']].map(([k,l])=>
-        `<button class="btn sm ${Q.tab===k?'primary':''}" onclick="CTRC.qTab('${k}')">${l}</button>`).join('')}
+    <p class="h-sub">Duyệt nháp, sửa nếu cần, rồi Copy gửi Zalo. Tin <b>chờ duyệt</b> xếp cũ-nhất-trước (SLA 2 giờ).</p>
+    <div class="card" style="margin-bottom:12px">
+      <div class="row" id="q-tabs" style="gap:6px"></div>
+      <div class="row" style="margin-top:11px;align-items:flex-end">
+        <div class="field"><label>Lớp</label><select class="input" id="q-class"><option value="">Tất cả lớp</option>${Q.classes.map(c=>`<option value="${c.id}" ${Q.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+        <div class="field" style="flex:1;min-width:170px"><label>Tìm bé</label><input class="input" id="q-search" placeholder="🔍 Tên bé…" value="${esc(Q.search)}"></div>
+      </div>
     </div>
     <div id="q-list" class="roster"></div>`;
-  loadQueue();
+  $('#q-class').onchange = e=>{ Q.classId=e.target.value; renderQueue(); };
+  $('#q-search').oninput = e=>{ Q.search=e.target.value; renderQueue(); };
+  await loadQueue();
 }
-function qTab(t){ Q.tab=t; viewQueue(); }
+function qTab(t){ Q.tab=t; renderQueue(); }
 async function loadQueue(){
-  const box=$('#q-list'); if(!box)return; box.innerHTML='<p style="color:var(--mute)">Đang tải…</p>';
+  const box=$('#q-list'); if(box) box.innerHTML='<p style="color:var(--mute)">Đang tải…</p>';
+  const studs = await DB.listStudents(CENTER.id);
+  const sMap={}; studs.forEach(s=>sMap[s.id]=s);
+  if(!Q.classes.length) Q.classes = await DB.listClasses(CENTER.id);
+  const cMap={}; Q.classes.forEach(c=>cMap[c.id]=c.name);
   const all = await DB.listMessages(CENTER.id);
-  const filt = {
-    pending: m=>['waiting_cs','cs_editing','ai_writing'].includes(m.status),
-    approved: m=>m.status==='approved', sent: m=>m.status==='sent', error: m=>m.status==='error',
-  }[Q.tab];
-  const list = all.filter(filt);
-  const rows = await Promise.all(list.map(async m=>{
-    const stu = await DB.getStudent(m.student_id);
-    const st = STATUS[m.status];
-    return `<div class="stu-row" onclick="CTRC.openMsg('${m.id}')">
-      <span class="av">${AV(stu?stu.gender:'')}</span>
-      <span class="nm">${esc(stu?stu.name:'?')}<small>${esc((m.diem_manh||'').slice(0,60))}…</small></span>
-      <span class="badge ${st[1]}">${st[0]}</span></div>`;
-  }));
-  box.innerHTML = rows.join('') || '<p style="color:var(--mute)">Không có tin nào ở mục này.</p>';
+  Q.items = all.map(m=>{ const stu=sMap[m.student_id]||{}; return {m, stu, className:cMap[stu.class_id]||''}; });
+  renderQueue();
+}
+function renderQueue(){
+  const counts={pending:0,approved:0,sent:0,error:0};
+  Q.items.forEach(it=>{ const c=_qCat(it.m); if(counts[c]!=null) counts[c]++; });
+  const tb=$('#q-tabs');
+  if(tb){
+    const T=[['pending','Chờ duyệt'],['approved','Đã duyệt'],['sent','Đã gửi'],['error','Lỗi']];
+    tb.innerHTML=T.map(([k,l])=>`<button class="btn sm ${Q.tab===k?'primary':''}" onclick="CTRC.qTab('${k}')">${l} (${counts[k]})</button>`).join('');
+  }
+  const box=$('#q-list'); if(!box) return;
+  const q=(Q.search||'').toLowerCase().trim();
+  let list=Q.items.filter(it=> _qCat(it.m)===Q.tab
+    && (!Q.classId || it.stu.class_id===Q.classId)
+    && (!q || (it.stu.name||'').toLowerCase().includes(q)));
+  if(Q.tab==='pending') list.sort((a,b)=> (a.m.created_at||'') < (b.m.created_at||'') ? -1:1);   // cũ nhất trước (SLA)
+  else list.sort((a,b)=> (a.m.updated_at||'') > (b.m.updated_at||'') ? -1:1);                      // mới nhất trước
+  box.innerHTML = list.map(it=>{
+    const m=it.m, st=STATUS[m.status]||['',''];
+    const overdue = Q.tab==='pending' && _hoursSince(m.created_at) >= 2;
+    return `<div class="stu-row ${overdue?'overdue':''}" onclick="CTRC.openMsg('${m.id}')">
+      <span class="av">${AV(it.stu.gender)}</span>
+      <span class="nm">${esc(it.stu.name||'?')}<small>${esc(it.className)}${it.className?' · ':''}${esc((m.diem_manh||'').slice(0,44))}…</small></span>
+      <span class="q-right">
+        <span class="badge ${st[1]}">${st[0]}</span>
+        <span class="sla ${overdue?'over':''}">${overdue?'⏰ ':''}${esc(timeAgo(m.created_at))}</span>
+      </span></div>`;
+  }).join('') || `<p style="color:var(--mute);padding:8px">Không có tin ở mục này${(Q.classId||q)?' (theo lọc)':''}.</p>`;
 }
 
 let MSG = null;
@@ -1143,6 +1220,104 @@ async function insightsAI(){
   }catch(e){ out.innerHTML = '⚠ Lỗi AI: '+esc(e.message); }
 }
 
+/* ═══════════════ MANAGER — LỚP & HỌC VIÊN ═══════════════ */
+let SM = { classId:'', search:'' };
+async function viewStudents(){
+  const classes = await DB.listClasses(CENTER.id);
+  const counts = await DB.classCounts(CENTER.id);
+  if(!SM.classId && classes[0]) SM.classId = classes[0].id;
+  const total = Object.values(counts).reduce((a,b)=>a+b,0);
+  view.innerHTML = `
+    <h2 class="h-title">Lớp & Học viên</h2>
+    <p class="h-sub">${classes.length} lớp · ${total} bé đang học. Thêm lớp, thêm bé lẻ, hoặc nhập danh sách hàng loạt.</p>
+    <div class="card" style="margin-bottom:12px">
+      <div class="row" style="align-items:flex-end">
+        <div class="field" style="min-width:210px"><label>Lớp</label>
+          <select class="input" id="sm-class">${classes.map(c=>`<option value="${c.id}" ${SM.classId===c.id?'selected':''}>${esc(c.name)} · ${counts[c.id]||0} bé</option>`).join('')||'<option value="">(chưa có lớp)</option>'}</select></div>
+        <button class="btn sm" onclick="CTRC.addClass()">+ Lớp</button>
+        ${classes.length?`<button class="btn sm" onclick="CTRC.renameClass()">✎ Đổi tên</button>`:''}
+        <div class="field" style="flex:1;min-width:160px"><label>Tìm bé</label><input class="input" id="sm-search" placeholder="🔍 Tên bé…" value="${esc(SM.search)}"></div>
+      </div>
+      ${classes.length?`<div class="row" style="margin-top:11px">
+        <button class="btn primary sm" onclick="CTRC.addStudentPrompt()">+ Thêm bé</button>
+        <button class="btn sm" onclick="CTRC.bulkStudents()">📋 Nhập danh sách (dán nhiều tên)</button>
+      </div>`:'<p class="hint" style="margin-top:10px">Chưa có lớp nào — bấm <b>+ Lớp</b> để bắt đầu.</p>'}
+    </div>
+    <div id="sm-list"></div>`;
+  const cs=$('#sm-class'); if(cs) cs.onchange = e=>{ SM.classId=e.target.value; SM.search=''; viewStudents(); };
+  const ss=$('#sm-search'); if(ss) ss.oninput = e=>{ SM.search=e.target.value; renderStudents(); };
+  renderStudents();
+}
+async function renderStudents(){
+  const box=$('#sm-list'); if(!box) return;
+  if(!SM.classId){ box.innerHTML=''; return; }
+  const all = await DB.listStudents(CENTER.id, SM.classId);
+  const q=(SM.search||'').toLowerCase().trim();
+  const list = all.filter(s=>!q||s.name.toLowerCase().includes(q));
+  box.innerHTML = `<div class="card"><table class="tb"><thead><tr><th>Tên bé</th><th>Giới tính</th><th>Số buổi</th><th style="text-align:right">Thao tác</th></tr></thead><tbody>
+    ${list.map(s=>`<tr>
+      <td><b>${AV(s.gender)} ${esc(s.name)}</b></td><td>${esc(s.gender)}</td><td>${s.session_count||0}</td>
+      <td style="text-align:right"><button class="btn sm" onclick="CTRC.editStudent('${s.id}')">Sửa</button> <button class="btn sm" onclick="CTRC.delStudent('${s.id}')">🗑</button></td>
+    </tr>`).join('')||`<tr><td colspan=4 style="color:var(--mute)">${all.length?'Không có bé khớp tìm kiếm.':'Lớp chưa có bé — bấm “+ Thêm bé” hoặc “Nhập danh sách”.'}</td></tr>`}
+    </tbody></table></div>`;
+}
+async function addClass(){
+  const name=prompt('Tên lớp mới (vd "Lớp Mầm C"):',''); if(name==null) return;
+  const t=name.trim(); if(!t){ toast('Tên lớp trống','var(--primary-2)'); return; }
+  const age=prompt('Độ tuổi (tuỳ chọn, vd "4 tuổi"):','')||'';
+  const c=await DB.addClass(CENTER.id, t, age.trim());
+  SM.classId=c.id; await DB.audit(CENTER.id,STAFF,'add_class','class',c.id,{name:t});
+  toast('✓ Đã thêm lớp '+t); viewStudents();
+}
+async function renameClass(){
+  if(!SM.classId) return;
+  const classes=await DB.listClasses(CENTER.id); const c=classes.find(x=>x.id===SM.classId); if(!c) return;
+  const name=prompt('Đổi tên lớp:',c.name); if(name==null) return; const t=name.trim(); if(!t) return;
+  await DB.renameClass(c.id,t); toast('✓ Đã đổi tên lớp'); viewStudents();
+}
+function studentForm(s){
+  const editing=!!s;
+  modal(`<h3>${editing?'Sửa thông tin bé':'Thêm bé mới'}</h3>
+    <div class="ln"><label>Tên bé</label><input class="input" id="sf-name" value="${esc(s?s.name:'')}" style="width:100%" placeholder="VD: Nguyễn Hải An"></div>
+    <div class="field" style="margin-bottom:12px"><label>Giới tính</label><select class="input" id="sf-gender"><option ${(!s||s.gender==='Nam')?'selected':''}>Nam</option><option ${(s&&s.gender==='Nữ')?'selected':''}>Nữ</option></select></div>
+    <div class="ln"><label>SĐT phụ huynh (tuỳ chọn)</label><input class="input" id="sf-phone" value="${esc(s?(s.parent_phone||''):'')}" style="width:100%" placeholder="09xx..."></div>
+    <div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button><button class="btn primary" onclick="CTRC.saveStudent('${s?s.id:''}')">Lưu</button></div>`);
+}
+function addStudentPrompt(){ if(!SM.classId){toast('Tạo lớp trước','var(--primary-2)');return;} studentForm(null); }
+async function editStudent(id){ const s=await DB.getStudent(id); if(s) studentForm(s); }
+async function saveStudent(id){
+  const name=$('#sf-name').value.trim(); if(!name){ toast('Tên trống','var(--primary-2)'); return; }
+  const gender=$('#sf-gender').value; const phone=$('#sf-phone').value.trim();
+  if(id){ await DB.updateStudent(id,{name,gender,parent_phone:phone}); }
+  else { await DB.addStudent({center_id:CENTER.id, class_id:SM.classId, name, gender, parent_phone:phone}); await DB.audit(CENTER.id,STAFF,'add_student','student',null,{name}); }
+  closeModal(); toast('✓ Đã lưu'); viewStudents();
+}
+async function delStudent(id){
+  const s=await DB.getStudent(id);
+  if(!confirm('Xoá bé "'+(s?s.name:'')+'" khỏi danh sách?\n(Ẩn khỏi danh sách, dữ liệu/báo cáo cũ vẫn được giữ.)')) return;
+  await DB.softDeleteStudent(id); await DB.audit(CENTER.id,STAFF,'del_student','student',id,{name:s?s.name:''});
+  toast('✓ Đã xoá khỏi danh sách'); viewStudents();
+}
+function bulkStudents(){
+  if(!SM.classId){toast('Tạo lớp trước','var(--primary-2)');return;}
+  modal(`<h3>Nhập danh sách bé</h3>
+    <p class="h-sub">Dán danh sách, MỖI DÒNG 1 bé. Thêm giới tính sau dấu phẩy nếu muốn: <code>Tên, Nữ</code> (mặc định Nam).</p>
+    <textarea class="input" id="bulk-src" style="min-height:170px;width:100%" placeholder="Nguyễn Hải An&#10;Trần Bảo Ngọc, Nữ&#10;Lê Minh Khôi"></textarea>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button><button class="btn primary" onclick="CTRC.applyBulk()">Thêm tất cả</button></div>`);
+}
+async function applyBulk(){
+  const lines=$('#bulk-src').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(!lines.length){ toast('Chưa có tên nào','var(--primary-2)'); return; }
+  let n=0;
+  for(const line of lines){
+    const parts=line.split(','); const name=(parts[0]||'').trim(); if(!name) continue;
+    const gender=/n[ữu]|gái|gai/i.test((parts[1]||'').trim())?'Nữ':'Nam';
+    await DB.addStudent({center_id:CENTER.id, class_id:SM.classId, name, gender}); n++;
+  }
+  await DB.audit(CENTER.id,STAFF,'bulk_students','class',SM.classId,{count:n});
+  closeModal(); toast('✓ Đã thêm '+n+' bé'); viewStudents();
+}
+
 async function viewProfiles(){
   const profiles = await DB.listProfiles(CENTER.id);
   const students = await DB.listStudents(CENTER.id);
@@ -1365,7 +1540,8 @@ window.CTRC = {
   login, logout, go, closeModal, helpSupabase,
   toggleAccountMenu, closeAccountMenu, switchAccount,
   openScore, setScore, toggleStrength, setAttendance, saveScore,
-  gvSuggest, applySuggestStrength, gvSuggestAI,
+  gvSuggest, applySuggestStrength, gvSuggestAI, gvFilter,
+  addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,

@@ -165,17 +165,27 @@
       closing_line: 'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.',
       created_at: nowISO(),
     });
-    const cls = await LocalAdapter.insert('classes', {
+    const clsA = await LocalAdapter.insert('classes', {
       center_id: center.id, name: 'Lớp Chồi A', age_band: '3-4 tuổi', created_at: nowISO(),
     });
-    await LocalAdapter.insert('students', {
-      center_id: center.id, class_id: cls.id, name: 'Hải An', gender: 'Nam',
-      parent_phone: '0900000001', status: 'active', session_count: 4, created_at: nowISO(),
+    const clsB = await LocalAdapter.insert('classes', {
+      center_id: center.id, name: 'Lớp Lá B', age_band: '5 tuổi', created_at: nowISO(),
     });
-    await LocalAdapter.insert('students', {
-      center_id: center.id, class_id: cls.id, name: 'Bảo Ngọc', gender: 'Nữ',
-      parent_phone: '0900000002', status: 'active', session_count: 2, created_at: nowISO(),
-    });
+    const demoStudents = [
+      ['Hải An', 'Nam', clsA.id, 4], ['Bảo Ngọc', 'Nữ', clsA.id, 2],
+      ['Minh Khôi', 'Nam', clsA.id, 6], ['Thảo My', 'Nữ', clsA.id, 5],
+      ['Gia Bảo', 'Nam', clsA.id, 3], ['Khánh Vy', 'Nữ', clsA.id, 1],
+      ['Đức Anh', 'Nam', clsB.id, 8], ['Linh Đan', 'Nữ', clsB.id, 7],
+      ['Tuấn Kiệt', 'Nam', clsB.id, 5], ['Phương Nhi', 'Nữ', clsB.id, 4],
+    ];
+    let pn = 0;
+    for (const [name, gender, classId, sc] of demoStudents) {
+      pn++;
+      await LocalAdapter.insert('students', {
+        center_id: center.id, class_id: classId, name, gender,
+        parent_phone: '09000000' + String(pn).padStart(2, '0'), status: 'active', session_count: sc, created_at: nowISO(),
+      });
+    }
     const staff = [
       { name: 'Cô Mai', role: 'gv', pin: '1111' },
       { name: 'Chị Lan', role: 'cskh', pin: '2222' },
@@ -228,7 +238,9 @@
     },
 
     /* lớp + bé */
-    async listClasses(centerId) { return adapter.select('classes', { center_id: centerId }); },
+    async listClasses(centerId) { return adapter.select('classes', { center_id: centerId }, { order: 'name' }); },
+    async addClass(centerId, name, ageBand) { return adapter.insert('classes', { center_id: centerId, name, age_band: ageBand || '', created_at: nowISO() }); },
+    async renameClass(id, name) { return adapter.update('classes', { id }, { name }); },
     async listStudents(centerId, classId) {
       const m = { center_id: centerId, status: 'active' };
       if (classId) m.class_id = classId;
@@ -237,7 +249,15 @@
     },
     async getStudent(id) { return (await adapter.select('students', { id }))[0]; },
     async addStudent(s) { return adapter.insert('students', Object.assign({ status: 'active', session_count: 0, created_at: nowISO() }, s)); },
+    async updateStudent(id, patch) { return adapter.update('students', { id }, patch); },
     async softDeleteStudent(id) { return adapter.update('students', { id }, { status: 'deleted', deleted_at: nowISO() }); },
+    /* đếm bé từng lớp (cho layout tổng quan) */
+    async classCounts(centerId) {
+      const studs = await this.listStudents(centerId);
+      const map = {};
+      studs.forEach((s) => { map[s.class_id] = (map[s.class_id] || 0) + 1; });
+      return map;
+    },
 
     /* buổi học */
     async _getSessionById(id) { return (await adapter.select('sessions', { id }))[0]; },
