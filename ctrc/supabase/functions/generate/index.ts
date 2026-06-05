@@ -86,43 +86,42 @@ Deno.serve(async (req) => {
     }
 
     const model = (body.model || DEFAULT_MODEL).toString();
-    const maxTokens = Math.min(2000, Math.max(100, +body.max_tokens || 600));
+    const outTokens = Math.min(2000, Math.max(100, +body.max_tokens || 600));
+    const budget = Math.max(0, +body.thinking_budget || 0);   // extended thinking
+    const maxTokens = budget ? budget + outTokens : outTokens;
+
+    // build body messages (kèm thinking nếu có)
+    const msgReq = (system: string, content: string) => {
+      const b: any = { model, max_tokens: maxTokens, system, messages: [{ role: "user", content }] };
+      if (budget) b.thinking = { type: "enabled", budget_tokens: budget };
+      return b;
+    };
+    const pickText = (d: any) => {
+      const t = (d?.content || []).find((x: any) => x.type === "text");
+      return (t?.text || d?.content?.[0]?.text || "").trim();
+    };
+    const headers = { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" };
 
     // ── Gọi tổng quát (Insights + trợ lý GV): nhận system + prompt, trả {text} ──
     if (body.action === "complete") {
       const cr = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({
-          model, max_tokens: maxTokens,
-          system: body.system || SYSTEM,
-          messages: [{ role: "user", content: String(body.prompt || "") }],
-        }),
+        method: "POST", headers,
+        body: JSON.stringify(msgReq(body.system || SYSTEM, String(body.prompt || ""))),
       });
       if (!cr.ok) throw new Error("Anthropic HTTP " + cr.status + ": " + (await cr.text()).slice(0, 200));
       const cd = await cr.json();
-      return new Response(JSON.stringify({ text: (cd.content?.[0]?.text || "").trim() }), {
+      return new Response(JSON.stringify({ text: pickText(cd) }), {
         headers: { ...cors, "content-type": "application/json" },
       });
     }
 
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        system: SYSTEM,
-        messages: [{ role: "user", content: buildPrompt(body) }],
-      }),
+      method: "POST", headers,
+      body: JSON.stringify(msgReq(SYSTEM, buildPrompt(body))),
     });
     if (!resp.ok) throw new Error("Anthropic HTTP " + resp.status + ": " + (await resp.text()).slice(0, 200));
     const data = await resp.json();
-    const text = (data.content?.[0]?.text || "").trim();
+    const text = pickText(data);
 
     // tách JSON
     let out: any = {};

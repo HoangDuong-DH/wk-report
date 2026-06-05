@@ -215,9 +215,9 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=3"></script>
-<script src="db.js?v=3"></script>
-<script src="engine.js?v=3"></script>
+<script src="config.js?v=4"></script>
+<script src="db.js?v=4"></script>
+<script src="engine.js?v=4"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -323,11 +323,14 @@ const AI = {
     {id:'claude-sonnet-4-5',      name:'Claude Sonnet 4.5 — cân bằng (khuyên dùng)'},
     {id:'claude-3-5-haiku-latest',name:'Claude Haiku 3.5 — nhanh, tiết kiệm'},
   ],
+  // mức suy luận (extended thinking) → budget_tokens. 0 = tắt.
+  THINKING:{ off:0, low:1024, medium:4000, high:10000, extra:20000 },
+  THINKING_LABEL:{ off:'Tắt (nhanh)', low:'Thấp', medium:'Vừa', high:'Cao', extra:'Tối đa (extra)' },
   get(){
     const base = Object.assign({
       provider:'anthropic', mode: (CFG.edgeFnUrl?'edge':'edge'),
       edgeFnUrl: CFG.edgeFnUrl||'', apiKey:'', model:'claude-sonnet-4-5',
-      maxTokens:600, baseUrl:'https://api.anthropic.com', models:this.DEFAULT_MODELS.slice(),
+      maxTokens:600, thinking:'off', baseUrl:'https://api.anthropic.com', models:this.DEFAULT_MODELS.slice(),
     }, (CFG.ai||{}));
     let saved={}; try{ saved=JSON.parse(localStorage.getItem(this.KEY))||{}; }catch(_){}
     return Object.assign(base, saved);
@@ -335,6 +338,21 @@ const AI = {
   save(cfg){ try{ localStorage.setItem(this.KEY, JSON.stringify(cfg)); }catch(e){ toast('Lưu cấu hình lỗi','var(--primary-2)'); } },
   usable(){ const c=this.get(); return c.mode==='edge' ? !!c.edgeFnUrl : !!c.apiKey; },
   _directHeaders(c){ return {'content-type':'application/json','x-api-key':c.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}; },
+  _budget(c){ return this.THINKING[c.thinking||'off']||0; },
+  /* dựng body messages có thể kèm extended thinking */
+  _msgBody(c, system, userContent){
+    const out = c.maxTokens || 600;
+    const budget = this._budget(c);
+    const body = { model:c.model, max_tokens: budget ? budget + out : out, system, messages:[{role:'user', content:userContent}] };
+    if (budget) body.thinking = { type:'enabled', budget_tokens: budget };
+    return body;
+  },
+  /* lấy đúng khối text (bỏ qua khối thinking nếu có) */
+  _text(d){
+    if(!d || !d.content) return '';
+    const t = d.content.find(b=>b.type==='text');
+    return t ? (t.text||'').trim() : ((d.content[0]&&d.content[0].text)||'').trim();
+  },
   async listModels(cfg){
     const c=cfg||this.get();
     if(c.mode==='edge'){
@@ -352,15 +370,15 @@ const AI = {
     const c=cfg||this.get();
     if(c.mode==='edge'){
       if(!c.edgeFnUrl) throw new Error('Chưa có Edge Function URL');
-      const r=await fetch(c.edgeFnUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({model:c.model,max_tokens:c.maxTokens},payload))});
+      const r=await fetch(c.edgeFnUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({model:c.model,max_tokens:c.maxTokens,thinking_budget:this._budget(c)},payload))});
       if(!r.ok) throw new Error('Edge HTTP '+r.status);
       return r.json();
     }
     if(!c.apiKey) throw new Error('Chưa có API key');
     const r=await fetch(c.baseUrl+'/v1/messages',{method:'POST',headers:this._directHeaders(c),
-      body:JSON.stringify({model:c.model,max_tokens:c.maxTokens,system:AI_SYSTEM,messages:[{role:'user',content:buildAIPrompt(payload)}]})});
+      body:JSON.stringify(this._msgBody(c, AI_SYSTEM, buildAIPrompt(payload)))});
     if(!r.ok) throw new Error('Anthropic HTTP '+r.status+': '+(await r.text()).slice(0,160));
-    const d=await r.json(); const text=((d.content&&d.content[0]&&d.content[0].text)||'').trim();
+    const d=await r.json(); const text=this._text(d);
     const m=text.match(/\{[\s\S]*\}/); let out={}; if(m){try{out=JSON.parse(m[0]);}catch(_){}}
     if(!out.diem_manh) out={diem_manh:text,co_gang:'',goi_y:''};
     return out;
@@ -371,15 +389,15 @@ const AI = {
     if(c.mode==='edge'){
       if(!c.edgeFnUrl) throw new Error('Chưa có Edge Function URL');
       const r=await fetch(c.edgeFnUrl,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'complete',system,prompt,model:c.model,max_tokens:c.maxTokens})});
+        body:JSON.stringify({action:'complete',system,prompt,model:c.model,max_tokens:c.maxTokens,thinking_budget:this._budget(c)})});
       if(!r.ok) throw new Error('Edge HTTP '+r.status);
       const d=await r.json(); return d.text||'';
     }
     if(!c.apiKey) throw new Error('Chưa có API key');
     const r=await fetch(c.baseUrl+'/v1/messages',{method:'POST',headers:this._directHeaders(c),
-      body:JSON.stringify({model:c.model,max_tokens:c.maxTokens,system,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify(this._msgBody(c, system, prompt))});
     if(!r.ok) throw new Error('Anthropic HTTP '+r.status+': '+(await r.text()).slice(0,160));
-    const d=await r.json(); return ((d.content&&d.content[0]&&d.content[0].text)||'').trim();
+    const d=await r.json(); return this._text(d);
   },
 };
 
@@ -1140,7 +1158,7 @@ function renderAICard(sel){
           <div class="hint">Key Claude nằm ở server (Supabase secret) — không lộ ra trình duyệt. Xem SETUP.md.</div></div>
       ` : `
         <div class="ln"><label>API key (Anthropic)</label>
-          <input class="input" id="ai-key" type="password" value="${esc(c.apiKey)}" placeholder="sk-ant-..." style="width:100%">
+          <input class="input" id="ai-key" type="password" value="${esc(c.apiKey)}" placeholder="sk-ant-... (dán key vào, danh sách model tự hiện)" style="width:100%" onblur="CTRC.aiKeyBlur()">
           <div class="voice-warn">⚠ Chế độ trực tiếp lưu key trong localStorage của <b>máy này</b> và gọi thẳng API từ trình duyệt. Chỉ dùng trên máy tin cậy.</div></div>
         <div class="ln"><label>Base URL</label><input class="input" id="ai-base" value="${esc(c.baseUrl)}" style="width:100%"></div>
       `}
@@ -1151,9 +1169,16 @@ function renderAICard(sel){
           <datalist id="ai-models-dl">${(c.models||[]).map(m=>`<option value="${esc(m.id)}">${esc(m.name||m.id)}</option>`).join('')}</datalist>
         </div>
         <button class="btn sm" onclick="CTRC.aiLoadModels()" title="Gọi API lấy danh sách model thật để lọc">🔄 Tải model từ API</button>
-        <div class="field" style="width:110px"><label>Max tokens</label><input class="input" id="ai-maxtok" type="number" value="${c.maxTokens}"></div>
       </div>
-      <div class="hint">${(c.models||[]).length} model trong danh sách lọc${c.modelsSource?(' · nguồn: '+esc(c.modelsSource)):''}.</div>
+      <div class="hint">${(c.models||[]).length} model trong danh sách lọc${c.modelsSource?(' · nguồn: '+esc(c.modelsSource)):''}. ${c.mode==='direct'&&!c.apiKey?'Dán API key ở trên để tự nạp danh sách.':''}</div>
+
+      <div class="row" style="align-items:flex-end;gap:12px;margin-top:12px">
+        <div class="field" style="flex:1;min-width:200px"><label>Mức suy luận (thinking)</label>
+          <select class="input" id="ai-thinking">${Object.keys(AI.THINKING).map(k=>`<option value="${k}" ${c.thinking===k?'selected':''}>${AI.THINKING_LABEL[k]}${AI.THINKING[k]?(' · '+AI.THINKING[k].toLocaleString('vi-VN')+' tokens'):''}</option>`).join('')}</select>
+        </div>
+        <div class="field" style="width:130px"><label>Max tokens trả lời</label><input class="input" id="ai-maxtok" type="number" value="${c.maxTokens}"></div>
+      </div>
+      <div class="hint">Suy luận sâu (extended thinking) giúp nhận định/gợi ý chất lượng hơn — chậm & tốn token hơn. Cần model hỗ trợ (Claude 4, 3.7). "Tắt" cho tốc độ.</div>
 
       <div class="row" style="justify-content:flex-end;margin-top:14px">
         <button class="btn sm" onclick="CTRC.aiTest()">🧪 Kiểm tra kết nối</button>
@@ -1172,6 +1197,14 @@ function aiReadForm(){
   if(el('ai-base')) AICFG.baseUrl=val('ai-base').trim();
   if(el('ai-model')) AICFG.model=val('ai-model').trim();
   if(el('ai-maxtok')) AICFG.maxTokens=+val('ai-maxtok')||600;
+  if(el('ai-thinking')) AICFG.thinking=val('ai-thinking');
+}
+/* dán key xong → tự nạp danh sách model */
+async function aiKeyBlur(){
+  aiReadForm();
+  if(AICFG.mode==='direct' && AICFG.apiKey && AICFG.apiKey.length>20 && AICFG.modelsSource!=='API'){
+    aiLoadModels();
+  }
 }
 function aiSetMode(mode){ aiReadForm(); AICFG.mode=mode; renderAICard(); }
 async function aiLoadModels(){
@@ -1232,7 +1265,7 @@ window.CTRC = {
   gvSuggest, applySuggestStrength, gvSuggestAI,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck,
   approveProfile, editProfile, saveEditProfile, addTheme,
-  aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI,
+  aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
 };
 boot();
 </script>
