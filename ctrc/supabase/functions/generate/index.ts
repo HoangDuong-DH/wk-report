@@ -10,7 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const MODEL = "claude-sonnet-4-5";   // chỉnh model tại đây nếu cần
+const DEFAULT_MODEL = "claude-sonnet-4-5";   // model mặc định nếu request không gửi
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -73,6 +73,21 @@ Deno.serve(async (req) => {
     if (!key) throw new Error("Thiếu ANTHROPIC_API_KEY");
     const body = await req.json();
 
+    // ── Liệt kê model (cho UI lọc/chọn) ──
+    if (body.action === "list_models") {
+      const mr = await fetch("https://api.anthropic.com/v1/models?limit=100", {
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
+      });
+      if (!mr.ok) throw new Error("Anthropic models HTTP " + mr.status);
+      const md = await mr.json();
+      return new Response(JSON.stringify(md), {
+        headers: { ...cors, "content-type": "application/json" },
+      });
+    }
+
+    const model = (body.model || DEFAULT_MODEL).toString();
+    const maxTokens = Math.min(2000, Math.max(100, +body.max_tokens || 600));
+
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -81,8 +96,8 @@ Deno.serve(async (req) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 600,
+        model,
+        max_tokens: maxTokens,
         system: SYSTEM,
         messages: [{ role: "user", content: buildPrompt(body) }],
       }),

@@ -61,18 +61,24 @@ Schema bật sẵn **RLS**. Có 2 lựa chọn:
 
 ## Mức 3 — Bật "Sinh bằng AI" (Claude API)
 
-Engine offline đã đủ tốt (lấy quan sát GV làm lõi). Muốn chất lượng AI cao hơn:
+Engine offline đã đủ tốt (lấy quan sát GV làm lõi). Muốn chất lượng AI cao hơn, cấu hình ngay **trong app**: đăng nhập **Manager → Cấu hình → ⚙ Cấu hình AI**.
 
+Panel cho phép:
+- **Chọn nhà cung cấp** (hiện: Anthropic Claude — mở rộng sau).
+- **Chế độ kết nối**:
+  - **Edge Function** *(khuyên dùng)* — key Claude ở server (Supabase secret), KHÔNG lộ ra trình duyệt.
+  - **Trực tiếp** — dán API key, lưu localStorage **máy này**, gọi thẳng `api.anthropic.com` (chỉ dùng máy tin cậy).
+- **Chọn + lọc model**: gõ để lọc, hoặc bấm **🔄 Tải model từ API** lấy danh sách model thật cho key của bạn.
+- **Max tokens**, **🧪 Kiểm tra kết nối** (gọi thử 1 tin mẫu).
+
+Cấu hình lưu vào localStorage (đè lên `config.js`). Lỗi API → tự giữ nháp engine.
+
+### Deploy Edge Function (cho chế độ an toàn)
 ```bash
-# cài Supabase CLI rồi:
 supabase functions deploy generate --no-verify-jwt
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-xxx
 ```
-Copy URL `https://xxxx.supabase.co/functions/v1/generate` → dán vào `config.js`:
-```js
-edgeFnUrl: 'https://xxxx.supabase.co/functions/v1/generate',
-```
-Trong màn CSKH sẽ hiện nút **✨ Sinh bằng AI**. Key Claude nằm ở server (secret), KHÔNG lộ ra trình duyệt. Lỗi API → tự giữ nháp engine.
+Copy URL `https://xxxx.supabase.co/functions/v1/generate` → dán vào panel (hoặc `config.js → edgeFnUrl`). Edge Function nhận `model` + `max_tokens` theo từng request và hỗ trợ `action:"list_models"` để app lọc model.
 
 ---
 

@@ -14,6 +14,15 @@ window.CTRC_CONFIG = {
   // ── Edge Function sinh AI (tùy chọn) ──
   edgeFnUrl: '',             // vd 'https://abcd.supabase.co/functions/v1/generate'
 
+  // ── Mặc định AI (có thể đổi trong app → Cấu hình → AI; lưu localStorage đè lên đây) ──
+  ai: {
+    provider: 'anthropic',
+    mode: 'edge',            // 'edge' (key ở server, an toàn) | 'direct' (key ở trình duyệt)
+    model: 'claude-sonnet-4-5',
+    maxTokens: 600,
+    baseUrl: 'https://api.anthropic.com',
+  },
+
   // ── Trung tâm mặc định khi nhiều center (để trống = lấy center đầu tiên) ──
   centerId: '',
 
