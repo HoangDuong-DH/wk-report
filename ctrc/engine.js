@@ -1,403 +1,226 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CTRC — ENGINE SINH NỘI DUNG (4 lớp, deterministic, offline)
+   CTRC — ENGINE SINH NỘI DUNG (mô hình 5 TIÊU CHÍ)
    ───────────────────────────────────────────────────────────────────────────
-   L1 Chuẩn nền   : giọng thương hiệu + format 3 dòng + 10 điểm mạnh
-   L2 Bối cảnh    : chủ đề tuần
-   L3 Hồ sơ bé    : hướng nội/ngoại + kiểu học → điều chỉnh giọng
-   L4 Hôm nay     : GV chấm + tick + QUAN SÁT CỤ THỂ (lõi của tin)
-
-   Deterministic theo seed=hash(studentId+date) → ổn định/buổi, đa dạng/bé.
-   KHÔNG dùng Math.random ở chỗ tạo nội dung để 2 lần sinh ra cùng kết quả.
+   Mỗi buổi GV tick: 1 tiêu chí = ĐIỂM MẠNH (+1 câu) và 1 tiêu chí = CẦN CẢI
+   THIỆN (+1 câu). Không chấm 1-5, không đánh giá cả 5 cùng lúc.
+   Câu mô tả lấy từ ngân hàng câu của từng tiêu chí (rules/bao-cao-per-buoi.md).
    ═══════════════════════════════════════════════════════════════════════════ */
 (function () {
-  const DIMS = [
-    { key: 'focus', label: 'Tập trung' },
-    { key: 'logic', label: 'Logic' },
-    { key: 'reflex', label: 'Phản xạ' },
-    { key: 'interaction', label: 'Tương tác' },
-    { key: 'creativity', label: 'Sáng tạo' },
+  /* 5 tiêu chí cốt lõi + ngân hàng câu (pos = tích cực, neg = cần cải thiện) */
+  const CRITERIA = [
+    {
+      key: 'tap_trung', label: 'Tập trung', emoji: '🎯',
+      desc: 'Lắng nghe, duy trì sự chú ý và theo kịp hoạt động học tập',
+      pos: ['Tập trung tốt trong giờ học.', 'Lắng nghe hướng dẫn cẩn thận.', 'Theo sát hoạt động của lớp.', 'Chú ý quan sát và phản hồi nhanh.', 'Duy trì sự tập trung tốt.'],
+      neg: ['Đôi lúc còn mất tập trung trong hoạt động.', 'Cần thêm nhắc nhở để duy trì sự chú ý.', 'Thỉnh thoảng bị phân tâm bởi môi trường xung quanh.', 'Chưa duy trì được sự tập trung xuyên suốt buổi học.', 'Cần hỗ trợ để quay lại nhiệm vụ khi bị gián đoạn.'],
+      tip: 'Ở nhà, bố mẹ thử chơi cùng con trò "tìm điểm khác nhau" giữa hai bức tranh 5 phút — vừa vui vừa rèn sự tập trung.',
+    },
+    {
+      key: 'tham_gia', label: 'Tham gia', emoji: '🙋',
+      desc: 'Hứng thú, chủ động tham gia trò chơi, hoạt động và thảo luận',
+      pos: ['Tham gia hoạt động tích cực.', 'Hào hứng với các thử thách.', 'Chủ động phát biểu ý kiến.', 'Mạnh dạn tham gia trò chơi.', 'Tương tác tốt cùng cô và bạn.'],
+      neg: ['Còn khá dè dặt khi tham gia hoạt động.', 'Chưa chủ động chia sẻ ý kiến của mình.', 'Cần khuyến khích thêm để tham gia thảo luận.', 'Tham gia hoạt động khi có sự động viên từ cô.', 'Chưa thực sự tự tin khi thể hiện bản thân.'],
+      tip: 'Bố mẹ khuyến khích con kể lại một việc vui trong ngày cho cả nhà nghe — giúp con mạnh dạn chia sẻ hơn.',
+    },
+    {
+      key: 'tu_duy', label: 'Tư duy', emoji: '🧠',
+      desc: 'Quan sát, phân loại, nhận biết quy luật, suy luận và giải quyết vấn đề phù hợp độ tuổi',
+      pos: ['Quan sát tốt.', 'Nhận biết quy luật nhanh.', 'Phân loại chính xác.', 'Suy luận phù hợp độ tuổi.', 'Biết thử nhiều cách giải.', 'Xử lý nhiệm vụ linh hoạt.'],
+      neg: ['Cần thêm thời gian để tìm ra cách giải quyết.', 'Còn gặp khó khăn khi nhận biết quy luật mới.', 'Chưa mạnh dạn thử các hướng giải khác nhau.', 'Cần thêm gợi ý để hoàn thành nhiệm vụ.', 'Đang từng bước làm quen với dạng bài mới.'],
+      tip: 'Khi chơi cùng con, thử hỏi "vì sao con chọn cái này?" để con tập quan sát, suy luận và giải thích.',
+    },
+    {
+      key: 'tu_lap', label: 'Tự lập', emoji: '🌱',
+      desc: 'Tự thực hiện nhiệm vụ, tự tìm cách giải quyết trước khi nhờ hỗ trợ',
+      pos: ['Hoàn thành nhiệm vụ độc lập.', 'Chủ động thực hiện yêu cầu.', 'Tự tin khi làm bài.', 'Có tinh thần tự giác tốt.', 'Kiên trì hoàn thành nhiệm vụ.'],
+      neg: ['Thường tìm sự hỗ trợ trước khi tự thử.', 'Cần nhắc nhở để bắt đầu nhiệm vụ.', 'Chưa thực sự tự tin khi làm việc độc lập.', 'Cần hỗ trợ thêm trong quá trình thực hiện nhiệm vụ.', 'Đôi lúc bỏ cuộc khi gặp thử thách.'],
+      tip: 'Giao con một việc nhỏ tự làm (cất đồ chơi, gấp khăn) rồi khen khi con tự hoàn thành — nuôi tính tự lập.',
+    },
+    {
+      key: 'hop_tac', label: 'Hợp tác', emoji: '🤝',
+      desc: 'Tương tác, làm việc cùng bạn, chờ đến lượt và chia sẻ ý kiến',
+      pos: ['Hợp tác tốt cùng bạn bè.', 'Tương tác tích cực trong nhóm.', 'Biết chờ đến lượt.', 'Chia sẻ và hỗ trợ bạn.', 'Hòa đồng với các bạn.', 'Tham gia nhóm rất tích cực.'],
+      neg: ['Còn ít tương tác với các bạn trong nhóm.', 'Cần khuyến khích thêm khi tham gia hoạt động nhóm.', 'Chưa chủ động trao đổi cùng bạn bè.', 'Đôi lúc gặp khó khăn khi phối hợp với nhóm.', 'Cần thêm thời gian để hòa nhập với hoạt động chung.'],
+      tip: 'Chơi trò luân phiên (xếp hình, board game đơn giản) để con luyện chờ đến lượt và phối hợp cùng người khác.',
+    },
   ];
+  const CRIT_BY_KEY = {}; CRITERIA.forEach((c) => (CRIT_BY_KEY[c.key] = c));
+  const critLabel = (k) => (CRIT_BY_KEY[k] ? CRIT_BY_KEY[k].label : k);
+  const TIP_BY_CRIT = {}; CRITERIA.forEach((c) => (TIP_BY_CRIT[c.key] = c.tip));
+  // tương thích chỗ cũ còn lặp qua DIMS
+  const DIMS = CRITERIA.map((c) => ({ key: c.key, label: c.label }));
 
   const BANNED = ['kém', 'yếu', 'tệ', 'dốt', 'lười', 'chậm chạp', 'ngu', 'hư'];
 
-  // mở đầu Điểm mạnh (xoay theo seed + giọng hồ sơ)
   const OPENERS = [
-    'Hôm nay, {ten} đã {phrase}',
+    'Hôm nay, {ten} {phrase}',
     'Trong buổi học hôm nay, {ten} {phrase}',
-    'Một điểm rất đáng khen ở {ten} hôm nay: bé {phrase}',
+    'Một điểm rất đáng khen ở {ten} hôm nay: con {phrase}',
     '{ten} hôm nay khiến cô ấn tượng khi {phrase}',
   ];
-  const OPENERS_INTROVERT = [
-    'Hôm nay, {ten} nhẹ nhàng nhưng rất chắc chắn khi {phrase}',
-    '{ten} hôm nay cho thấy sự tiến bộ đáng yêu: bé {phrase}',
-  ];
-  const OPENERS_EXTROVERT = [
-    'Hôm nay {ten} tràn đầy năng lượng và {phrase}',
-    '{ten} hôm nay rất sôi nổi khi {phrase}',
-  ];
+  const OPENERS_INTROVERT = ['Hôm nay, {ten} nhẹ nhàng nhưng rất chắc chắn: con {phrase}', '{ten} hôm nay cho thấy tiến bộ đáng yêu khi {phrase}'];
+  const OPENERS_EXTROVERT = ['Hôm nay {ten} tràn đầy năng lượng: con {phrase}', '{ten} hôm nay rất sôi nổi khi {phrase}'];
 
-  // Điểm cố gắng theo chiều yếu nhất (khung tích cực, hướng tới trước)
-  const EFFORT_BANK = {
-    focus: 'đang làm quen với việc giữ tập trung lâu hơn, và bé đã chủ động ngồi vào bàn để thử lại',
-    logic: 'đang tập suy luận từng bước, bé chịu khó nghĩ thay vì bỏ cuộc khi gặp bài khó',
-    reflex: 'đang luyện phản xạ trả lời nhanh hơn, và bé ngày càng mạnh dạn đưa ra câu trả lời',
-    interaction: 'đang dần cởi mở hơn khi làm việc cùng bạn, bé đã thử chia sẻ ý kiến của mình',
-    creativity: 'đang khám phá nhiều cách làm mới, bé sẵn sàng thử ý tưởng khác lạ của riêng mình',
-  };
-
-  // Gợi ý ở nhà theo chiều yếu nhất × kiểu học (5-10 phút, không cần mua đồ)
-  const TIPS = {
-    focus: {
-      visual: 'Bố mẹ thử chơi cùng bé trò "tìm điểm khác nhau" giữa hai bức tranh trong 5 phút — vừa vui vừa rèn sự tập trung.',
-      auditory: 'Bố mẹ thử đọc cho bé một mẩu chuyện ngắn rồi hỏi lại 2-3 chi tiết — giúp bé tập chú ý lắng nghe.',
-      kinesthetic: 'Cho bé xếp lại đồ chơi theo màu trong 5 phút — vận động tay kết hợp tập trung.',
-      mixed: 'Bố mẹ cùng bé chơi "tìm điểm khác nhau" giữa hai bức tranh 5 phút để rèn sự tập trung.',
-    },
-    logic: {
-      visual: 'Khi chơi xếp đồ, bố mẹ thử hỏi "vì sao con xếp cái này trước?" để bé tập giải thích suy nghĩ.',
-      auditory: 'Bố mẹ đố bé những câu "cái gì… mà…" đơn giản để bé tập suy luận qua lời nói.',
-      kinesthetic: 'Cho bé phân loại đồ vật trong nhà theo nhóm (tròn/vuông, to/nhỏ) — học logic qua tay.',
-      mixed: 'Khi chơi cùng bé, hỏi "vì sao con chọn cái này?" để bé tập giải thích cách nghĩ.',
-    },
-    reflex: {
-      visual: 'Chơi trò "chỉ nhanh" — bố mẹ nói màu, bé chỉ nhanh đồ vật màu đó quanh nhà.',
-      auditory: 'Trò "đố nhanh" đếm số tiếng vỗ tay rồi trả lời ngay giúp bé phản xạ nhanh hơn.',
-      kinesthetic: 'Chơi "ai nhanh hơn" nhặt đúng đồ bố mẹ gọi tên trong 5 phút.',
-      mixed: 'Chơi "đố nhanh" đếm đồ vật quanh nhà trong 5 phút giúp bé phản xạ nhanh hơn.',
-    },
-    interaction: {
-      visual: 'Bố mẹ cùng bé xem một bức tranh rồi thay nhau kể bé thấy gì — luyện chia sẻ.',
-      auditory: 'Để bé kể lại một việc vui trong ngày cho cả nhà nghe — luyện bé tự tin nói.',
-      kinesthetic: 'Cùng bé chơi trò đóng vai bán hàng/mua hàng — bé tập tương tác qua vận động.',
-      mixed: 'Bố mẹ để bé kể lại một việc trong ngày — luyện bé tự tin chia sẻ với người khác.',
-    },
-    creativity: {
-      visual: 'Cho bé vẽ tiếp một hình bất kỳ thành con vật bé thích — khuyến khích trí tưởng tượng.',
-      auditory: 'Bố mẹ kể nửa câu chuyện rồi để bé nghĩ đoạn kết của riêng mình.',
-      kinesthetic: 'Cho bé nặn/đắp một hình tự do từ đất nặn hoặc gối — sáng tạo qua đôi tay.',
-      mixed: 'Cho bé vẽ tiếp một hình bất kỳ thành thứ bé thích để khuyến khích sáng tạo.',
-    },
-  };
-
-  // gợi ý gắn chủ đề tuần (nếu có theme → ưu tiên 1 câu nối bối cảnh)
   function themeHook(theme, ten) {
     if (!theme) return '';
     return ` Tuần này lớp đang học "${theme}", bố mẹ có thể trò chuyện thêm với ${ten} về chủ đề này nhé.`;
   }
-
-  /* hash ổn định → số nguyên */
-  function seedOf(str) {
-    let h = 2166136261;
-    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return (h >>> 0);
-  }
+  function seedOf(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0); }
   const pick = (arr, seed) => arr[seed % arr.length];
-
-  function weakestDim(scores) {
-    let best = null, val = 99;
-    DIMS.forEach((d) => {
-      const v = +(scores && scores[d.key]) || 0;
-      if (v > 0 && v < val) { val = v; best = d; }
-    });
-    return best || DIMS[1]; // mặc định logic
-  }
-
-  function ensureDot(s) {
-    s = (s || '').trim();
-    if (!s) return s;
-    return /[.!?…]$/.test(s) ? s : s + '.';
-  }
+  function ensureDot(s) { s = (s || '').trim(); if (!s) return s; return /[.!?…]$/.test(s) ? s : s + '.'; }
+  function stripDot(s) { return (s || '').trim().replace(/\.$/, ''); }
+  function lowerFirst(s) { return s ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
 
   /* ── BỘ SINH CHÍNH ──
-     input: {
-       student:{name}, record:{scores_5d,strengths,observation,effort,mood},
-       strengths:[{idx,label,phrase}], theme:{title}, profile:{introversion,learning_style},
-       recentFeatured:[idx...], date:'YYYY-MM-DD'
-     }
-     output: { diem_manh, co_gang, goi_y, featured_strength }
-  */
+     input.record: { strength:{crit,sentence}, improve:{crit,sentence}, observation, mood }
+     output: { diem_manh, co_gang, goi_y, featured_strength } */
   function generate(input) {
     const ten = (input.student && input.student.name) || 'Bé';
     const rec = input.record || {};
     const seed = seedOf((input.student && input.student.id ? input.student.id : ten) + '|' + (input.date || ''));
     const prof = input.profile || {};
-    const recent = new Set(input.recentFeatured || []);
-
-    /* chọn điểm mạnh nêu (anti-lặp 5 buổi gần) */
-    const picked = (rec.strengths || []).slice();
-    const bank = input.strengths || [];
-    let featured = null;
-    // ưu tiên điểm đã tick mà CHƯA dùng gần đây
-    for (const idx of picked) { if (!recent.has(idx)) { featured = idx; break; } }
-    // nếu tất cả đã dùng gần đây → lấy điểm tick đầu tiên
-    if (featured == null && picked.length) featured = picked[0];
-    // nếu GV không tick gì → suy từ chiều mạnh nhất (map mềm)
-    if (featured == null) {
-      const strongDim = [...DIMS].sort((a, b) => (+(rec.scores_5d || {})[b.key] || 0) - (+(rec.scores_5d || {})[a.key] || 0))[0];
-      const mapDim = { focus: 1, logic: 3, reflex: 9, interaction: 2, creativity: 5 };
-      featured = mapDim[strongDim.key] || 1;
-    }
-    const strengthObj = bank.find((s) => s.idx === featured) || { phrase: 'thể hiện sự tiến bộ rõ rệt' };
-
-    /* L3: chọn opener theo hồ sơ */
-    let openers = OPENERS;
-    if (prof.introversion === 'introvert') openers = OPENERS_INTROVERT.concat(OPENERS);
-    else if (prof.introversion === 'extrovert') openers = OPENERS_EXTROVERT.concat(OPENERS);
-    const opener = pick(openers, seed).replace('{ten}', ten).replace('{phrase}', strengthObj.phrase);
-
-    /* L4: quan sát cụ thể = "vàng" → ghép vào sau opener */
+    const st = rec.strength || null;
+    const im = rec.improve || null;
     const obs = (rec.observation || '').trim();
-    let diem_manh = ensureDot(opener);
+
+    // dòng 1 — Điểm mạnh hôm nay
+    let diem_manh;
+    if (st && st.sentence) {
+      let openers = OPENERS;
+      if (prof.introversion === 'introvert') openers = OPENERS_INTROVERT.concat(OPENERS);
+      else if (prof.introversion === 'extrovert') openers = OPENERS_EXTROVERT.concat(OPENERS);
+      diem_manh = ensureDot(pick(openers, seed).replace('{ten}', ten).replace('{phrase}', lowerFirst(stripDot(st.sentence))));
+    } else {
+      diem_manh = ensureDot(`Hôm nay ${ten} tham gia buổi học và có nhiều cố gắng`);
+    }
     if (obs) diem_manh += ' Cụ thể, ' + ensureDot(lowerFirst(obs));
 
-    /* có điểm chấm hợp lệ không? (GV có thể lưu mà chưa tap chiều nào) */
-    const hasScores = Object.values(rec.scores_5d || {}).some((v) => +v > 0);
-
-    /* Điểm cố gắng */
+    // dòng 2 — Điều con đang cố gắng (tiêu chí cần cải thiện)
     let co_gang;
-    if ((rec.effort || '').trim()) {
-      co_gang = `${ten} cũng đang cố gắng ${ensureDot(lowerFirst(rec.effort.trim()))}`;
-    } else if (hasScores) {
-      const wd = weakestDim(rec.scores_5d);
-      co_gang = ensureDot(`${ten} ${EFFORT_BANK[wd.key]}`);
-    } else {
-      co_gang = ensureDot(`${ten} đang làm quen với nhiều hoạt động mới và ngày càng tham gia tích cực hơn`);
-    }
+    if (im && im.sentence) co_gang = ensureDot(`Bên cạnh đó, ${ten} ${lowerFirst(stripDot(im.sentence))}`);
+    else if ((rec.effort || '').trim()) co_gang = ensureDot(`${ten} cũng đang cố gắng ${lowerFirst(rec.effort.trim())}`);
+    else co_gang = ensureDot(`${ten} đang làm quen với nhiều hoạt động mới và ngày một tiến bộ`);
 
-    /* Gợi ý ở nhà theo chiều yếu nhất × kiểu học + hook chủ đề */
-    const style = prof.learning_style || 'mixed';
-    let goi_y;
-    if (hasScores) {
-      const wd = weakestDim(rec.scores_5d);
-      goi_y = (TIPS[wd.key] && TIPS[wd.key][style]) || TIPS[wd.key].mixed;
-    } else {
-      goi_y = (TIPS.creativity[style]) || TIPS.creativity.mixed;
-    }
-    goi_y = ensureDot(goi_y) + themeHook(input.theme && input.theme.title, ten);
+    // dòng 3 — Gợi ý ở nhà theo tiêu chí cần cải thiện
+    const tipCrit = (im && im.crit) || (st && st.crit) || 'tu_duy';
+    const goi_y = ensureDot(TIP_BY_CRIT[tipCrit] || TIP_BY_CRIT.tu_duy) + themeHook(input.theme && input.theme.title, ten);
 
-    return {
-      diem_manh: diem_manh.trim(),
-      co_gang: co_gang.trim(),
-      goi_y: goi_y.trim(),
-      featured_strength: featured,
-    };
+    return { diem_manh: diem_manh.trim(), co_gang: co_gang.trim(), goi_y: goi_y.trim(), featured_strength: st ? st.crit : null };
   }
 
-  function lowerFirst(s) { return s ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
-
-  /* Guard giọng thương hiệu — quét TỪ cấm theo ranh giới từ (tránh "hư" khớp trong "như").
-     Coi mọi chữ cái (kể cả có dấu) là ký tự từ; chỉ báo khi đứng riêng thành từ. */
+  /* Guard giọng thương hiệu — quét TỪ cấm theo ranh giới từ */
   function checkVoice(text) {
     const low = (text || '').toLowerCase();
     const hits = BANNED.filter((w) => {
-      try {
-        const re = new RegExp('(^|[^\\p{L}])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^\\p{L}])', 'u');
-        return re.test(low);
-      } catch (_) { return low.includes(w); }
+      try { return new RegExp('(^|[^\\p{L}])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^\\p{L}])', 'u').test(low); }
+      catch (_) { return low.includes(w); }
     });
     return { ok: hits.length === 0, banned: hits };
   }
 
-  /* Ghép khối Copy cho CSKH paste Zalo. KHÔNG link (gui-phu-huynh.md);
-     chỉ thêm link nếu truyền vào (mặc định không). */
+  /* Ghép văn bản gửi Zalo — KHÔNG link (mặc định) */
   function composeZalo(student, dateStr, msg, link) {
     return (
       `Báo cáo buổi ${fmtDate(dateStr)} của bé ${student.name}\n\n` +
       `👍 Điểm mạnh: ${msg.diem_manh}\n` +
-      `🎯 Cố gắng: ${msg.co_gang}\n` +
+      `🎯 Đang cố gắng: ${msg.co_gang}\n` +
       `🏠 Gợi ý ở nhà: ${msg.goi_y}` +
       (link ? `\n\nXem chi tiết: ${link}` : '')
     ).trim();
   }
-  function fmtDate(d) {
-    if (!d) return '';
-    const [y, m, day] = d.split('-');
-    return `${day}/${m}/${y}`;
-  }
+  function fmtDate(d) { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
 
-  /* Suy luận hồ sơ bé từ lịch sử record (sinh nháp sau ≥3 buổi) */
-  function inferProfile(records) {
-    const valid = records.filter((r) => r.attendance === 'present');
-    const avg = (k) => {
-      const xs = valid.map((r) => +((r.scores_5d || {})[k]) || 0).filter((x) => x > 0);
-      return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
-    };
-    const baseline = {};
-    DIMS.forEach((d) => (baseline[d.key] = Math.round(avg(d.key) * 10) / 10));
-
-    const interaction = baseline.interaction;
-    const introversion = interaction >= 4 ? 'extrovert' : interaction <= 2.5 ? 'introvert' : 'balanced';
-
-    // kiểu học: chiều mạnh nhất → map
-    const strong = [...DIMS].sort((a, b) => baseline[b.key] - baseline[a.key])[0].key;
-    const styleMap = { focus: 'visual', logic: 'visual', reflex: 'kinesthetic', interaction: 'auditory', creativity: 'kinesthetic' };
-    const learning_style = styleMap[strong] || 'mixed';
-
-    // concerns: chiều yếu < 2.5
-    const concerns = DIMS.filter((d) => baseline[d.key] > 0 && baseline[d.key] < 2.5)
-      .map((d) => `Đang theo dõi thêm ở mảng ${d.label.toLowerCase()}`);
-
-    const styleLabel = { visual: 'thị giác (hình ảnh)', auditory: 'thính giác (lắng nghe)', kinesthetic: 'vận động (thao tác)', mixed: 'hỗn hợp' }[learning_style];
-    const introLabel = { introvert: 'thiên hướng nội', extrovert: 'thiên hướng ngoại', balanced: 'cân bằng' }[introversion];
-    const summary = `Sau ${valid.length} buổi quan sát, bé có ${introLabel}, học tốt nhất qua kênh ${styleLabel}.` +
-      (concerns.length ? ' ' + concerns.join('; ') + '.' : '');
-
-    return { introversion, learning_style, concerns, baseline_5d: baseline, summary, observedSessions: valid.length };
-  }
-
-  /* ════════ TRỢ LÝ GV: gợi ý từ quan sát (rule-based, offline) ════════
-     Đối chiếu từ khoá trong quan sát → điểm mạnh nên tick + chiều nên cao,
-     và cảnh báo nếu quan sát quá sơ sài. */
-  const STRENGTH_KW = {
-    1: ['tập trung', 'chăm chú', 'không xao nhãng', 'ngồi yên'],
-    2: ['giơ tay', 'phát biểu', 'xung phong', 'trả lời', 'mạnh dạn'],
-    3: ['tự tìm', 'tự làm', 'tự ghép', 'tự giải', 'không cần cô', 'tự nghĩ ra'],
-    4: ['giúp bạn', 'chỉ bạn', 'hướng dẫn bạn', 'nhường bạn'],
-    5: ['hào hứng', 'thích thú', 'vui vẻ', 'hứng thú', 'thích chơi', 'sôi nổi'],
-    6: ['kiên nhẫn', 'thử lại', 'nhiều lần', 'không bỏ cuộc', 'cố gắng', 'thử nhiều cách'],
-    7: ['giải thích', 'nói cách', 'trình bày cách', 'lý do'],
-    8: ['tự giác', 'hoàn thành', 'làm xong', 'không cần nhắc', 'làm đủ'],
-    9: ['quan sát', 'nhận ra', 'để ý', 'nhìn ra', 'phát hiện', 'tinh ý'],
-    10: ['tự tin', 'trình bày', 'kể', 'thuyết trình', 'nói trước lớp'],
-  };
-  const DIM_KW = {
-    focus: ['tập trung', 'chăm chú', 'kiên trì', 'ngồi yên'],
-    logic: ['suy luận', 'vì sao', 'quy luật', 'giải thích', 'cách làm', 'logic', 'phân loại'],
-    reflex: ['nhanh', 'phản xạ', 'trả lời ngay', 'tức thì'],
-    interaction: ['giúp bạn', 'cùng bạn', 'chia sẻ', 'giao tiếp', 'nói chuyện', 'hỏi'],
-    creativity: ['sáng tạo', 'ý tưởng', 'tưởng tượng', 'vẽ', 'tự nghĩ', 'cách mới'],
+  /* ════════ TRỢ LÝ GV: gợi ý tiêu chí từ quan sát ════════ */
+  const CRIT_KW = {
+    tap_trung: ['tập trung', 'chú ý', 'lắng nghe', 'chăm chú', 'ngồi yên', 'theo dõi'],
+    tham_gia: ['hào hứng', 'giơ tay', 'phát biểu', 'tham gia', 'sôi nổi', 'thích', 'xung phong', 'mạnh dạn'],
+    tu_duy: ['quan sát', 'suy luận', 'quy luật', 'phân loại', 'tìm ra cách', 'giải', 'nhận biết'],
+    tu_lap: ['tự làm', 'tự ghép', 'tự tìm', 'không cần', 'tự giác', 'hoàn thành', 'độc lập', 'tự tin'],
+    hop_tac: ['giúp bạn', 'cùng bạn', 'chia sẻ', 'chờ đến lượt', 'nhóm', 'phối hợp', 'hoà đồng', 'hòa đồng'],
   };
   const THIN_PATTERNS = ['bé ngoan', 'bé giỏi', 'ngoan', 'tốt', 'bình thường', 'ok', 'được'];
-
-  function suggestFromObservation(obs, alreadyPicked) {
+  function suggestFromObservation(obs) {
     const text = (obs || '').toLowerCase().trim();
-    const picked = new Set(alreadyPicked || []);
-    const out = { strengths: [], dims: [], thin: false, hints: [] };
-    // sơ sài: quá ngắn hoặc chỉ chứa từ chung chung
-    const wordCount = text ? text.split(/\s+/).length : 0;
-    if (wordCount < 4 || THIN_PATTERNS.some((p) => text === p || text === p + '.')) {
-      out.thin = true;
-      out.hints.push('Quan sát hơi chung — thêm 1 chi tiết cụ thể (bé làm gì, với cái gì) để tin nhắn "đắt" hơn.');
+    const out = { crit: null, thin: false, hints: [] };
+    const wc = text ? text.split(/\s+/).length : 0;
+    if (wc < 4 || THIN_PATTERNS.some((p) => text === p || text === p + '.')) {
+      out.thin = true; out.hints.push('Quan sát hơi chung — thêm 1 chi tiết cụ thể (con làm gì, với cái gì) để tin nhắn "đắt" hơn.');
     }
     if (!text) return out;
-    // điểm mạnh gợi ý (chưa tick)
-    for (const idx in STRENGTH_KW) {
-      if (picked.has(+idx)) continue;
-      if (STRENGTH_KW[idx].some((k) => text.includes(k))) out.strengths.push(+idx);
-    }
-    out.strengths = out.strengths.slice(0, 3);
-    // chiều nên cao
-    DIMS.forEach((d) => { if ((DIM_KW[d.key] || []).some((k) => text.includes(k))) out.dims.push(d.key); });
+    let best = null, bestN = 0;
+    for (const k in CRIT_KW) { const n = CRIT_KW[k].filter((w) => text.includes(w)).length; if (n > bestN) { bestN = n; best = k; } }
+    out.crit = best;
     return out;
   }
 
-  /* ════════ MANAGER INSIGHTS: tổng hợp nhiều buổi (rule-based, offline) ════════
-     items: [{ student:{id,name,gender}, records:[present records...] }] */
-  function avg5(rec) {
-    const xs = DIMS.map((d) => +((rec.scores_5d || {})[d.key]) || 0).filter((x) => x > 0);
-    return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
-  }
+  /* ════════ MANAGER INSIGHTS (theo tiêu chí) ════════ */
   function computeInsights(items) {
-    const progressing = [], attention = [], steady = [];
-    const dimSum = {}, dimCnt = {};
-    DIMS.forEach((d) => { dimSum[d.key] = 0; dimCnt[d.key] = 0; });
-    let totalRecords = 0;
-
+    const sCnt = {}, iCnt = {}; CRITERIA.forEach((c) => { sCnt[c.key] = 0; iCnt[c.key] = 0; });
+    let totalRecords = 0; const attention = [];
     items.forEach(({ student, records }) => {
-      const recs = (records || []).slice().sort((a, b) => (a.created_at || '') < (b.created_at || '') ? -1 : 1);
-      totalRecords += recs.length;
-      // gom điểm lớp
-      recs.forEach((r) => DIMS.forEach((d) => {
-        const v = +((r.scores_5d || {})[d.key]) || 0; if (v > 0) { dimSum[d.key] += v; dimCnt[d.key] += 1; }
-      }));
-      if (!recs.length) return;
-      const avgs = recs.map(avg5).filter((x) => x > 0);
-      const overall = avgs.length ? avgs.reduce((a, b) => a + b, 0) / avgs.length : 0;
-      // xu hướng: nửa sau vs nửa đầu
-      let trend = 0;
-      if (avgs.length >= 2) {
-        const half = Math.floor(avgs.length / 2);
-        const early = avgs.slice(0, half), late = avgs.slice(half);
-        const m = (a) => a.reduce((x, y) => x + y, 0) / a.length;
-        trend = m(late) - m(early);
-      }
-      const negMood = recs.filter((r) => r.mood === 'sad' || r.mood === 'tired').length / recs.length;
-      const thinRatio = recs.filter((r) => (r.observation || '').trim().split(/\s+/).length < 4).length / recs.length;
-      const item = { name: student.name, gender: student.gender, sessions: recs.length, avg: Math.round(overall * 10) / 10, trend: Math.round(trend * 10) / 10, negMood, reasons: [] };
-
-      if (trend >= 0.3) { item.reasons.push(`điểm trung bình tăng ${item.trend} qua ${recs.length} buổi`); progressing.push(item); }
-      else if (trend <= -0.3) { item.reasons.push(`điểm trung bình giảm ${Math.abs(item.trend)}`); attention.push(item); }
-      if (overall > 0 && overall < 2.5 && !attention.includes(item)) { item.reasons.push(`điểm nền còn thấp (${item.avg}/5)`); attention.push(item); }
-      if (negMood >= 0.5 && !attention.includes(item)) { item.reasons.push('nhiều buổi tâm trạng chưa vui'); attention.push(item); }
-      if (!progressing.includes(item) && !attention.includes(item)) steady.push(item);
-      item._thin = thinRatio;
+      const present = (records || []).filter((r) => r.attendance === 'present');
+      totalRecords += present.length;
+      const myImp = {};
+      present.forEach((r) => {
+        if (r.strength && r.strength.crit) sCnt[r.strength.crit]++;
+        if (r.improve && r.improve.crit) { iCnt[r.improve.crit]++; myImp[r.improve.crit] = (myImp[r.improve.crit] || 0) + 1; }
+      });
+      const negMood = present.length ? present.filter((r) => r.mood === 'sad' || r.mood === 'tired').length / present.length : 0;
+      const recurring = Object.entries(myImp).filter(([, n]) => n >= 2).map(([k]) => critLabel(k));
+      const reasons = [];
+      if (recurring.length) reasons.push('cần rèn thêm: ' + recurring.join(', ').toLowerCase());
+      if (negMood >= 0.5) reasons.push('nhiều buổi tâm trạng chưa vui');
+      if (reasons.length) attention.push({ name: student.name, gender: student.gender, sessions: present.length, reasons });
     });
-
-    const classAvg = {};
-    DIMS.forEach((d) => { classAvg[d.key] = dimCnt[d.key] ? Math.round(dimSum[d.key] / dimCnt[d.key] * 10) / 10 : 0; });
-    const dimsRanked = DIMS.map((d) => ({ key: d.key, label: d.label, v: classAvg[d.key] })).filter((x) => x.v > 0).sort((a, b) => a.v - b.v);
+    const rankS = Object.entries(sCnt).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+    const rankI = Object.entries(iCnt).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
     return {
-      progressing: progressing.sort((a, b) => b.trend - a.trend),
-      attention,
-      steady,
-      classAvg, dimsRanked,
-      weakest: dimsRanked[0] || null,
-      strongest: dimsRanked[dimsRanked.length - 1] || null,
-      totalRecords, totalStudents: items.length,
+      strengthCounts: sCnt, improveCounts: iCnt,
+      strongest: rankS[0] ? { key: rankS[0][0], label: critLabel(rankS[0][0]), n: rankS[0][1] } : null,
+      weakest: rankI[0] ? { key: rankI[0][0], label: critLabel(rankI[0][0]), n: rankI[0][1] } : null,
+      attention, totalRecords, totalStudents: items.length,
     };
   }
 
-  /* ════════ BÁO CÁO TUẦN: gom các buổi của 1 bé → tổng hợp ════════
-     records: session_records của bé trong tuần (kèm .date). */
-  function weeklyDigest(records, strengthsBank) {
+  /* ════════ BÁO CÁO TUẦN: gom các buổi của 1 bé ════════ */
+  function weeklyDigest(records) {
     const present = (records || []).filter((r) => r.attendance === 'present');
     const absent = (records || []).filter((r) => r.attendance === 'absent');
-    const cnt = {};
-    present.forEach((r) => (r.strengths || []).forEach((i) => (cnt[i] = (cnt[i] || 0) + 1)));
-    const topStrengths = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 3)
-      .map(([i]) => ((strengthsBank || []).find((s) => s.idx === +i) || {}).label).filter(Boolean);
-    const highlights = present.map((r) => (r.observation || '').trim())
-      .filter((o) => o.split(/\s+/).length >= 4).slice(0, 3);
-    const avgs = present.map(avg5).filter((x) => x > 0);
-    const overall = avgs.length ? Math.round(avgs.reduce((a, b) => a + b, 0) / avgs.length * 10) / 10 : 0;
-    let trend = 0;
-    if (avgs.length >= 2) { const h = Math.floor(avgs.length / 2); const m = (a) => a.reduce((x, y) => x + y, 0) / a.length; trend = Math.round((m(avgs.slice(h)) - m(avgs.slice(0, h))) * 10) / 10; }
-    const dimSum = {}, dimCnt = {};
-    DIMS.forEach((d) => { dimSum[d.key] = 0; dimCnt[d.key] = 0; });
-    present.forEach((r) => DIMS.forEach((d) => { const v = +((r.scores_5d || {})[d.key]) || 0; if (v > 0) { dimSum[d.key] += v; dimCnt[d.key]++; } }));
-    const ranked = DIMS.filter((d) => dimCnt[d.key]).sort((a, b) => (dimSum[a.key] / dimCnt[a.key]) - (dimSum[b.key] / dimCnt[b.key]));
+    const sCnt = {}, iCnt = {}; const sSent = [];
+    present.forEach((r) => {
+      if (r.strength && r.strength.crit) { sCnt[r.strength.crit] = (sCnt[r.strength.crit] || 0) + 1; if (r.strength.sentence) sSent.push(r.strength.sentence); }
+      if (r.improve && r.improve.crit) iCnt[r.improve.crit] = (iCnt[r.improve.crit] || 0) + 1;
+    });
+    const topStrengths = Object.entries(sCnt).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => critLabel(k));
+    const improveAreas = Object.entries(iCnt).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => critLabel(k));
+    const highlights = present.map((r) => (r.observation || '').trim()).filter((o) => o.split(/\s+/).length >= 4).slice(0, 3);
+    const topImp = Object.entries(iCnt).sort((a, b) => b[1] - a[1])[0];
     return {
-      sessions: present.length, absent: absent.length,
-      topStrengths, highlights, overall, trend,
-      weakest: ranked[0] || null, strongest: ranked[ranked.length - 1] || null,
+      sessions: present.length, absent: absent.length, topStrengths, improveAreas, highlights,
+      strengthSentences: sSent,
+      weakest: topImp ? { key: topImp[0], label: critLabel(topImp[0]) } : null,
       moods: present.map((r) => r.mood),
     };
   }
-
-  /* dệt lời kể từ digest (offline, theo bao-cao-tuan.md) */
-  function weeklyNarrative(dg, ten, learningStyle) {
+  function weeklyNarrative(dg, ten) {
     let tongHop;
-    if (!dg || dg.sessions === 0) {
-      tongHop = `Tuần này ${ten} chưa có buổi học nào được ghi nhận.`;
-    } else {
+    if (!dg || dg.sessions === 0) tongHop = `Tuần này ${ten} chưa có buổi học nào được ghi nhận.`;
+    else {
       tongHop = `Tuần này ${ten} tham gia ${dg.sessions} buổi học` + (dg.absent ? ` (nghỉ ${dg.absent} buổi)` : '') + '. ';
-      if (dg.topStrengths.length) tongHop += `Con thường xuyên thể hiện ${dg.topStrengths.join(', ').toLowerCase()}. `;
-      if (dg.highlights.length) tongHop += 'Một vài khoảnh khắc đáng nhớ: ' + dg.highlights.map((h) => ensureDot(lowerFirst(h))).join(' ') + ' ';
-      if (dg.trend >= 0.3) tongHop += 'Càng về cuối tuần con càng tự tin và chủ động hơn.';
+      if (dg.topStrengths.length) tongHop += `Con thể hiện tốt ở ${dg.topStrengths.join(', ').toLowerCase()}. `;
+      if (dg.highlights.length) tongHop += 'Một vài khoảnh khắc đáng nhớ: ' + dg.highlights.map((h) => ensureDot(lowerFirst(h))).join(' ');
     }
     let coGang;
-    if (dg && dg.weakest) coGang = `${ten} đang luyện thêm ở mảng ${dg.weakest.label.toLowerCase()}, và ngày càng chủ động thử sức hơn.`;
+    if (dg && dg.improveAreas && dg.improveAreas.length) coGang = `${ten} đang cố gắng hơn ở ${dg.improveAreas.join(', ').toLowerCase()}, và ngày một tiến bộ.`;
     else coGang = `${ten} đang làm quen với nhiều hoạt động mới và tham gia ngày một tích cực.`;
-    const wk = (dg && dg.weakest) ? dg.weakest.key : 'creativity';
-    const style = learningStyle || 'mixed';
-    const oNha = (TIPS[wk] && (TIPS[wk][style] || TIPS[wk].mixed)) || TIPS.creativity.mixed;
-    return { tongHop: tongHop.trim(), coGang: ensureDot(coGang), oNha: ensureDot(oNha) };
+    const wk = (dg && dg.weakest) ? dg.weakest.key : 'tu_duy';
+    return { tongHop: tongHop.trim(), coGang: ensureDot(coGang), oNha: ensureDot(TIP_BY_CRIT[wk] || TIP_BY_CRIT.tu_duy) };
   }
 
   /* tóm tắt "tuần này con học gì" — ưu tiên nội dung AI soạn cho phụ huynh */
   function lessonSummary(les) {
     if (!les) return '';
-    if (les.parent_content) return les.parent_content;   // AI đã soạn cho PH (doc-hieu-giao-an)
+    if (les.parent_content) return les.parent_content;
     let s = les.title ? les.title.replace(/\.$/, '') + '. ' : '';
     if (les.pages && les.pages.length) {
       const types = Array.from(new Set(les.pages.map((p) => p.type).filter(Boolean)));
@@ -407,5 +230,26 @@
     return s.trim();
   }
 
-  window.CTRC_ENGINE = { DIMS, generate, checkVoice, composeZalo, inferProfile, fmtDate, seedOf, suggestFromObservation, computeInsights, weeklyDigest, weeklyNarrative, lessonSummary };
+  /* Hồ sơ bé: suy từ tần suất tiêu chí mạnh/cần cải thiện */
+  function inferProfile(records) {
+    const present = records.filter((r) => r.attendance === 'present');
+    const sCnt = {}, iCnt = {};
+    present.forEach((r) => {
+      if (r.strength && r.strength.crit) sCnt[r.strength.crit] = (sCnt[r.strength.crit] || 0) + 1;
+      if (r.improve && r.improve.crit) iCnt[r.improve.crit] = (iCnt[r.improve.crit] || 0) + 1;
+    });
+    const topS = (Object.entries(sCnt).sort((a, b) => b[1] - a[1])[0] || [])[0];
+    const topI = (Object.entries(iCnt).sort((a, b) => b[1] - a[1])[0] || [])[0];
+    let introversion = 'balanced';
+    if (['tham_gia', 'hop_tac'].includes(topS)) introversion = 'extrovert';
+    else if (['tham_gia', 'hop_tac'].includes(topI)) introversion = 'introvert';
+    const concerns = topI ? ['Đang rèn thêm ở mảng ' + critLabel(topI).toLowerCase()] : [];
+    const summary = `Sau ${present.length} buổi, con nổi bật ở ${topS ? critLabel(topS).toLowerCase() : 'nhiều mặt'}` + (topI ? `, đang rèn thêm ${critLabel(topI).toLowerCase()}` : '') + '.';
+    return { introversion, learning_style: 'mixed', concerns, summary, observedSessions: present.length, topStrength: topS, topImprove: topI };
+  }
+
+  window.CTRC_ENGINE = {
+    CRITERIA, DIMS, critLabel, generate, checkVoice, composeZalo, inferProfile,
+    fmtDate, seedOf, suggestFromObservation, computeInsights, weeklyDigest, weeklyNarrative, lessonSummary,
+  };
 })();

@@ -116,8 +116,12 @@ input,select,textarea{font-family:inherit}
 .scale button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;font:700 13px/1 var(--font);color:var(--ink-soft)}
 .scale button.on{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none}
 .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
-.chip{padding:7px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font:600 12px/1.2 var(--font);color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px}
+.chip{padding:7px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font:600 12px/1.2 var(--font);color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.chip:hover{border-color:var(--green)}
+.chip.imp:hover{border-color:var(--primary-2)}
 .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+.chip.on.imp{background:var(--primary-2);border-color:var(--primary-2)}
+.chip.sent{border-radius:11px;padding:8px 11px;white-space:normal;text-align:left;line-height:1.4;max-width:100%}
 .chip .warn{color:var(--yellow);font-weight:800}
 .chip.on .warn{color:#fff}
 textarea.input{width:100%;min-height:64px;resize:vertical;line-height:1.5}
@@ -168,6 +172,7 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .ctx-mood{background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font:600 11px/1 var(--font)}
 .ctx-obs{margin-top:8px;font:500 12.5px/1.55 var(--font);color:var(--ink);background:#fffdf3;border-left:3px solid var(--yellow);padding:7px 11px;border-radius:0 8px 8px 0}
 .ctx-obs .lbl{font:800 10px/1 var(--font);color:#b8860b;letter-spacing:.04em;display:block;margin-bottom:3px}
+.ctx-sent{margin-top:6px;font:500 12px/1.5 var(--font);color:var(--ink-soft)}
 
 .ed-line{margin-bottom:13px}
 .ed-head{display:flex;justify-content:space-between;align-items:baseline;font:800 12.5px/1 var(--font-d);color:var(--ink);margin-bottom:6px}
@@ -315,10 +320,10 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=13"></script>
-<script src="db.js?v=13"></script>
-<script src="engine.js?v=13"></script>
-<script src="lessons.js?v=13"></script>
+<script src="config.js?v=14"></script>
+<script src="db.js?v=14"></script>
+<script src="engine.js?v=14"></script>
+<script src="lessons.js?v=14"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -396,23 +401,25 @@ const AI_SYSTEM = [
   '- KHÔNG so sánh bé này với bé khác. Tôn trọng tốc độ riêng.',
   '- Tiếng Việt tự nhiên, ấm áp; mỗi dòng 1-2 câu.',
 ].join('\n');
-const _DIM_VI = {focus:'Tập trung',logic:'Logic',reflex:'Phản xạ',interaction:'Tương tác',creativity:'Sáng tạo'};
+function _critLabel(k){ return (window.CTRC_ENGINE&&window.CTRC_ENGINE.critLabel(k))||k; }
 function buildAIPrompt(b){
-  const stu=b.student||{}, rec=b.record||{}, theme=b.theme||{}, prof=b.profile||{}, strengths=b.strengths||[], center=b.center||{};
-  const picked=(rec.strengths||[]).map(i=>(strengths.find(s=>s.idx===i)||{}).label).filter(Boolean);
-  const scores=Object.entries(rec.scores_5d||{}).map(([k,v])=>`${_DIM_VI[k]||k}: ${v}/5`).join(', ');
-  const profLine=(prof&&prof.status==='active')?`Tính cách: ${prof.introversion}; kiểu học: ${prof.learning_style}. ${prof.summary||''}`:'Chưa có hồ sơ (giọng trung tính).';
+  const stu=b.student||{}, rec=b.record||{}, theme=b.theme||{}, prof=b.profile||{}, center=b.center||{};
+  const st=rec.strength||{}, im=rec.improve||{};
+  const stLine = st.crit ? `${_critLabel(st.crit)} — "${st.sentence||''}"` : '(chưa chọn)';
+  const imLine = im.crit ? `${_critLabel(im.crit)} — "${im.sentence||''}"` : '(chưa chọn)';
+  const profLine=(prof&&prof.status==='active')?`Tính cách: ${prof.introversion}. ${prof.summary||''}`:'Chưa có hồ sơ (giọng trung tính).';
   return [
     `BỐI CẢNH: Trung tâm ${center.name||'WonderKids'}. Tuần này lớp học chủ đề "${theme.title||'(chưa có)'}".`,
     `HỒ SƠ BÉ ${stu.name}: ${profLine}`,
-    `HÔM NAY GV chấm: ${scores||'(chưa chấm)'}. Điểm mạnh tick: ${picked.join(', ')||'(không)'}.`,
+    `HÔM NAY GV đánh giá theo 5 tiêu chí (Tập trung, Tham gia, Tư duy, Tự lập, Hợp tác):`,
+    `· ĐIỂM MẠNH: ${stLine}`,
+    `· CẦN CẢI THIỆN: ${imLine}`,
     `QUAN SÁT CỤ THỂ (lõi, quan trọng nhất): "${rec.observation||'(trống)'}".`,
-    rec.effort?`Ghi chú cố gắng: "${rec.effort}".`:'',
     '',
     `Viết báo cáo gửi phụ huynh bé ${stu.name} gồm ĐÚNG 3 dòng (mỗi dòng 1-2 câu, ấm áp):`,
-    `1. Điểm mạnh hôm nay (cụ thể hành vi, dựa trên quan sát GV)`,
-    `2. Điểm cố gắng (bé thử gì dù chưa hoàn hảo)`,
-    `3. Gợi ý ở nhà (5-10 phút, không cần mua đồ)`,
+    `1. Điểm mạnh hôm nay (bám tiêu chí điểm mạnh + quan sát GV, cụ thể hành vi)`,
+    `2. Điều con đang cố gắng (bám tiêu chí cần cải thiện, nhẹ nhàng hướng tới trước)`,
+    `3. Gợi ý ở nhà (5-10 phút, không cần mua đồ, gắn với tiêu chí cần cải thiện)`,
     `Trả về DUY NHẤT JSON: {"diem_manh":"...","co_gang":"...","goi_y":"..."} — không thêm chữ nào khác.`,
   ].filter(Boolean).join('\n');
 }
@@ -719,25 +726,18 @@ function gvFilter(k){ GV.filter=k; renderRoster(); }
 let SCORE = null;
 async function openScore(studentId){
   const stu = await DB.getStudent(studentId);
-  const rec = await DB.getRecord(GV.session.id, studentId) || { scores_5d:{}, strengths:[], observation:'', effort:'', mood:'normal', attendance:'present' };
-  const strengths = await DB.listStrengths(CENTER.id);
-  const recent = new Set(await DB.recentFeaturedStrengths(studentId, 5));
-  SCORE = { stu, rec: JSON.parse(JSON.stringify(rec)), strengths, recent };
+  const rec = await DB.getRecord(GV.session.id, studentId) || { attendance:'present', observation:'', mood:'normal', strength:null, improve:null };
+  SCORE = { stu, rec: JSON.parse(JSON.stringify(rec)), _suggest:null };
   renderScore();
 }
 function renderScore(){
-  const {stu, rec, strengths, recent} = SCORE;
-  const dimRows = ENG.DIMS.map(d=>`
-    <div class="dim"><span class="dl">${d.label}</span>
-      <span class="scale">${[1,2,3,4,5].map(n=>`<button class="${(+rec.scores_5d[d.key])===n?'on':''}" onclick="CTRC.setScore('${d.key}',${n})">${n}</button>`).join('')}</span>
-    </div>`).join('');
-  const chips = strengths.map(s=>{
-    const on = (rec.strengths||[]).includes(s.idx);
-    const warn = recent.has(s.idx);
-    return `<button class="chip ${on?'on':''}" onclick="CTRC.toggleStrength(${s.idx})" title="${warn?'Đã nêu gần đây — ưu tiên điểm khác nếu hợp lý':''}">
-      ${warn?'<span class="warn">↻</span>':''}${esc(s.label)}</button>`;
-  }).join('');
+  const {stu, rec} = SCORE;
   const absent = rec.attendance==='absent';
+  const C = ENG.CRITERIA;
+  const stCrit = rec.strength && rec.strength.crit, stSent = rec.strength && rec.strength.sentence;
+  const imCrit = rec.improve && rec.improve.crit,  imSent = rec.improve && rec.improve.sentence;
+  const critChips=(sel,excl,h,tone)=>C.map(c=>c.key===excl?'':`<button class="chip ${tone||''} ${sel===c.key?'on':''}" title="${esc(c.desc)}" onclick="CTRC.${h}('${c.key}')">${c.emoji} ${esc(c.label)}</button>`).join('');
+  const sentChips=(crit,type,sel,h,tone)=>{ const c=C.find(x=>x.key===crit); if(!c)return ''; const arr=type==='pos'?c.pos:c.neg; return arr.map((s,i)=>`<button class="chip sent ${tone||''} ${sel===s?'on':''}" onclick="CTRC.${h}(${i})">${esc(s)}</button>`).join(''); };
   modal(`
     <h3>${AV(stu.gender)} ${esc(stu.name)}</h3>
     <div class="row" style="margin-bottom:14px">
@@ -745,97 +745,85 @@ function renderScore(){
       <button class="btn sm ${absent?'primary':''}" onclick="CTRC.setAttendance('absent')">Nghỉ</button>
     </div>
     <div id="score-body" class="${absent?'hidden':''}">
-      <div style="margin-bottom:8px">${dimRows}</div>
-      <label style="font:700 11px/1 var(--font);text-transform:uppercase;letter-spacing:.05em;color:var(--mute)">Điểm mạnh hôm nay (tick 1-3)</label>
-      <div class="chips" style="margin-bottom:12px">${chips}</div>
       <div class="ln">
-        <label style="color:#b8860b">⭐ Quan sát cụ thể (QUAN TRỌNG NHẤT)</label>
-        <textarea class="input gold" id="sc-obs" placeholder="VD: Bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần khi sai">${esc(rec.observation)}</textarea>
-        <div class="row" style="margin-top:6px;gap:8px">
-          <button class="btn sm" type="button" onclick="CTRC.gvSuggest()">✨ Gợi ý từ quan sát</button>
-          <span class="hint" style="margin:0">Càng cụ thể → tin càng "đắt". Tránh viết chung như "bé ngoan".</span>
-        </div>
+        <label style="color:var(--green)">👍 Điểm mạnh hôm nay — chọn 1 tiêu chí</label>
+        <div class="chips">${critChips(stCrit, imCrit, 'pickStrengthCrit')}</div>
+        ${stCrit?`<div class="hint" style="margin:7px 0 4px">Chọn câu mô tả:</div><div class="chips">${sentChips(stCrit,'pos',stSent,'pickStrengthSentence')}</div>`:''}
+      </div>
+      <div class="ln" style="margin-top:14px">
+        <label style="color:var(--primary-2)">🎯 Cần cải thiện — chọn 1 tiêu chí</label>
+        <div class="chips">${critChips(imCrit, stCrit, 'pickImproveCrit', 'imp')}</div>
+        ${imCrit?`<div class="hint" style="margin:7px 0 4px">Chọn câu mô tả:</div><div class="chips">${sentChips(imCrit,'neg',imSent,'pickImproveSentence','imp')}</div>`:''}
+      </div>
+      <div class="ln" style="margin-top:14px">
+        <label style="color:#b8860b">⭐ Quan sát cụ thể (tuỳ chọn — làm tin "đắt" hơn)</label>
+        <textarea class="input gold" id="sc-obs" placeholder="VD: Bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần khi sai">${esc(rec.observation||'')}</textarea>
+        <div class="row" style="margin-top:6px"><button class="btn sm" type="button" onclick="CTRC.gvSuggest()">✨ Gợi ý tiêu chí từ quan sát</button></div>
         <div id="sc-suggest"></div>
       </div>
-      <div class="ln"><label>Điểm cố gắng (tuỳ chọn)</label>
-        <textarea class="input" id="sc-effort" placeholder="VD: tập đếm to thành tiếng dù còn ngại">${esc(rec.effort)}</textarea></div>
-      <div class="field" style="margin-bottom:14px"><label>Tâm trạng</label>
+      <div class="field" style="margin:14px 0"><label>Tâm trạng</label>
         <select class="input" id="sc-mood">${Object.entries(MOODS).map(([k,v])=>`<option value="${k}" ${rec.mood===k?'selected':''}>${v}</option>`).join('')}</select></div>
+      <div id="sc-preview" class="hint"></div>
     </div>
     <div class="row" style="justify-content:flex-end;margin-top:6px">
       <button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
       <button class="btn primary" onclick="CTRC.saveScore()">Lưu & sinh nháp</button>
     </div>`);
   if(SCORE._suggest) renderSuggestBox(SCORE._suggest);
+  updateScorePreview();
+  // giữ vị trí cuộn để thao tác tick liên tục không bị nhảy lên đầu
+  const sc=$('#modal-root .modal'); if(sc && SCORE._scroll) sc.scrollTop=SCORE._scroll;
 }
-/* đồng bộ ô nhập vào rec trước khi re-render (chống mất chữ khi tap điểm) */
-function syncScoreForm(){
-  if($('#sc-obs')) SCORE.rec.observation = $('#sc-obs').value;
-  if($('#sc-effort')) SCORE.rec.effort = $('#sc-effort').value;
-  if($('#sc-mood')) SCORE.rec.mood = $('#sc-mood').value;
+function _snapScroll(){ const sc=$('#modal-root .modal'); if(sc) SCORE._scroll=sc.scrollTop; }
+function updateScorePreview(){
+  const el=$('#sc-preview'); if(!el) return;
+  const r=SCORE.rec, bits=[];
+  if(r.strength&&r.strength.sentence) bits.push(r.strength.sentence);
+  if(r.improve&&r.improve.sentence) bits.push(r.improve.sentence);
+  el.innerHTML = bits.length? '📝 <b>Xem trước:</b> '+esc(bits.join(' ')) : '';
 }
-/* ── Trợ lý GV: gợi ý từ quan sát ── */
+function syncScoreForm(){ _snapScroll(); if($('#sc-obs')) SCORE.rec.observation=$('#sc-obs').value; if($('#sc-mood')) SCORE.rec.mood=$('#sc-mood').value; }
+function setAttendance(a){ syncScoreForm(); SCORE._scroll=0; SCORE.rec.attendance=a; renderScore(); }
+function pickStrengthCrit(k){ syncScoreForm(); const r=SCORE.rec; r.strength=(r.strength&&r.strength.crit===k)?null:{crit:k,sentence:''}; if(r.improve&&r.improve.crit===k) r.improve=null; renderScore(); }
+function pickStrengthSentence(i){ _snapScroll(); const c=ENG.CRITERIA.find(x=>x.key===(SCORE.rec.strength&&SCORE.rec.strength.crit)); if(c) SCORE.rec.strength.sentence=c.pos[i]; renderScore(); }
+function pickImproveCrit(k){ syncScoreForm(); const r=SCORE.rec; r.improve=(r.improve&&r.improve.crit===k)?null:{crit:k,sentence:''}; if(r.strength&&r.strength.crit===k) r.strength=null; renderScore(); }
+function pickImproveSentence(i){ _snapScroll(); const c=ENG.CRITERIA.find(x=>x.key===(SCORE.rec.improve&&SCORE.rec.improve.crit)); if(c) SCORE.rec.improve.sentence=c.neg[i]; renderScore(); }
+/* ── Trợ lý GV: gợi ý tiêu chí từ quan sát ── */
 function gvSuggest(){
   syncScoreForm();
-  SCORE._suggest = ENG.suggestFromObservation(SCORE.rec.observation, SCORE.rec.strengths);
+  if(!(SCORE.rec.observation||'').trim()){ toast('Gõ vài chữ quan sát trước để có gợi ý','var(--primary-2)'); }
+  SCORE._suggest = ENG.suggestFromObservation(SCORE.rec.observation);
   renderSuggestBox(SCORE._suggest);
-  if(!SCORE.rec.observation.trim()) toast('Gõ vài chữ quan sát trước để có gợi ý','var(--primary-2)');
 }
 function renderSuggestBox(res){
-  const box = $('#sc-suggest'); if(!box) return;
+  const box=$('#sc-suggest'); if(!box) return;
   if(!res){ box.innerHTML=''; return; }
-  const sBank = SCORE.strengths;
-  const newStr = (res.strengths||[]).filter(idx=>!(SCORE.rec.strengths||[]).includes(idx));
-  const chips = newStr.map(idx=>{ const s=sBank.find(x=>x.idx===idx); return s?`<button class="chip" onclick="CTRC.applySuggestStrength(${idx})">+ ${esc(s.label)}</button>`:''; }).join('');
-  const dimLabels = (res.dims||[]).map(k=>(ENG.DIMS.find(d=>d.key===k)||{}).label).filter(Boolean);
-  const aiBtn = AI.usable()?`<button class="btn sm" type="button" onclick="CTRC.gvSuggestAI()">✨ Gợi ý sâu bằng AI</button>`:'';
+  const c = res.crit ? ENG.CRITERIA.find(x=>x.key===res.crit) : null;
+  const aiBtn = AI.usable()?`<button class="btn sm" type="button" onclick="CTRC.gvSuggestAI()">✨ AI chọn tiêu chí + câu</button>`:'';
   box.innerHTML = `<div style="background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px">
     ${res.thin?`<div class="voice-warn" style="margin:0 0 6px">⚠ ${esc(res.hints[0]||'Quan sát hơi sơ sài')}</div>`:''}
-    ${chips?`<div style="font:600 10.5px/1 var(--font);color:var(--mute);margin-bottom:5px">Điểm mạnh gợi ý (bấm để thêm):</div><div class="chips">${chips}</div>`:''}
-    ${dimLabels.length?`<div class="hint" style="margin-top:6px">Quan sát nhắc tới: <b>${esc(dimLabels.join(', '))}</b> — cân nhắc chấm các chiều này cao hơn.</div>`:''}
-    ${(!chips&&!dimLabels.length&&!res.thin)?`<div class="hint" style="margin:0">Chưa nhận ra từ khoá rõ — ${aiBtn?'thử gợi ý AI bên dưới.':'thêm chi tiết hành vi cụ thể.'}</div>`:''}
+    ${c?`<div class="hint" style="margin:0 0 6px">Quan sát hợp với tiêu chí: <b>${c.emoji} ${esc(c.label)}</b></div><button class="chip" onclick="CTRC.pickStrengthCrit('${c.key}')">+ Chọn làm Điểm mạnh</button> <button class="chip" onclick="CTRC.pickImproveCrit('${c.key}')">+ Chọn làm Cần cải thiện</button>`:`<div class="hint" style="margin:0">Chưa nhận ra tiêu chí rõ — ${aiBtn?'thử AI bên dưới':'chọn tay ở trên'}.</div>`}
     ${aiBtn?`<div style="margin-top:8px">${aiBtn}</div>`:''}
   </div>`;
-}
-function applySuggestStrength(idx){
-  syncScoreForm();
-  const arr = SCORE.rec.strengths||(SCORE.rec.strengths=[]);
-  if(!arr.includes(idx)){ if(arr.length>=3){ toast('Tối đa 3 điểm mạnh','var(--primary-2)'); return; } arr.push(idx); }
-  // cập nhật lại danh sách gợi ý (bỏ cái vừa thêm)
-  renderScore();
 }
 async function gvSuggestAI(){
   if(!AI.usable()){ toast('Chưa cấu hình AI — bấm ⚙ AI trên thanh trên','var(--primary-2)'); return; }
   syncScoreForm();
-  const obs = SCORE.rec.observation.trim();
+  const obs=(SCORE.rec.observation||'').trim();
   if(!obs){ toast('Cần có quan sát trước','var(--primary-2)'); return; }
   toast('✨ AI đang đọc quan sát…','var(--blue)');
   try{
-    const bank = SCORE.strengths.map(s=>`${s.idx}. ${s.label}`).join('; ');
-    const sys = 'Bạn hỗ trợ giáo viên mầm non chấm nhanh. Đọc câu quan sát, trả về JSON thuần.';
-    const prompt = `Danh sách 10 điểm mạnh: ${bank}.\n5 chiều: focus(Tập trung), logic, reflex(Phản xạ), interaction(Tương tác), creativity(Sáng tạo).\nQuan sát của GV: "${obs}".\nTrả về DUY NHẤT JSON: {"strengths":[so idx phu hop nhat toi da 3],"scores":{"focus":1-5,"logic":1-5,"reflex":1-5,"interaction":1-5,"creativity":1-5},"feedback":"1 cau goi y ngan cho GV"}.`;
-    const text = await AI.complete(sys, prompt);
-    const m = text.match(/\{[\s\S]*\}/); const out = m?JSON.parse(m[0]):{};
-    if(Array.isArray(out.strengths)){
-      out.strengths.slice(0,3).forEach(idx=>{ const a=SCORE.rec.strengths||(SCORE.rec.strengths=[]); if(!a.includes(+idx)&&a.length<3) a.push(+idx); });
-    }
-    if(out.scores){ ENG.DIMS.forEach(d=>{ const v=+out.scores[d.key]; if(v>=1&&v<=5) SCORE.rec.scores_5d[d.key]=v; }); }
-    SCORE._suggest = ENG.suggestFromObservation(SCORE.rec.observation, SCORE.rec.strengths);
-    if(out.feedback) SCORE._aiFeedback = out.feedback;
-    renderScore();
-    toast('✨ AI đã gợi ý điểm mạnh + chấm thử' + (out.feedback?' — '+out.feedback.slice(0,50):''));
+    const cats=ENG.CRITERIA.map(c=>`${c.key} (${c.label}): pos=[${c.pos.map((s,i)=>i+'='+s).join(' | ')}]; neg=[${c.neg.map((s,i)=>i+'='+s).join(' | ')}]`).join('\n');
+    const sys='Bạn hỗ trợ giáo viên mầm non. Chọn tiêu chí + câu mô tả phù hợp NHẤT với quan sát. Chỉ trả JSON.';
+    const prompt=`5 tiêu chí + câu (theo chỉ số):\n${cats}\n\nQuan sát GV: "${obs}".\nChọn 1 tiêu chí ĐIỂM MẠNH + 1 câu pos, và 1 tiêu chí CẦN CẢI THIỆN + 1 câu neg (khác tiêu chí nhau).\nTrả DUY NHẤT JSON: {"strength":{"crit":"key","i":idx},"improve":{"crit":"key","i":idx}}.`;
+    const text=await AI.complete(sys, prompt);
+    const m=text.match(/\{[\s\S]*\}/); const out=m?JSON.parse(m[0]):{};
+    if(out.strength&&out.strength.crit){ const c=ENG.CRITERIA.find(x=>x.key===out.strength.crit); if(c) SCORE.rec.strength={crit:c.key, sentence:c.pos[out.strength.i]||c.pos[0]}; }
+    if(out.improve&&out.improve.crit){ const c=ENG.CRITERIA.find(x=>x.key===out.improve.crit); if(c && c.key!==(SCORE.rec.strength&&SCORE.rec.strength.crit)) SCORE.rec.improve={crit:c.key, sentence:c.neg[out.improve.i]||c.neg[0]}; }
+    SCORE._suggest=null; renderScore();
+    toast('✨ AI đã chọn tiêu chí + câu mô tả — kiểm tra lại nhé');
   }catch(e){ toast('Lỗi AI: '+e.message,'var(--primary-2)'); }
 }
-function setScore(k,n){ syncScoreForm(); SCORE.rec.scores_5d[k]=n; renderScore(); }
-function toggleStrength(idx){
-  syncScoreForm();
-  const arr = SCORE.rec.strengths||(SCORE.rec.strengths=[]);
-  const i = arr.indexOf(idx);
-  if (i>=0) arr.splice(i,1);
-  else { if (arr.length>=3){ toast('Tối đa 3 điểm mạnh','var(--primary-2)'); return; } arr.push(idx); }
-  renderScore();
-}
-function setAttendance(a){ syncScoreForm(); SCORE.rec.attendance=a; renderScore(); }
 
 async function saveScore(){
   const rec = SCORE.rec, stu = SCORE.stu;
@@ -849,15 +837,15 @@ async function saveScore(){
     }
   }
   if (rec.attendance==='present'){
-    rec.observation = $('#sc-obs').value.trim();
-    rec.effort = $('#sc-effort').value.trim();
-    rec.mood = $('#sc-mood').value;
+    syncScoreForm();
+    if(!(rec.strength && rec.strength.crit && rec.strength.sentence)){ toast('Chọn 1 tiêu chí ĐIỂM MẠNH + câu mô tả','var(--primary-2)'); return; }
+    if(!(rec.improve && rec.improve.crit && rec.improve.sentence)){ toast('Chọn 1 tiêu chí CẦN CẢI THIỆN + câu mô tả','var(--primary-2)'); return; }
   }
   const wasPresent = !!(existed && existed.attendance === 'present');
   const saved = await DB.saveRecord({
     session_id: GV.session.id, student_id: stu.id, attendance: rec.attendance,
-    scores_5d: rec.scores_5d, strengths: rec.strengths, observation: rec.observation,
-    effort: rec.effort, mood: rec.mood, created_by: STAFF.id,
+    strength: rec.strength, improve: rec.improve, observation: rec.observation,
+    mood: rec.mood, created_by: STAFF.id,
   });
   await DB.audit(CENTER.id, STAFF, 'score', 'record', saved.id, {student:stu.name});
 
@@ -879,12 +867,10 @@ async function saveScore(){
 async function generateForRecord(rec, stu){
   const theme = await DB.getThemeFor(CENTER.id, GV.date);
   const profile = await DB.getProfile(stu.id);
-  const strengths = await DB.listStrengths(CENTER.id);
-  const recent = await DB.recentFeaturedStrengths(stu.id, 5);
   const out = ENG.generate({
-    student: stu, record: rec, strengths,
-    theme, profile: (profile && profile.status==='active') ? profile : null,
-    recentFeatured: recent, date: GV.date,
+    student: stu, record: rec, theme,
+    profile: (profile && profile.status==='active') ? profile : null,
+    date: GV.date,
   });
   await DB.saveMessage({
     record_id: rec.id, student_id: stu.id, status:'waiting_cs', source:'engine',
@@ -910,7 +896,7 @@ async function maybeDraftProfile(stu){
   await DB.saveProfile({
     student_id: stu.id, status:'draft', introversion: inferred.introversion,
     learning_style: inferred.learning_style, concerns: inferred.concerns,
-    baseline_5d: inferred.baseline_5d, summary: inferred.summary, generated_at: new Date().toISOString(),
+    summary: inferred.summary, generated_at: new Date().toISOString(),
   });
   await DB.audit(CENTER.id, STAFF, 'profile_draft','profile',stu.id,{student:stu.name});
 }
@@ -1140,12 +1126,11 @@ async function loadWeeklyChildren(){
   const box=$('#wk-children'); if(!box) return;
   box.innerHTML='<p class="hint" style="margin:0">Đang tổng hợp các buổi…</p>';
   const studs=await DB.listStudents(CENTER.id, WK.classId);
-  const strengths=await DB.listStrengths(CENTER.id);
   WK.digests={};
   const rows=[];
   for(const s of studs){
     const recs=await DB.studentRecordsInRange(s.id, WK.from, WK.to);
-    const dg=ENG.weeklyDigest(recs, strengths);
+    const dg=ENG.weeklyDigest(recs);
     WK.digests[s.id]=dg;
     const sub = dg.sessions? `${dg.sessions} buổi`+(dg.topStrengths.length?` · ${dg.topStrengths.slice(0,2).join(', ')}`:'') : 'chưa có buổi nào trong khoảng này';
     rows.push(`<div class="wk-child">
@@ -1166,14 +1151,12 @@ async function genWeekly(){
   _readWeeklyChildComments();
   const studs=await DB.listStudents(CENTER.id, WK.classId);
   if(!studs.length){ toast('Lớp chưa có bé','var(--primary-2)'); return; }
-  const strengths=await DB.listStrengths(CENTER.id);
   const lessonSnap = les ? {title:les.title, pages:les.pages, skill:les.skill, body:les.body, parent_content:les.parent_content||'', manager_summary:les.manager_summary||''} : null;
   const hocGi = ENG.lessonSummary(lessonSnap);
   const made=[];
   for(const s of studs){
-    const dg = WK.digests[s.id] || ENG.weeklyDigest(await DB.studentRecordsInRange(s.id, WK.from, WK.to), strengths);
-    const prof = await DB.getProfile(s.id);
-    const nar = ENG.weeklyNarrative(dg, s.name, (prof&&prof.status==='active')?prof.learning_style:'mixed');
+    const dg = WK.digests[s.id] || ENG.weeklyDigest(await DB.studentRecordsInRange(s.id, WK.from, WK.to));
+    const nar = ENG.weeklyNarrative(dg, s.name);
     const summary = { hocGi, tongHop:nar.tongHop, coGang:nar.coGang, oNha:nar.oNha, sessions:dg.sessions };
     const w=await DB.createWeekly({
       center_id:CENTER.id, class_id:WK.classId, student_id:s.id,
@@ -1367,17 +1350,18 @@ function renderMsg(){
   const st = STATUS[m.status]||['',''];
   const aiBtn = `<button class="btn sm" onclick="CTRC.genAI()" title="${AI.usable()?'Model: '+AI.get().model:'Chưa cấu hình — bấm ⚙ AI'}">✨ Sinh bằng AI${AI.usable()?'':' ⚙'}</button>`;
 
-  // ── ngữ cảnh: nắm tình hình ──
+  // ── ngữ cảnh: nắm tình hình (tiêu chí GV đã tick) ──
   let ctx = '';
   if(rec){
-    const dims = ENG.DIMS.map(d=>{
-      const v = +((rec.scores_5d||{})[d.key])||0;
-      const cls = v>=4?'hi':v>=3?'mid':v>0?'lo':'';
-      return v?`<span class="ctx-dim ${cls}">${esc(d.label)} <b>${v}</b></span>`:'';
-    }).join('');
+    const st=rec.strength||{}, im=rec.improve||{};
+    const chips =
+      (st.crit?`<span class="ctx-dim hi">👍 ${esc(ENG.critLabel(st.crit))}</span>`:'') +
+      (im.crit?`<span class="ctx-dim lo">🎯 ${esc(ENG.critLabel(im.crit))}</span>`:'');
     const mood = MOODS[rec.mood]||'';
+    const sents = [st.sentence, im.sentence].filter(Boolean).map(esc).join(' · ');
     ctx = `<div class="msg-context">
-      <div class="ctx-row">${dims}${mood?`<span class="ctx-mood">${esc(mood)}</span>`:''}</div>
+      <div class="ctx-row">${chips}${mood?`<span class="ctx-mood">${esc(mood)}</span>`:''}</div>
+      ${sents?`<div class="ctx-sent">${sents}</div>`:''}
       ${(rec.observation||'').trim()?`<div class="ctx-obs"><span class="lbl">⭐ QUAN SÁT CỦA GIÁO VIÊN</span>${esc(rec.observation)}</div>`:''}
     </div>`;
   }
@@ -1468,9 +1452,7 @@ async function regen(){
   const stu = MSG.stu;
   const theme = await DB.getThemeFor(CENTER.id, todayStr());
   const profile = await DB.getProfile(stu.id);
-  const strengths = await DB.listStrengths(CENTER.id);
-  const recent = await DB.recentFeaturedStrengths(stu.id,5);
-  const out = ENG.generate({student:stu,record:rec,strengths,theme,profile:(profile&&profile.status==='active')?profile:null,recentFeatured:recent,date:todayStr()});
+  const out = ENG.generate({student:stu,record:rec,theme,profile:(profile&&profile.status==='active')?profile:null,date:todayStr()});
   Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang,goi_y:out.goi_y,ai_draft:out,source:'engine',featured_strength:out.featured_strength});
   renderMsg(); toast('↻ Đã sinh lại bằng engine');
 }
@@ -1505,8 +1487,7 @@ async function genAI(){
     const stu = MSG.stu;
     const theme = await DB.getThemeFor(CENTER.id, todayStr());
     const profile = await DB.getProfile(stu.id);
-    const strengths = await DB.listStrengths(CENTER.id);
-    const out = await AI.generate({student:stu,record:rec,theme,profile,strengths,center:CENTER});
+    const out = await AI.generate({student:stu,record:rec,theme,profile,center:CENTER});
     if(!out.diem_manh) throw new Error('Phản hồi AI rỗng');
     Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang||MSG.m.co_gang,goi_y:out.goi_y||MSG.m.goi_y,ai_draft:out,source:'ai'});
     renderMsg(); toast('✨ AI đã viết xong ('+AI.get().model+')');
@@ -1602,34 +1583,37 @@ async function viewInsights(){
   const items = [];
   for(const s of students){ const recs = await DB._allSessionsOfStudent(s.id); items.push({student:s, records:recs}); }
   INS = ENG.computeInsights(items);
-  const bar = (d)=>{
-    const v = INS.classAvg[d.key]||0, pct = v/5*100;
-    const color = v>=3.5?'var(--green)':v>=2.5?'var(--yellow)':'var(--primary-2)';
-    return `<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font:600 11px/1.4 var(--font)"><span>${d.label}</span><span style="color:${color};font-weight:800">${v||'—'}</span></div>
+  const bar = (key,counts,maxN,color)=>{
+    const v = counts[key]||0, pct = maxN? Math.round(v/maxN*100):0;
+    return `<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font:600 11px/1.4 var(--font)"><span>${esc(ENG.critLabel(key))}</span><span style="color:${color};font-weight:800">${v||'—'}</span></div>
       <div style="height:8px;background:#f0e8d8;border-radius:5px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${color}"></div></div></div>`;
   };
-  const nameTag = (it,extra)=>`<div class="stu-row" style="cursor:default"><span class="av">${AV(it.gender)}</span>
-    <span class="nm">${esc(it.name)}<small>${esc(extra||it.reasons.join('; '))}</small></span></div>`;
+  const keys = ENG.DIMS.map(d=>d.key);
+  const maxS = Math.max(1, ...keys.map(k=>INS.strengthCounts[k]||0));
+  const maxI = Math.max(1, ...keys.map(k=>INS.improveCounts[k]||0));
+  const nameTag = (it)=>`<div class="stu-row" style="cursor:default"><span class="av">${AV(it.gender)}</span>
+    <span class="nm">${esc(it.name)}<small>${esc(it.reasons.join('; '))}</small></span></div>`;
   view.innerHTML = `
     <h2 class="h-title">✨ AI Insights</h2>
     <p class="h-sub">Tự tổng hợp ${INS.totalRecords} lượt chấm của ${INS.totalStudents} bé. Lõi phân tích chạy offline; bấm "Phân tích sâu" để AI viết nhận định.</p>
     <div class="kpis" style="margin-bottom:16px">
-      <div class="kpi"><div class="n">${INS.progressing.length}</div><div class="l">📈 Đang tiến bộ</div></div>
+      <div class="kpi"><div class="n">${INS.totalRecords}</div><div class="l">📋 Lượt chấm</div></div>
       <div class="kpi"><div class="n" style="color:${INS.attention.length?'var(--primary-2)':'var(--green)'}">${INS.attention.length}</div><div class="l">👀 Cần chú ý</div></div>
-      <div class="kpi"><div class="n">${INS.weakest?INS.weakest.label:'—'}</div><div class="l">Chiều yếu nhất lớp</div></div>
-      <div class="kpi"><div class="n">${INS.strongest?INS.strongest.label:'—'}</div><div class="l">Chiều mạnh nhất lớp</div></div>
+      <div class="kpi"><div class="n" style="font-size:16px">${INS.strongest?INS.strongest.label:'—'}</div><div class="l">Tiêu chí nổi bật nhất</div></div>
+      <div class="kpi"><div class="n" style="font-size:16px">${INS.weakest?INS.weakest.label:'—'}</div><div class="l">Cần rèn nhiều nhất</div></div>
     </div>
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
-      <div class="card"><b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Xu hướng lớp · điểm TB 5 chiều</b>
-        <div style="margin-top:12px">${ENG.DIMS.map(bar).join('')}</div>
+      <div class="card"><b style="font:800 13px/1 var(--font-d);color:var(--green)">👍 Điểm mạnh — tần suất theo tiêu chí</b>
+        <div style="margin-top:12px">${keys.map(k=>bar(k,INS.strengthCounts,maxS,'var(--green)')).join('')}</div>
+      </div>
+      <div class="card"><b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">🎯 Cần cải thiện — tần suất theo tiêu chí</b>
+        <div style="margin-top:12px">${keys.map(k=>bar(k,INS.improveCounts,maxI,'var(--primary-2)')).join('')}</div>
         ${INS.weakest?`<div class="hint" style="margin-top:8px">Gợi ý: tuần tới tăng hoạt động rèn <b>${esc(INS.weakest.label)}</b> cho cả lớp.</div>`:''}
       </div>
-      <div class="card">
-        <b style="font:800 13px/1 var(--font-d);color:var(--green)">📈 Đang tiến bộ</b>
-        <div style="margin-top:8px">${INS.progressing.length?INS.progressing.map(it=>nameTag(it,`+${it.trend} điểm · TB ${it.avg}/5 · ${it.sessions} buổi`)).join(''):'<p class="hint" style="margin:0">Chưa đủ dữ liệu (cần ≥2 buổi/bé).</p>'}</div>
-        <b style="font:800 13px/1 var(--font-d);color:var(--primary-2);display:block;margin-top:14px">👀 Cần chú ý</b>
-        <div style="margin-top:8px">${INS.attention.length?INS.attention.map(it=>nameTag(it)).join(''):'<p class="hint" style="margin:0">Không có bé nào cần chú ý đặc biệt. 🎉</p>'}</div>
-      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">👀 Bé cần chú ý</b>
+      <div style="margin-top:8px">${INS.attention.length?INS.attention.map(nameTag).join(''):'<p class="hint" style="margin:0">Không có bé nào cần chú ý đặc biệt. 🎉</p>'}</div>
     </div>
     <div class="card" style="margin-top:14px">
       <div class="row" style="justify-content:space-between;align-items:center">
@@ -1644,11 +1628,11 @@ async function insightsAI(){
   if(!INS){ return; }
   const out = $('#insights-ai'); out.innerHTML = '⏳ AI đang phân tích…';
   try{
-    const dims = ENG.DIMS.map(d=>`${d.label} ${INS.classAvg[d.key]||'—'}`).join(', ');
-    const prog = INS.progressing.map(i=>`${i.name} (+${i.trend})`).join(', ')||'chưa có';
+    const sFreq = ENG.DIMS.map(d=>`${d.label}: ${INS.strengthCounts[d.key]||0}`).join(', ');
+    const iFreq = ENG.DIMS.map(d=>`${d.label}: ${INS.improveCounts[d.key]||0}`).join(', ');
     const att = INS.attention.map(i=>`${i.name} (${i.reasons.join(', ')})`).join('; ')||'không có';
     const sys = 'Bạn là cố vấn giáo dục mầm non WonderKids. Phân tích số liệu lớp, đưa nhận định ấm áp, cụ thể, hướng hành động. KHÔNG phán xét bé, không dùng từ kém/yếu/tệ. Tiếng Việt tự nhiên.';
-    const prompt = `Số liệu lớp tại ${CENTER.name}:\n- Tổng ${INS.totalStudents} bé, ${INS.totalRecords} lượt chấm.\n- Điểm TB từng chiều (1-5): ${dims}.\n- Chiều yếu nhất lớp: ${INS.weakest?INS.weakest.label:'—'}; mạnh nhất: ${INS.strongest?INS.strongest.label:'—'}.\n- Đang tiến bộ: ${prog}.\n- Cần chú ý: ${att}.\nViết ngắn gọn: (1) 2-3 câu nhận định tổng quan lớp; (2) 2-3 gợi ý hành động cụ thể cho giáo viên tuần tới (hoạt động 5-10 phút, không cần mua đồ).`;
+    const prompt = `Số liệu lớp tại ${CENTER.name} (5 tiêu chí: Tập trung, Tham gia, Tư duy, Tự lập, Hợp tác):\n- Tổng ${INS.totalStudents} bé, ${INS.totalRecords} lượt chấm.\n- Tần suất được tick ĐIỂM MẠNH theo tiêu chí: ${sFreq}.\n- Tần suất được tick CẦN CẢI THIỆN theo tiêu chí: ${iFreq}.\n- Tiêu chí nổi bật nhất: ${INS.strongest?INS.strongest.label:'—'}; cần rèn nhiều nhất: ${INS.weakest?INS.weakest.label:'—'}.\n- Bé cần chú ý: ${att}.\nViết ngắn gọn: (1) 2-3 câu nhận định tổng quan lớp; (2) 2-3 gợi ý hành động cụ thể cho giáo viên tuần tới (hoạt động 5-10 phút, không cần mua đồ, gắn với tiêu chí cần rèn).`;
     const text = await AI.complete(sys, prompt);
     out.style.color = 'var(--ink)';
     out.innerHTML = esc(text).replace(/\n/g,'<br>');
@@ -1806,11 +1790,10 @@ let AICFG = null;
 const ROLE_LABEL = {gv:'Giáo viên', cskh:'CSKH', manager:'Quản lý'};
 async function viewConfig(){
   const themes = await DB.listThemes(CENTER.id);
-  const strengths = await DB.listStrengths(CENTER.id);
   const staff = await DB.listStaff(CENTER.id);
   view.innerHTML = `
     <h2 class="h-title">Cấu hình trung tâm</h2>
-    <p class="h-sub">Nhân sự · cấu hình AI · chủ đề tuần · 10 điểm mạnh mẫu.</p>
+    <p class="h-sub">Nhân sự · cấu hình AI · chủ đề tuần · 5 tiêu chí đánh giá.</p>
     <div class="card" style="margin-bottom:14px">
       <div class="row" style="justify-content:space-between;align-items:center">
         <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">👥 Nhân sự (đổi tên / thêm / xoá)</b>
@@ -1834,8 +1817,11 @@ async function viewConfig(){
         ${themes.map(t=>`<tr><td>${esc(t.week_start)}</td><td>${esc(t.title)}</td></tr>`).join('')||'<tr><td colspan=2 style="color:var(--mute)">Chưa có.</td></tr>'}</tbody></table>
     </div>
     <div class="card">
-      <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">10 điểm mạnh mẫu</b>
-      <div class="chips" style="margin-top:10px">${strengths.map(s=>`<span class="chip">${s.idx}. ${esc(s.label)}</span>`).join('')}</div>
+      <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">5 tiêu chí đánh giá mỗi buổi</b>
+      <div class="hint" style="margin:6px 0 10px">Mỗi buổi, GV chọn 1 tiêu chí là <b>điểm mạnh</b> và 1 tiêu chí <b>cần cải thiện</b>. Sửa câu mô tả trong <code>rules/bao-cao-per-buoi.md</code>.</div>
+      ${ENG.CRITERIA.map(c=>`<div style="padding:8px 0;border-top:1px solid var(--line)">
+        <b style="font:700 13px/1.3 var(--font)">${c.emoji} ${esc(c.label)}</b>
+        <div class="hint" style="margin-top:2px">${esc(c.desc)}</div></div>`).join('')}
     </div>`;
   AICFG = AI.get();
   renderAICard('#ai-card-wrap');
@@ -1949,7 +1935,7 @@ async function aiTest(){
   if(!(AICFG.mode==='edge'?AICFG.edgeFnUrl:AICFG.apiKey)){ toast('Điền URL/key trước khi test','var(--primary-2)'); return; }
   toast('🧪 Đang gọi thử ('+AICFG.model+')…','var(--blue)');
   try{
-    const out=await AI.generate({student:{name:'Bé Minh'},record:{scores_5d:{focus:4,logic:3,reflex:4,interaction:3,creativity:5},strengths:[],observation:'tự ghép đúng 5 mảnh, kiên nhẫn thử lại khi sai',effort:'',mood:'happy'},theme:{title:'Ghép hình'},profile:null,strengths:[],center:CENTER}, AICFG);
+    const out=await AI.generate({student:{name:'Bé Minh'},record:{strength:{crit:'tu_lap',sentence:'Hoàn thành nhiệm vụ độc lập.'},improve:{crit:'hop_tac',sentence:'Còn ít tương tác với các bạn trong nhóm.'},observation:'tự ghép đúng 5 mảnh, kiên nhẫn thử lại khi sai',mood:'happy'},theme:{title:'Ghép hình'},profile:null,center:CENTER}, AICFG);
     if(!out.diem_manh) throw new Error('Phản hồi rỗng');
     modal(`<h3>🧪 Kết quả thử — ${esc(AICFG.model)}</h3>
       <div class="draft-box"><div class="ln"><b>👍 Điểm mạnh:</b> ${esc(out.diem_manh)}</div>
@@ -2018,8 +2004,9 @@ async function viewAudit(){
 window.CTRC = {
   login, logout, go, closeModal, helpSupabase,
   toggleAccountMenu, closeAccountMenu, switchAccount,
-  openScore, setScore, toggleStrength, setAttendance, saveScore,
-  gvSuggest, applySuggestStrength, gvSuggestAI, gvFilter,
+  openScore, setAttendance, saveScore,
+  pickStrengthCrit, pickStrengthSentence, pickImproveCrit, pickImproveSentence,
+  gvSuggest, gvSuggestAI, gvFilter,
   addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme,
