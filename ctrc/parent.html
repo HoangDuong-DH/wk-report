@@ -49,8 +49,8 @@ html,body{margin:0;padding:0;font-family:var(--font);color:var(--ink);
   <div class="state"><div class="em">⏳</div><h2>Đang tải báo cáo…</h2></div>
 </div>
 
-<script src="config.js?v=10"></script>
-<script src="db.js?v=10"></script>
+<script src="config.js?v=16"></script>
+<script src="db.js?v=16"></script>
 <script>
 const DB = window.CTRC_DB;
 const root = document.getElementById('root');
@@ -117,8 +117,9 @@ function render(r){
         <h1>${esc(r.student_name)}</h1>
         <div class="meta">Buổi học ngày ${esc(fmtDate(r.date))}${r.theme?` · ${esc(r.theme)}`:''}</div>
       </div>
-      <div class="sect s-strong"><div class="t">👍 Điểm mạnh hôm nay</div><p>${esc(r.diem_manh)}</p></div>
-      <div class="sect s-effort"><div class="t">🎯 Điểm cố gắng</div><p>${esc(r.co_gang)}</p></div>
+      ${r.lesson_content?`<div class="sect s-tip"><div class="t">📖 Nội dung học tuần này</div><p>${esc(r.lesson_content)}</p></div>`:''}
+      <div class="sect s-strong"><div class="t">✅ Điểm bé làm được</div><p>${esc(r.diem_manh)}</p></div>
+      <div class="sect s-effort"><div class="t">📌 Điểm bé làm chưa được</div><p>${esc(r.co_gang)}</p></div>
       ${closing}
     </div>` + foot;
 }

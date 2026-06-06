@@ -95,6 +95,7 @@
       return {
         student_name: stu.name || '', date: ses.date || '',
         theme: themes[0] ? themes[0].title : '',
+        lesson_content: (msg.lesson_snapshot && msg.lesson_snapshot.content) || '',
         diem_manh: msg.diem_manh, co_gang: msg.co_gang, goi_y: msg.goi_y,
         center_name: center.name || 'WonderKids', tagline: center.tagline || '',
         brand_color: center.brand_color || '#f3811f',

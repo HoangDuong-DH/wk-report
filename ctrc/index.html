@@ -174,6 +174,10 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .ctx-obs{margin-top:8px;font:500 12.5px/1.55 var(--font);color:var(--ink);background:#fffdf3;border-left:3px solid var(--yellow);padding:7px 11px;border-radius:0 8px 8px 0}
 .ctx-obs .lbl{font:800 10px/1 var(--font);color:#b8860b;letter-spacing:.04em;display:block;margin-bottom:3px}
 .ctx-sent{margin-top:6px;font:500 12px/1.5 var(--font);color:var(--ink-soft)}
+.lesson-hint{margin-top:10px}
+.lesson-card{background:#eef6fb;border:1px solid #cfe3f2;border-radius:12px;padding:9px 12px;font:500 12.5px/1.45 var(--font);color:#2f6ea0}
+.lesson-card b{font:800 13px/1.3 var(--font-d);color:#2f6ea0;display:block}
+.lesson-card .sk{margin-top:3px;color:#3a7fb5}
 
 .ed-line{margin-bottom:13px}
 .ed-head{display:flex;justify-content:space-between;align-items:baseline;font:800 12.5px/1 var(--font-d);color:var(--ink);margin-bottom:6px}
@@ -321,10 +325,10 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=15"></script>
-<script src="db.js?v=15"></script>
-<script src="engine.js?v=15"></script>
-<script src="lessons.js?v=15"></script>
+<script src="config.js?v=16"></script>
+<script src="db.js?v=16"></script>
+<script src="engine.js?v=16"></script>
+<script src="lessons.js?v=16"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -412,19 +416,21 @@ function buildAIPrompt(b){
   const profLine=(prof&&prof.status==='active')?`Tính cách: ${prof.introversion}. ${prof.summary||''}`:'Chưa có hồ sơ (giọng trung tính).';
   const note=(b.customNote||'').trim();
   const cur=b.currentDraft||null;
+  const les=b.lesson||null;
   return [
-    `BỐI CẢNH: Trung tâm ${center.name||'WonderKids'}. Tuần này lớp học chủ đề "${theme.title||'(chưa có)'}".`,
+    `BỐI CẢNH: Trung tâm ${center.name||'WonderKids'}.`,
+    les&&(les.title||les.content)?`NỘI DUNG HỌC TUẦN NÀY (bám sát để viết nhận xét đúng bài): "${les.title||''}".${les.objective?` Mục tiêu: ${les.objective}.`:''}${les.activity?` Hoạt động: ${les.activity}.`:''}`:(theme.title?`Tuần này lớp học chủ đề "${theme.title}".`:''),
     `HỒ SƠ BÉ ${stu.name}: ${profLine}`,
     `HÔM NAY GV đánh giá theo 5 tiêu chí (Tập trung, Tham gia, Tư duy, Tự lập, Hợp tác).`,
     `Phần "chi tiết GV" là quan sát cụ thể — LÕI quan trọng nhất, hãy bám sát:`,
-    `· ĐIỂM MẠNH: ${stLine}`,
-    `· CẦN CẢI THIỆN: ${imLine}`,
-    cur?`\nBẢN NHÁP HIỆN TẠI (chỉnh sửa dựa trên đây, giữ ý đúng):\n- Điểm mạnh: "${cur.diem_manh||''}"\n- Cố gắng: "${cur.co_gang||''}"`:'',
+    `· BÉ LÀM ĐƯỢC: ${stLine}`,
+    `· BÉ LÀM CHƯA ĐƯỢC: ${imLine}`,
+    cur?`\nBẢN NHÁP HIỆN TẠI (chỉnh sửa dựa trên đây, giữ ý đúng):\n- Bé làm được: "${cur.diem_manh||''}"\n- Bé làm chưa được: "${cur.co_gang||''}"`:'',
     note?`\nYÊU CẦU CHỈNH SỬA TỪ CSKH (BẮT BUỘC tuân theo): ${note}`:'',
     '',
-    `Viết báo cáo gửi phụ huynh bé ${stu.name} gồm ĐÚNG 2 dòng (mỗi dòng 1-2 câu, ấm áp):`,
-    `1. Điểm mạnh hôm nay (bám tiêu chí điểm mạnh + quan sát GV, cụ thể hành vi)`,
-    `2. Điều con đang cố gắng (bám tiêu chí cần cải thiện, nhẹ nhàng hướng tới trước)`,
+    `Viết báo cáo gửi phụ huynh bé ${stu.name} gồm ĐÚNG 2 dòng (mỗi dòng 1-2 câu, ấm áp, gắn với nội dung học tuần nếu hợp lý):`,
+    `1. Điểm bé LÀM ĐƯỢC (bám tiêu chí + chi tiết GV, cụ thể hành vi)`,
+    `2. Điểm bé LÀM CHƯA ĐƯỢC (nhẹ nhàng, hướng tới trước)`,
     `Trả về DUY NHẤT JSON: {"diem_manh":"...","co_gang":"..."} — không thêm chữ nào khác.`,
   ].filter(Boolean).join('\n');
 }
@@ -651,6 +657,31 @@ function go(tab){
    GV — CHẤM BUỔI
    ═══════════════════════════════════════════════════════════ */
 let GV = { date: todayStr(), classId: null, classes: [], students: [], session: null, search:'', filter:'all', roster:[] };
+/* Bài đang học của từng lớp (nhớ theo máy) → nối thư viện giáo án vào chấm buổi */
+const CLASS_LESSON = {
+  KEY:'ctrc:classlesson:v1',
+  all(){ try{ return JSON.parse(localStorage.getItem(this.KEY))||{}; }catch(_){ return {}; } },
+  get(classId){ return this.all()[classId]||null; },
+  setObj(classId, obj){ const m=this.all(); if(obj){ m[classId]=obj; } else { delete m[classId]; } try{ localStorage.setItem(this.KEY, JSON.stringify(m)); }catch(_){} },
+};
+/* bài học tuần đang gắn cho lớp đang chọn: {month,week,book,title,objective,activity} */
+function currentLesson(){ const cl=CLASS_LESSON.get(GV.classId); if(!cl||(!cl.book && !cl.title)) return null; return cl; }
+/* kỹ năng tóm tắt từ 1 BÀI TRONG THƯ VIỆN (dùng khi điền sẵn) */
+function lessonSkillsText(les){
+  if(!les) return '';
+  if(les.thinking_skills && les.thinking_skills.length) return les.thinking_skills.join(', ');
+  if(les.pages && les.pages.length){ const t=Array.from(new Set(les.pages.map(p=>p.type).filter(Boolean))); if(t.length) return t.join(', '); }
+  return les.skill||'';
+}
+/* gộp "nội dung học theo tuần" (mục tiêu + hoạt động) thành 1 đoạn cho phụ huynh/CSKH */
+function lessonContentText(cl){
+  if(!cl) return '';
+  const bits=[];
+  if(cl.title) bits.push(cl.title.replace(/\.$/,'')+'.');
+  if(cl.objective) bits.push((/^mục tiêu/i.test(cl.objective)?'':'Mục tiêu: ')+cl.objective.replace(/\.$/,'')+'.');
+  if(cl.activity) bits.push('Hoạt động: '+cl.activity.replace(/\.$/,'')+'.');
+  return bits.join(' ').trim();
+}
 async function viewCham(){
   GV.classes = await DB.listClasses(CENTER.id);
   if (!GV.classId && GV.classes[0]) GV.classId = GV.classes[0].id;
@@ -663,15 +694,80 @@ async function viewCham(){
         <div class="field"><label>Lớp</label><select id="gv-class">${GV.classes.map(c=>`<option value="${c.id}" ${c.id===GV.classId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
         <div class="field" style="flex:1;min-width:170px"><label>Tìm bé</label><input class="input" id="gv-search" placeholder="🔍 Gõ tên bé…" value="${esc(GV.search)}"></div>
       </div>
+      <div id="gv-lesson-bar" class="lesson-hint"></div>
       <div id="gv-progress" style="margin-top:14px"></div>
       <div class="row" id="gv-filters" style="margin-top:11px;gap:6px"></div>
     </div>
     <div id="gv-roster" class="roster"></div>`;
   $('#gv-date').onchange = e=>{ GV.date=e.target.value; loadRoster(); };
-  $('#gv-class').onchange = e=>{ GV.classId=e.target.value; GV.search=''; loadRoster(); };
+  $('#gv-class').onchange = e=>{ GV.classId=e.target.value; GV.search=''; renderLessonBar(); loadRoster(); };
   $('#gv-search').oninput = e=>{ GV.search=e.target.value; renderRoster(); };
+  renderLessonBar();
   loadRoster();
 }
+const VN_MONTHS=[1,2,3,4,5,6,7,8,9,10,11,12];
+function lessonTitleOf(cl){ return (cl&&(cl.title|| (cl.book?'Cuốn '+cl.book:'')))||''; }
+function lessonPeriodOf(cl){ if(!cl) return ''; const p=[]; if(cl.week) p.push('Tuần '+cl.week); if(cl.month) p.push('Tháng '+cl.month); return p.join('/'); }
+function renderLessonBar(){
+  const box=$('#gv-lesson-bar'); if(!box) return;
+  const cl=CLASS_LESSON.get(GV.classId);
+  if(!cl||!cl.book){
+    box.innerHTML=`<div class="lesson-card empty"><span>📖 Chưa gắn bài học cho lớp này — nhận xét sẽ không bám giáo án.</span>
+      <button class="btn sm" onclick="CTRC.editLessonContext()">+ Gắn bài học tuần</button></div>`;
+    return;
+  }
+  const per=lessonPeriodOf(cl);
+  box.innerHTML=`<div class="lesson-card">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+      <b>📖 ${esc(lessonTitleOf(cl))}${per?` · <span style="font-weight:600">${esc(per)}</span>`:''}</b>
+      <button class="btn sm" style="flex:none" onclick="CTRC.editLessonContext()">✎ Sửa</button>
+    </div>
+    ${cl.objective?`<div class="sk"><b>Mục tiêu:</b> ${esc(cl.objective)}</div>`:''}
+    ${cl.activity?`<div class="sk"><b>Hoạt động:</b> ${esc(cl.activity)}</div>`:''}
+  </div>`;
+}
+/* Modal sửa bài học tuần: Tháng · Tuần · Sách · Mục tiêu · Hoạt động (điều chỉnh được) */
+function editLessonContext(){
+  const cl=CLASS_LESSON.get(GV.classId)||{}; const codes=bookCodes();
+  const curMonth = cl.month || (new Date().getMonth()+1);
+  modal(`
+    <h3>📖 Bài học tuần của lớp</h3>
+    <p class="h-sub">Gắn bài đang học để báo cáo bám đúng giáo án. Chọn Sách + Tuần rồi <b>Lấy từ thư viện</b> để điền sẵn — bạn có thể chỉnh lại mọi thông tin.</p>
+    <div class="row">
+      <div class="field"><label>Tháng</label><select class="input" id="le-month">${VN_MONTHS.map(m=>`<option value="${m}" ${curMonth===m?'selected':''}>Tháng ${m}</option>`).join('')}</select></div>
+      <div class="field"><label>Tuần</label><select class="input" id="le-week">${[1,2,3,4].map(w=>`<option value="${w}" ${(cl.week||1)===w?'selected':''}>Tuần ${w}</option>`).join('')}</select></div>
+      <div class="field" style="flex:1;min-width:140px"><label>Sách (cuốn)</label><select class="input" id="le-book"><option value="">—</option>${codes.map(c=>`<option value="${esc(c)}" ${cl.book===c?'selected':''}>Cuốn ${esc(c)}</option>`).join('')}</select></div>
+    </div>
+    <div class="row" style="margin:2px 0 4px"><button class="btn sm" type="button" onclick="CTRC.prefillLessonFromLib()">⬇ Lấy từ thư viện</button><span class="hint" id="le-libnote" style="margin:0;align-self:center"></span></div>
+    <div class="field" style="margin-top:8px"><label>Tên bài / Chủ đề</label><input class="input" id="le-title" placeholder="VD: Câu chuyện 'Gum, Gum, Gummy'" value="${esc(cl.title||'')}"></div>
+    <div class="field" style="margin-top:8px"><label>🎯 Mục tiêu</label><textarea class="input" id="le-obj" placeholder="Mục tiêu kiến thức / kỹ năng của tuần…">${esc(cl.objective||'')}</textarea></div>
+    <div class="field" style="margin-top:8px"><label>🧩 Hoạt động</label><textarea class="input" id="le-act" placeholder="Các hoạt động / trò chơi / trang sách…">${esc(cl.activity||'')}</textarea></div>
+    <div class="row" style="justify-content:space-between;margin-top:14px">
+      <button class="btn ghost" onclick="CTRC.clearLessonContext()">Bỏ gắn</button>
+      <div class="row" style="gap:8px"><button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="CTRC.saveLessonContext()">Lưu</button></div>
+    </div>`);
+}
+function prefillLessonFromLib(){
+  const book=$('#le-book').value, week=$('#le-week').value;
+  const note=$('#le-libnote');
+  if(!book){ if(note) note.textContent='Chọn cuốn trước'; return; }
+  const les=lessonByKey(lessonKey(book, week));
+  if(!les){ if(note) note.textContent='Thư viện chưa có cuốn '+book+' tuần '+week+' — nhập tay bên dưới'; return; }
+  if(les.title) $('#le-title').value=les.title;
+  $('#le-obj').value = les.objectives || les.knowledge || lessonSkillsText(les) || '';
+  const acts = (les.pages&&les.pages.length)? les.pages.map(p=>(p.range?p.range+': ':'')+(p.desc||p.type||'')).join('; ') : (les.skill||'');
+  $('#le-act').value = acts;
+  if(note) note.textContent='✓ Đã điền từ thư viện — chỉnh lại nếu cần';
+}
+function saveLessonContext(){
+  const cl={ month:+$('#le-month').value, week:+$('#le-week').value, book:$('#le-book').value,
+    title:$('#le-title').value.trim(), objective:$('#le-obj').value.trim(), activity:$('#le-act').value.trim() };
+  if(!cl.book && !cl.title){ toast('Chọn sách hoặc nhập tên bài','var(--primary-2)'); return; }
+  CLASS_LESSON.setObj(GV.classId, cl);
+  closeModal(); renderLessonBar(); toast('✓ Đã lưu bài học tuần cho lớp');
+}
+function clearLessonContext(){ CLASS_LESSON.setObj(GV.classId, null); closeModal(); renderLessonBar(); toast('Đã bỏ gắn bài học'); }
 async function loadRoster(){
   const box = $('#gv-roster'); if(!box) return;
   box.innerHTML = '<p style="color:var(--mute)">Đang tải…</p>';
@@ -743,6 +839,7 @@ function renderScore(){
   const imCrit = rec.improve && rec.improve.crit,  imSent = rec.improve && rec.improve.sentence;
   const critChips=(sel,excl,h,tone)=>C.map(c=>c.key===excl?'':`<button class="chip ${tone||''} ${sel===c.key?'on':''}" title="${esc(c.desc)}" onclick="CTRC.${h}('${c.key}')">${c.emoji} ${esc(c.label)}</button>`).join('');
   const sentChips=(crit,type,sel,h,tone)=>{ const c=C.find(x=>x.key===crit); if(!c)return ''; const arr=type==='pos'?c.pos:c.neg; return arr.map((s,i)=>`<button class="chip sent ${tone||''} ${sel===s?'on':''}" onclick="CTRC.${h}(${i})">${esc(s)}</button>`).join(''); };
+  const les=currentLesson();
   modal(`
     <h3>${AV(stu.gender)} ${esc(stu.name)}</h3>
     <div class="row" style="margin-bottom:14px">
@@ -750,17 +847,18 @@ function renderScore(){
       <button class="btn sm ${absent?'primary':''}" onclick="CTRC.setAttendance('absent')">Nghỉ</button>
     </div>
     <div id="score-body" class="${absent?'hidden':''}">
+      ${les?`<div class="lesson-card" style="margin-bottom:12px"><b>📖 ${esc(lessonTitleOf(les))}${lessonPeriodOf(les)?` · ${esc(lessonPeriodOf(les))}`:''}</b>${les.objective?`<div class="sk"><b>Mục tiêu:</b> ${esc(les.objective)}</div>`:''}${les.activity?`<div class="sk"><b>Hoạt động:</b> ${esc(les.activity)}</div>`:''}</div>`:''}
       <div class="ln">
-        <label style="color:var(--green)">👍 Điểm mạnh hôm nay — chọn 1 tiêu chí</label>
+        <label style="color:var(--green)">✅ Điểm bé làm được — chọn 1 tiêu chí</label>
         <div class="chips">${critChips(stCrit, imCrit, 'pickStrengthCrit')}</div>
         ${stCrit?`<div class="hint" style="margin:7px 0 4px">Chọn câu mô tả:</div><div class="chips">${sentChips(stCrit,'pos',stSent,'pickStrengthSentence')}</div>`:''}
-        ${stSent?`<textarea class="input gold detail" id="sc-st-detail" oninput="CTRC.scoreDetailInput()" placeholder="⭐ Mô tả chi tiết cho điểm mạnh (tuỳ chọn) — VD: bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần">${esc((rec.strength&&rec.strength.detail)||rec.observation||'')}</textarea>`:''}
+        ${stSent?`<textarea class="input gold detail" id="sc-st-detail" oninput="CTRC.scoreDetailInput()" placeholder="⭐ Mô tả chi tiết bé làm được (tuỳ chọn) — VD: bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần">${esc((rec.strength&&rec.strength.detail)||rec.observation||'')}</textarea>`:''}
       </div>
       <div class="ln" style="margin-top:14px">
-        <label style="color:var(--primary-2)">🎯 Cần cải thiện — chọn 1 tiêu chí</label>
+        <label style="color:var(--primary-2)">📌 Điểm bé làm chưa được — chọn 1 tiêu chí</label>
         <div class="chips">${critChips(imCrit, stCrit, 'pickImproveCrit', 'imp')}</div>
         ${imCrit?`<div class="hint" style="margin:7px 0 4px">Chọn câu mô tả:</div><div class="chips">${sentChips(imCrit,'neg',imSent,'pickImproveSentence','imp')}</div>`:''}
-        ${imSent?`<textarea class="input detail" id="sc-im-detail" oninput="CTRC.scoreDetailInput()" placeholder="Mô tả chi tiết cho điều cần cải thiện (tuỳ chọn) — VD: con thường chơi một mình, ngại bắt chuyện">${esc((rec.improve&&rec.improve.detail)||'')}</textarea>`:''}
+        ${imSent?`<textarea class="input detail" id="sc-im-detail" oninput="CTRC.scoreDetailInput()" placeholder="Mô tả chi tiết bé làm chưa được (tuỳ chọn) — VD: con thường chơi một mình, ngại bắt chuyện">${esc((rec.improve&&rec.improve.detail)||'')}</textarea>`:''}
       </div>
       <div class="field" style="margin:14px 0"><label>Tâm trạng</label>
         <select class="input" id="sc-mood">${Object.entries(MOODS).map(([k,v])=>`<option value="${k}" ${rec.mood===k?'selected':''}>${v}</option>`).join('')}</select></div>
@@ -837,10 +935,13 @@ async function saveScore(){
   closeModal(); loadRoster();
 }
 
+/* ảnh chụp bài học (lưu lên message để CSKH/AI/phụ huynh dùng lại) */
+function _lessonSnap(cl){ if(!cl) return null; return { title:cl.title||(cl.book?'Cuốn '+cl.book:''), period:lessonPeriodOf(cl), objective:cl.objective||'', activity:cl.activity||'', content:lessonContentText(cl) }; }
 /* sinh nội dung cho 1 record + lưu message */
 async function generateForRecord(rec, stu){
   const theme = await DB.getThemeFor(CENTER.id, GV.date);
   const profile = await DB.getProfile(stu.id);
+  const lessonSnap = _lessonSnap(currentLesson());
   const out = ENG.generate({
     student: stu, record: rec, theme,
     profile: (profile && profile.status==='active') ? profile : null,
@@ -850,7 +951,7 @@ async function generateForRecord(rec, stu){
     record_id: rec.id, student_id: stu.id, status:'waiting_cs', source:'engine',
     diem_manh: out.diem_manh, co_gang: out.co_gang, goi_y: out.goi_y,
     ai_draft: {diem_manh:out.diem_manh,co_gang:out.co_gang,goi_y:out.goi_y},
-    featured_strength: out.featured_strength,
+    featured_strength: out.featured_strength, lesson_snapshot: lessonSnap,
   });
   await DB.audit(CENTER.id, STAFF, 'generate', 'message', rec.id, {student:stu.name, source:'engine'});
   // kích hoạt hồ sơ sau ≥3 buổi
@@ -1337,9 +1438,12 @@ function renderMsg(){
         stD?`<b>👍 ${esc(ENG.critLabel(st.crit))}:</b> ${esc(stD)}`:'',
         imD?`<b>🎯 ${esc(ENG.critLabel(im.crit))}:</b> ${esc(imD)}`:''
       ].filter(Boolean).join('<br>')}</div>`:'';
+    const les=m.lesson_snapshot;
+    const lesBlk = (les&&les.title)?`<div class="ctx-sent" style="color:#2f6ea0">📖 Bài học: <b>${esc(les.title)}</b>${les.skills?` · ${esc(les.skills)}`:''}</div>`:'';
     ctx = `<div class="msg-context">
       <div class="ctx-row">${chips}${mood?`<span class="ctx-mood">${esc(mood)}</span>`:''}</div>
       ${sents?`<div class="ctx-sent">${sents}</div>`:''}
+      ${lesBlk}
       ${detailBlk}
     </div>`;
   }
@@ -1352,12 +1456,16 @@ function renderMsg(){
     </div>
     ${ctx}
     <div class="msg-edit">
+      ${(m.lesson_snapshot&&m.lesson_snapshot.content)?`<div class="ed-line">
+        <div class="ed-head"><span>📖 Nội dung học tuần này</span><span class="cc">tự động từ giáo án</span></div>
+        <div class="lesson-card" style="margin:0">${esc(m.lesson_snapshot.content)}</div>
+      </div>`:''}
       <div class="ed-line">
-        <div class="ed-head"><span>👍 Điểm mạnh hôm nay</span><span class="cc" id="cc-dm"></span></div>
+        <div class="ed-head"><span>✅ Điểm bé làm được</span><span class="cc" id="cc-dm"></span></div>
         <textarea class="input" id="m-dm" ${editAttr} oninput="CTRC.edInput(this)">${esc(m.diem_manh)}</textarea>
       </div>
       <div class="ed-line">
-        <div class="ed-head"><span>🎯 Điểm cố gắng</span><span class="cc" id="cc-cg"></span></div>
+        <div class="ed-head"><span>📌 Điểm bé làm chưa được</span><span class="cc" id="cc-cg"></span></div>
         <textarea class="input" id="m-cg" ${editAttr} oninput="CTRC.edInput(this)">${esc(m.co_gang)}</textarea>
       </div>
       <div class="zalo-meter" id="zalo-meter"></div>
@@ -1368,8 +1476,8 @@ function renderMsg(){
       <summary>Nháp tham khảo (${esc(m.source)}) &amp; công cụ AI</summary>
       <div class="ref-body">
         <div class="draft-box" style="margin-top:0">
-          <div class="ln"><b>👍</b> ${esc(ai.diem_manh||m.diem_manh)}</div>
-          <div><b>🎯</b> ${esc(ai.co_gang||m.co_gang)}</div>
+          <div class="ln"><b>✅</b> ${esc(ai.diem_manh||m.diem_manh)}</div>
+          <div><b>📌</b> ${esc(ai.co_gang||m.co_gang)}</div>
         </div>
         <div class="row" style="margin-top:10px">
           <button class="btn sm" onclick="CTRC.regen()">↻ Sinh lại (mẫu)</button>
@@ -1467,7 +1575,7 @@ async function genAI(){
     const stu = MSG.stu;
     const theme = await DB.getThemeFor(CENTER.id, todayStr());
     const profile = await DB.getProfile(stu.id);
-    const out = await AI.generate({student:stu,record:rec,theme,profile,center:CENTER});
+    const out = await AI.generate({student:stu,record:rec,theme,profile,center:CENTER,lesson:MSG.m.lesson_snapshot});
     if(!out.diem_manh) throw new Error('Phản hồi AI rỗng');
     Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang||MSG.m.co_gang,ai_draft:out,source:'ai'});
     renderMsg(); toast('✨ AI đã viết xong ('+AI.get().model+')');
@@ -1485,7 +1593,7 @@ async function genAICustom(){
     const stu = MSG.stu;
     const theme = await DB.getThemeFor(CENTER.id, todayStr());
     const profile = await DB.getProfile(stu.id);
-    const out = await AI.generate({student:stu,record:rec,theme,profile,center:CENTER, customNote:note, currentDraft:cur});
+    const out = await AI.generate({student:stu,record:rec,theme,profile,center:CENTER, customNote:note, currentDraft:cur, lesson:MSG.m.lesson_snapshot});
     if(!out.diem_manh) throw new Error('Phản hồi AI rỗng');
     Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang||MSG.m.co_gang,ai_draft:out,source:'ai'});
     renderMsg(); toast('✨ Đã sinh lại theo yêu cầu — kiểm tra & chỉnh thêm nếu cần');
@@ -2003,7 +2111,7 @@ window.CTRC = {
   toggleAccountMenu, closeAccountMenu, switchAccount,
   openScore, setAttendance, saveScore,
   pickStrengthCrit, pickStrengthSentence, pickImproveCrit, pickImproveSentence, scoreDetailInput,
-  gvFilter,
+  gvFilter, editLessonContext, prefillLessonFromLib, saveLessonContext, clearLessonContext,
   addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, genAICustom, approve, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme,

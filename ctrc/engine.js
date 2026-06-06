@@ -123,12 +123,15 @@
     return { ok: hits.length === 0, banned: hits };
   }
 
-  /* Ghép văn bản gửi Zalo — KHÔNG link (mặc định) */
+  /* Ghép văn bản gửi Zalo — KHÔNG link (mặc định). Cấu trúc:
+     📖 Nội dung học tuần · ✅ Bé làm được · 📌 Bé làm chưa được */
   function composeZalo(student, dateStr, msg, link) {
+    const les = msg.lesson_snapshot && msg.lesson_snapshot.content;
     return (
       `Báo cáo buổi ${fmtDate(dateStr)} của bé ${student.name}\n\n` +
-      `👍 Điểm mạnh: ${msg.diem_manh}\n` +
-      `🎯 Đang cố gắng: ${msg.co_gang}` +
+      (les ? `📖 Nội dung học tuần này: ${les}\n\n` : '') +
+      `✅ Bé làm được: ${msg.diem_manh}\n` +
+      `📌 Bé làm chưa được: ${msg.co_gang}` +
       (link ? `\n\nXem chi tiết: ${link}` : '')
     ).trim();
   }

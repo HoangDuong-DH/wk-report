@@ -1,6 +1,12 @@
 # Báo cáo PER-BUỔI (sau mỗi buổi học)
 
-Gửi sau mỗi buổi, **2 dòng** (👍 điểm mạnh · 🎯 điều con đang cố gắng), gọn 1 tin Zalo. Tuân theo `giong-thuong-hieu.md`.
+Cấu trúc **3 phần**, gọn cho Zalo. Tuân theo `giong-thuong-hieu.md`:
+
+1. **📖 Nội dung học tuần này** — mục tiêu + hoạt động của tuần (lấy từ "Bài học tuần" gắn cho lớp; **điều chỉnh được**). Giống nhau cho cả lớp trong tuần.
+2. **✅ Điểm bé làm được** — bám tiêu chí điểm mạnh GV tick + mô tả chi tiết.
+3. **📌 Điểm bé làm chưa được** — bám tiêu chí cần cải thiện + mô tả chi tiết, nhẹ nhàng, hướng tới trước.
+
+> Phần (1) do GV gắn ở màn Chấm ("📖 Bài học tuần": Tháng · Tuần · Sách · Mục tiêu · Hoạt động) — bấm "Lấy từ thư viện" để điền sẵn rồi chỉnh. Phần (2)(3) do AI/engine sinh từ tiêu chí + chi tiết GV.
 
 ## Mô hình 5 TIÊU CHÍ (lõi đánh giá)
 
