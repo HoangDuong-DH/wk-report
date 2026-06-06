@@ -70,9 +70,11 @@
   function ensureDot(s) { s = (s || '').trim(); if (!s) return s; return /[.!?…]$/.test(s) ? s : s + '.'; }
   function stripDot(s) { return (s || '').trim().replace(/\.$/, ''); }
   function lowerFirst(s) { return s ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
+  function upperFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
   /* ── BỘ SINH CHÍNH ──
-     input.record: { strength:{crit,sentence}, improve:{crit,sentence}, observation, mood }
+     input.record: { strength:{crit,sentence,detail}, improve:{crit,sentence,detail}, mood }
+     (detail = mô tả chi tiết tuỳ chọn cho từng tiêu chí; observation = field cũ, fallback)
      output: { diem_manh, co_gang, goi_y, featured_strength } */
   function generate(input) {
     const ten = (input.student && input.student.name) || 'Bé';
@@ -81,7 +83,9 @@
     const prof = input.profile || {};
     const st = rec.strength || null;
     const im = rec.improve || null;
-    const obs = (rec.observation || '').trim();
+    // chi tiết điểm mạnh: ưu tiên st.detail, fallback observation (bản ghi cũ)
+    const stDetail = ((st && st.detail) || rec.observation || '').trim();
+    const imDetail = ((im && im.detail) || '').trim();
 
     // dòng 1 — Điểm mạnh hôm nay
     let diem_manh;
@@ -93,13 +97,14 @@
     } else {
       diem_manh = ensureDot(`Hôm nay ${ten} tham gia buổi học và có nhiều cố gắng`);
     }
-    if (obs) diem_manh += ' Cụ thể, ' + ensureDot(lowerFirst(obs));
+    if (stDetail) diem_manh += ' Cụ thể, ' + ensureDot(lowerFirst(stDetail));
 
     // dòng 2 — Điều con đang cố gắng (tiêu chí cần cải thiện)
     let co_gang;
     if (im && im.sentence) co_gang = ensureDot(`Bên cạnh đó, ${ten} ${lowerFirst(stripDot(im.sentence))}`);
     else if ((rec.effort || '').trim()) co_gang = ensureDot(`${ten} cũng đang cố gắng ${lowerFirst(rec.effort.trim())}`);
     else co_gang = ensureDot(`${ten} đang làm quen với nhiều hoạt động mới và ngày một tiến bộ`);
+    if (imDetail) co_gang += ' ' + ensureDot(upperFirst(imDetail));
 
     // dòng 3 — Gợi ý ở nhà theo tiêu chí cần cải thiện
     const tipCrit = (im && im.crit) || (st && st.crit) || 'tu_duy';
@@ -123,8 +128,7 @@
     return (
       `Báo cáo buổi ${fmtDate(dateStr)} của bé ${student.name}\n\n` +
       `👍 Điểm mạnh: ${msg.diem_manh}\n` +
-      `🎯 Đang cố gắng: ${msg.co_gang}\n` +
-      `🏠 Gợi ý ở nhà: ${msg.goi_y}` +
+      `🎯 Đang cố gắng: ${msg.co_gang}` +
       (link ? `\n\nXem chi tiết: ${link}` : '')
     ).trim();
   }
@@ -193,7 +197,7 @@
     });
     const topStrengths = Object.entries(sCnt).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => critLabel(k));
     const improveAreas = Object.entries(iCnt).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => critLabel(k));
-    const highlights = present.map((r) => (r.observation || '').trim()).filter((o) => o.split(/\s+/).length >= 4).slice(0, 3);
+    const highlights = present.map((r) => (((r.strength && r.strength.detail) || r.observation) || '').trim()).filter((o) => o.split(/\s+/).length >= 4).slice(0, 3);
     const topImp = Object.entries(iCnt).sort((a, b) => b[1] - a[1])[0];
     return {
       sessions: present.length, absent: absent.length, topStrengths, improveAreas, highlights,

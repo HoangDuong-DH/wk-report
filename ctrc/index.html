@@ -125,6 +125,7 @@ input,select,textarea{font-family:inherit}
 .chip .warn{color:var(--yellow);font-weight:800}
 .chip.on .warn{color:#fff}
 textarea.input{width:100%;min-height:64px;resize:vertical;line-height:1.5}
+textarea.input.detail{min-height:48px;margin-top:8px;font-size:12.5px}
 .gold{border:1.5px solid var(--yellow);background:#fffdf3}
 .hint{font:500 11px/1.4 var(--font);color:var(--mute);margin-top:4px}
 
@@ -320,10 +321,10 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=14"></script>
-<script src="db.js?v=14"></script>
-<script src="engine.js?v=14"></script>
-<script src="lessons.js?v=14"></script>
+<script src="config.js?v=15"></script>
+<script src="db.js?v=15"></script>
+<script src="engine.js?v=15"></script>
+<script src="lessons.js?v=15"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -405,22 +406,26 @@ function _critLabel(k){ return (window.CTRC_ENGINE&&window.CTRC_ENGINE.critLabel
 function buildAIPrompt(b){
   const stu=b.student||{}, rec=b.record||{}, theme=b.theme||{}, prof=b.profile||{}, center=b.center||{};
   const st=rec.strength||{}, im=rec.improve||{};
-  const stLine = st.crit ? `${_critLabel(st.crit)} — "${st.sentence||''}"` : '(chưa chọn)';
-  const imLine = im.crit ? `${_critLabel(im.crit)} — "${im.sentence||''}"` : '(chưa chọn)';
+  const stDetail=(st.detail||rec.observation||'').trim(), imDetail=(im.detail||'').trim();
+  const stLine = st.crit ? `${_critLabel(st.crit)} — "${st.sentence||''}"${stDetail?` (chi tiết GV: "${stDetail}")`:''}` : '(chưa chọn)';
+  const imLine = im.crit ? `${_critLabel(im.crit)} — "${im.sentence||''}"${imDetail?` (chi tiết GV: "${imDetail}")`:''}` : '(chưa chọn)';
   const profLine=(prof&&prof.status==='active')?`Tính cách: ${prof.introversion}. ${prof.summary||''}`:'Chưa có hồ sơ (giọng trung tính).';
+  const note=(b.customNote||'').trim();
+  const cur=b.currentDraft||null;
   return [
     `BỐI CẢNH: Trung tâm ${center.name||'WonderKids'}. Tuần này lớp học chủ đề "${theme.title||'(chưa có)'}".`,
     `HỒ SƠ BÉ ${stu.name}: ${profLine}`,
-    `HÔM NAY GV đánh giá theo 5 tiêu chí (Tập trung, Tham gia, Tư duy, Tự lập, Hợp tác):`,
+    `HÔM NAY GV đánh giá theo 5 tiêu chí (Tập trung, Tham gia, Tư duy, Tự lập, Hợp tác).`,
+    `Phần "chi tiết GV" là quan sát cụ thể — LÕI quan trọng nhất, hãy bám sát:`,
     `· ĐIỂM MẠNH: ${stLine}`,
     `· CẦN CẢI THIỆN: ${imLine}`,
-    `QUAN SÁT CỤ THỂ (lõi, quan trọng nhất): "${rec.observation||'(trống)'}".`,
+    cur?`\nBẢN NHÁP HIỆN TẠI (chỉnh sửa dựa trên đây, giữ ý đúng):\n- Điểm mạnh: "${cur.diem_manh||''}"\n- Cố gắng: "${cur.co_gang||''}"`:'',
+    note?`\nYÊU CẦU CHỈNH SỬA TỪ CSKH (BẮT BUỘC tuân theo): ${note}`:'',
     '',
-    `Viết báo cáo gửi phụ huynh bé ${stu.name} gồm ĐÚNG 3 dòng (mỗi dòng 1-2 câu, ấm áp):`,
+    `Viết báo cáo gửi phụ huynh bé ${stu.name} gồm ĐÚNG 2 dòng (mỗi dòng 1-2 câu, ấm áp):`,
     `1. Điểm mạnh hôm nay (bám tiêu chí điểm mạnh + quan sát GV, cụ thể hành vi)`,
     `2. Điều con đang cố gắng (bám tiêu chí cần cải thiện, nhẹ nhàng hướng tới trước)`,
-    `3. Gợi ý ở nhà (5-10 phút, không cần mua đồ, gắn với tiêu chí cần cải thiện)`,
-    `Trả về DUY NHẤT JSON: {"diem_manh":"...","co_gang":"...","goi_y":"..."} — không thêm chữ nào khác.`,
+    `Trả về DUY NHẤT JSON: {"diem_manh":"...","co_gang":"..."} — không thêm chữ nào khác.`,
   ].filter(Boolean).join('\n');
 }
 
@@ -727,7 +732,7 @@ let SCORE = null;
 async function openScore(studentId){
   const stu = await DB.getStudent(studentId);
   const rec = await DB.getRecord(GV.session.id, studentId) || { attendance:'present', observation:'', mood:'normal', strength:null, improve:null };
-  SCORE = { stu, rec: JSON.parse(JSON.stringify(rec)), _suggest:null };
+  SCORE = { stu, rec: JSON.parse(JSON.stringify(rec)) };
   renderScore();
 }
 function renderScore(){
@@ -749,17 +754,13 @@ function renderScore(){
         <label style="color:var(--green)">👍 Điểm mạnh hôm nay — chọn 1 tiêu chí</label>
         <div class="chips">${critChips(stCrit, imCrit, 'pickStrengthCrit')}</div>
         ${stCrit?`<div class="hint" style="margin:7px 0 4px">Chọn câu mô tả:</div><div class="chips">${sentChips(stCrit,'pos',stSent,'pickStrengthSentence')}</div>`:''}
+        ${stSent?`<textarea class="input gold detail" id="sc-st-detail" oninput="CTRC.scoreDetailInput()" placeholder="⭐ Mô tả chi tiết cho điểm mạnh (tuỳ chọn) — VD: bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần">${esc((rec.strength&&rec.strength.detail)||rec.observation||'')}</textarea>`:''}
       </div>
       <div class="ln" style="margin-top:14px">
         <label style="color:var(--primary-2)">🎯 Cần cải thiện — chọn 1 tiêu chí</label>
         <div class="chips">${critChips(imCrit, stCrit, 'pickImproveCrit', 'imp')}</div>
         ${imCrit?`<div class="hint" style="margin:7px 0 4px">Chọn câu mô tả:</div><div class="chips">${sentChips(imCrit,'neg',imSent,'pickImproveSentence','imp')}</div>`:''}
-      </div>
-      <div class="ln" style="margin-top:14px">
-        <label style="color:#b8860b">⭐ Quan sát cụ thể (tuỳ chọn — làm tin "đắt" hơn)</label>
-        <textarea class="input gold" id="sc-obs" placeholder="VD: Bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần khi sai">${esc(rec.observation||'')}</textarea>
-        <div class="row" style="margin-top:6px"><button class="btn sm" type="button" onclick="CTRC.gvSuggest()">✨ Gợi ý tiêu chí từ quan sát</button></div>
-        <div id="sc-suggest"></div>
+        ${imSent?`<textarea class="input detail" id="sc-im-detail" oninput="CTRC.scoreDetailInput()" placeholder="Mô tả chi tiết cho điều cần cải thiện (tuỳ chọn) — VD: con thường chơi một mình, ngại bắt chuyện">${esc((rec.improve&&rec.improve.detail)||'')}</textarea>`:''}
       </div>
       <div class="field" style="margin:14px 0"><label>Tâm trạng</label>
         <select class="input" id="sc-mood">${Object.entries(MOODS).map(([k,v])=>`<option value="${k}" ${rec.mood===k?'selected':''}>${v}</option>`).join('')}</select></div>
@@ -769,7 +770,6 @@ function renderScore(){
       <button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
       <button class="btn primary" onclick="CTRC.saveScore()">Lưu & sinh nháp</button>
     </div>`);
-  if(SCORE._suggest) renderSuggestBox(SCORE._suggest);
   updateScorePreview();
   // giữ vị trí cuộn để thao tác tick liên tục không bị nhảy lên đầu
   const sc=$('#modal-root .modal'); if(sc && SCORE._scroll) sc.scrollTop=SCORE._scroll;
@@ -778,52 +778,26 @@ function _snapScroll(){ const sc=$('#modal-root .modal'); if(sc) SCORE._scroll=s
 function updateScorePreview(){
   const el=$('#sc-preview'); if(!el) return;
   const r=SCORE.rec, bits=[];
-  if(r.strength&&r.strength.sentence) bits.push(r.strength.sentence);
-  if(r.improve&&r.improve.sentence) bits.push(r.improve.sentence);
+  if(r.strength&&r.strength.sentence){ let s=r.strength.sentence; if(r.strength.detail&&r.strength.detail.trim()) s+=' ('+r.strength.detail.trim()+')'; bits.push(s); }
+  if(r.improve&&r.improve.sentence){ let s=r.improve.sentence; if(r.improve.detail&&r.improve.detail.trim()) s+=' ('+r.improve.detail.trim()+')'; bits.push(s); }
   el.innerHTML = bits.length? '📝 <b>Xem trước:</b> '+esc(bits.join(' ')) : '';
 }
-function syncScoreForm(){ _snapScroll(); if($('#sc-obs')) SCORE.rec.observation=$('#sc-obs').value; if($('#sc-mood')) SCORE.rec.mood=$('#sc-mood').value; }
+function syncScoreForm(){ _snapScroll();
+  if($('#sc-st-detail') && SCORE.rec.strength) SCORE.rec.strength.detail=$('#sc-st-detail').value;
+  if($('#sc-im-detail') && SCORE.rec.improve) SCORE.rec.improve.detail=$('#sc-im-detail').value;
+  if($('#sc-mood')) SCORE.rec.mood=$('#sc-mood').value;
+}
+/* gõ chi tiết -> cập nhật xem trước ngay, KHÔNG re-render (giữ con trỏ) */
+function scoreDetailInput(){
+  if($('#sc-st-detail') && SCORE.rec.strength) SCORE.rec.strength.detail=$('#sc-st-detail').value;
+  if($('#sc-im-detail') && SCORE.rec.improve) SCORE.rec.improve.detail=$('#sc-im-detail').value;
+  updateScorePreview();
+}
 function setAttendance(a){ syncScoreForm(); SCORE._scroll=0; SCORE.rec.attendance=a; renderScore(); }
-function pickStrengthCrit(k){ syncScoreForm(); const r=SCORE.rec; r.strength=(r.strength&&r.strength.crit===k)?null:{crit:k,sentence:''}; if(r.improve&&r.improve.crit===k) r.improve=null; renderScore(); }
-function pickStrengthSentence(i){ _snapScroll(); const c=ENG.CRITERIA.find(x=>x.key===(SCORE.rec.strength&&SCORE.rec.strength.crit)); if(c) SCORE.rec.strength.sentence=c.pos[i]; renderScore(); }
-function pickImproveCrit(k){ syncScoreForm(); const r=SCORE.rec; r.improve=(r.improve&&r.improve.crit===k)?null:{crit:k,sentence:''}; if(r.strength&&r.strength.crit===k) r.strength=null; renderScore(); }
-function pickImproveSentence(i){ _snapScroll(); const c=ENG.CRITERIA.find(x=>x.key===(SCORE.rec.improve&&SCORE.rec.improve.crit)); if(c) SCORE.rec.improve.sentence=c.neg[i]; renderScore(); }
-/* ── Trợ lý GV: gợi ý tiêu chí từ quan sát ── */
-function gvSuggest(){
-  syncScoreForm();
-  if(!(SCORE.rec.observation||'').trim()){ toast('Gõ vài chữ quan sát trước để có gợi ý','var(--primary-2)'); }
-  SCORE._suggest = ENG.suggestFromObservation(SCORE.rec.observation);
-  renderSuggestBox(SCORE._suggest);
-}
-function renderSuggestBox(res){
-  const box=$('#sc-suggest'); if(!box) return;
-  if(!res){ box.innerHTML=''; return; }
-  const c = res.crit ? ENG.CRITERIA.find(x=>x.key===res.crit) : null;
-  const aiBtn = AI.usable()?`<button class="btn sm" type="button" onclick="CTRC.gvSuggestAI()">✨ AI chọn tiêu chí + câu</button>`:'';
-  box.innerHTML = `<div style="background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px">
-    ${res.thin?`<div class="voice-warn" style="margin:0 0 6px">⚠ ${esc(res.hints[0]||'Quan sát hơi sơ sài')}</div>`:''}
-    ${c?`<div class="hint" style="margin:0 0 6px">Quan sát hợp với tiêu chí: <b>${c.emoji} ${esc(c.label)}</b></div><button class="chip" onclick="CTRC.pickStrengthCrit('${c.key}')">+ Chọn làm Điểm mạnh</button> <button class="chip" onclick="CTRC.pickImproveCrit('${c.key}')">+ Chọn làm Cần cải thiện</button>`:`<div class="hint" style="margin:0">Chưa nhận ra tiêu chí rõ — ${aiBtn?'thử AI bên dưới':'chọn tay ở trên'}.</div>`}
-    ${aiBtn?`<div style="margin-top:8px">${aiBtn}</div>`:''}
-  </div>`;
-}
-async function gvSuggestAI(){
-  if(!AI.usable()){ toast('Chưa cấu hình AI — bấm ⚙ AI trên thanh trên','var(--primary-2)'); return; }
-  syncScoreForm();
-  const obs=(SCORE.rec.observation||'').trim();
-  if(!obs){ toast('Cần có quan sát trước','var(--primary-2)'); return; }
-  toast('✨ AI đang đọc quan sát…','var(--blue)');
-  try{
-    const cats=ENG.CRITERIA.map(c=>`${c.key} (${c.label}): pos=[${c.pos.map((s,i)=>i+'='+s).join(' | ')}]; neg=[${c.neg.map((s,i)=>i+'='+s).join(' | ')}]`).join('\n');
-    const sys='Bạn hỗ trợ giáo viên mầm non. Chọn tiêu chí + câu mô tả phù hợp NHẤT với quan sát. Chỉ trả JSON.';
-    const prompt=`5 tiêu chí + câu (theo chỉ số):\n${cats}\n\nQuan sát GV: "${obs}".\nChọn 1 tiêu chí ĐIỂM MẠNH + 1 câu pos, và 1 tiêu chí CẦN CẢI THIỆN + 1 câu neg (khác tiêu chí nhau).\nTrả DUY NHẤT JSON: {"strength":{"crit":"key","i":idx},"improve":{"crit":"key","i":idx}}.`;
-    const text=await AI.complete(sys, prompt);
-    const m=text.match(/\{[\s\S]*\}/); const out=m?JSON.parse(m[0]):{};
-    if(out.strength&&out.strength.crit){ const c=ENG.CRITERIA.find(x=>x.key===out.strength.crit); if(c) SCORE.rec.strength={crit:c.key, sentence:c.pos[out.strength.i]||c.pos[0]}; }
-    if(out.improve&&out.improve.crit){ const c=ENG.CRITERIA.find(x=>x.key===out.improve.crit); if(c && c.key!==(SCORE.rec.strength&&SCORE.rec.strength.crit)) SCORE.rec.improve={crit:c.key, sentence:c.neg[out.improve.i]||c.neg[0]}; }
-    SCORE._suggest=null; renderScore();
-    toast('✨ AI đã chọn tiêu chí + câu mô tả — kiểm tra lại nhé');
-  }catch(e){ toast('Lỗi AI: '+e.message,'var(--primary-2)'); }
-}
+function pickStrengthCrit(k){ syncScoreForm(); const r=SCORE.rec; r.strength=(r.strength&&r.strength.crit===k)?null:{crit:k,sentence:'',detail:''}; if(r.improve&&r.improve.crit===k) r.improve=null; renderScore(); }
+function pickStrengthSentence(i){ syncScoreForm(); const c=ENG.CRITERIA.find(x=>x.key===(SCORE.rec.strength&&SCORE.rec.strength.crit)); if(c) SCORE.rec.strength.sentence=c.pos[i]; renderScore(); }
+function pickImproveCrit(k){ syncScoreForm(); const r=SCORE.rec; r.improve=(r.improve&&r.improve.crit===k)?null:{crit:k,sentence:'',detail:''}; if(r.strength&&r.strength.crit===k) r.strength=null; renderScore(); }
+function pickImproveSentence(i){ syncScoreForm(); const c=ENG.CRITERIA.find(x=>x.key===(SCORE.rec.improve&&SCORE.rec.improve.crit)); if(c) SCORE.rec.improve.sentence=c.neg[i]; renderScore(); }
 
 async function saveScore(){
   const rec = SCORE.rec, stu = SCORE.stu;
@@ -844,7 +818,7 @@ async function saveScore(){
   const wasPresent = !!(existed && existed.attendance === 'present');
   const saved = await DB.saveRecord({
     session_id: GV.session.id, student_id: stu.id, attendance: rec.attendance,
-    strength: rec.strength, improve: rec.improve, observation: rec.observation,
+    strength: rec.strength, improve: rec.improve,
     mood: rec.mood, created_by: STAFF.id,
   });
   await DB.audit(CENTER.id, STAFF, 'score', 'record', saved.id, {student:stu.name});
@@ -1348,7 +1322,6 @@ function renderMsg(){
   const ai = m.ai_draft || {};
   const approved = ['approved','sent'].includes(m.status);
   const st = STATUS[m.status]||['',''];
-  const aiBtn = `<button class="btn sm" onclick="CTRC.genAI()" title="${AI.usable()?'Model: '+AI.get().model:'Chưa cấu hình — bấm ⚙ AI'}">✨ Sinh bằng AI${AI.usable()?'':' ⚙'}</button>`;
 
   // ── ngữ cảnh: nắm tình hình (tiêu chí GV đã tick) ──
   let ctx = '';
@@ -1359,10 +1332,15 @@ function renderMsg(){
       (im.crit?`<span class="ctx-dim lo">🎯 ${esc(ENG.critLabel(im.crit))}</span>`:'');
     const mood = MOODS[rec.mood]||'';
     const sents = [st.sentence, im.sentence].filter(Boolean).map(esc).join(' · ');
+    const stD=(st.detail||rec.observation||'').trim(), imD=(im.detail||'').trim();
+    const detailBlk = (stD||imD)?`<div class="ctx-obs"><span class="lbl">⭐ CHI TIẾT GIÁO VIÊN GHI</span>${[
+        stD?`<b>👍 ${esc(ENG.critLabel(st.crit))}:</b> ${esc(stD)}`:'',
+        imD?`<b>🎯 ${esc(ENG.critLabel(im.crit))}:</b> ${esc(imD)}`:''
+      ].filter(Boolean).join('<br>')}</div>`:'';
     ctx = `<div class="msg-context">
       <div class="ctx-row">${chips}${mood?`<span class="ctx-mood">${esc(mood)}</span>`:''}</div>
       ${sents?`<div class="ctx-sent">${sents}</div>`:''}
-      ${(rec.observation||'').trim()?`<div class="ctx-obs"><span class="lbl">⭐ QUAN SÁT CỦA GIÁO VIÊN</span>${esc(rec.observation)}</div>`:''}
+      ${detailBlk}
     </div>`;
   }
 
@@ -1382,26 +1360,29 @@ function renderMsg(){
         <div class="ed-head"><span>🎯 Điểm cố gắng</span><span class="cc" id="cc-cg"></span></div>
         <textarea class="input" id="m-cg" ${editAttr} oninput="CTRC.edInput(this)">${esc(m.co_gang)}</textarea>
       </div>
-      <div class="ed-line">
-        <div class="ed-head"><span>🏠 Gợi ý ở nhà</span><span class="cc" id="cc-gy"></span></div>
-        <textarea class="input" id="m-gy" ${editAttr} oninput="CTRC.edInput(this)">${esc(m.goi_y)}</textarea>
-      </div>
       <div class="zalo-meter" id="zalo-meter"></div>
       <div id="voice-warn" class="voice-warn"></div>
     </div>
 
-    ${approved?'':`<details class="ref-draft">
+    ${approved?'':`<details class="ref-draft" open>
       <summary>Nháp tham khảo (${esc(m.source)}) &amp; công cụ AI</summary>
       <div class="ref-body">
         <div class="draft-box" style="margin-top:0">
           <div class="ln"><b>👍</b> ${esc(ai.diem_manh||m.diem_manh)}</div>
-          <div class="ln"><b>🎯</b> ${esc(ai.co_gang||m.co_gang)}</div>
-          <div><b>🏠</b> ${esc(ai.goi_y||m.goi_y)}</div>
+          <div><b>🎯</b> ${esc(ai.co_gang||m.co_gang)}</div>
         </div>
         <div class="row" style="margin-top:10px">
-          <button class="btn sm" onclick="CTRC.regen()">↻ Sinh lại (engine)</button>
-          <button class="btn sm" onclick="CTRC.pasteAI()">📋 Dán nháp AI</button>
-          ${aiBtn}
+          <button class="btn sm" onclick="CTRC.regen()">↻ Sinh lại (mẫu)</button>
+          <button class="btn sm" onclick="CTRC.pasteAI()">📋 Dán nháp ngoài</button>
+        </div>
+        <div class="ed-line" style="margin-top:12px">
+          <div class="ed-head"><span>✏️ Yêu cầu chỉnh sửa cho AI (tuỳ chọn)</span></div>
+          <textarea class="input" id="ai-custom" placeholder="VD: viết ngắn gọn hơn · ấm áp hơn · nhấn mạnh sự tiến bộ · thêm 1 câu động viên · đổi gợi ý sang hoạt động đọc sách"></textarea>
+          <div class="row" style="margin-top:8px">
+            ${AI.usable()?`<button class="btn primary sm" onclick="CTRC.genAI()">✨ AI viết mới</button>
+            <button class="btn sm" onclick="CTRC.genAICustom()">✨ Sinh lại theo yêu cầu</button>`
+            :`<span class="hint" style="margin:0">Bật AI ở ⚙ AI (Quản lý) để dùng công cụ viết lại.</span>`}
+          </div>
         </div>
       </div>
     </details>`}
@@ -1413,7 +1394,7 @@ function renderMsg(){
       </div>`}</div>
   `, 'wide');
   // auto-grow + đếm ký tự ban đầu
-  ['m-dm','m-cg','m-gy'].forEach(id=>{ const e=$('#'+id); if(e){ _autogrow(e); } });
+  ['m-dm','m-cg'].forEach(id=>{ const e=$('#'+id); if(e){ _autogrow(e); } });
   voiceCheck();
 }
 function MSG_DATE(){ return (MSG && MSG.date) || todayStr(); }
@@ -1425,17 +1406,17 @@ function edInput(el){
   voiceCheck();
 }
 function readEdits(){
-  return { diem_manh:($('#m-dm')||{}).value?.trim()||'', co_gang:($('#m-cg')||{}).value?.trim()||'', goi_y:($('#m-gy')||{}).value?.trim()||'' };
+  return { diem_manh:($('#m-dm')||{}).value?.trim()||'', co_gang:($('#m-cg')||{}).value?.trim()||'' };
 }
 function voiceCheck(){
-  const dm=($('#m-dm')||{}).value||'', cg=($('#m-cg')||{}).value||'', gy=($('#m-gy')||{}).value||'';
+  const dm=($('#m-dm')||{}).value||'', cg=($('#m-cg')||{}).value||'';
   // đếm ký tự từng dòng
   const set=(id,v)=>{ const e=$(id); if(e) e.textContent=v+' ký tự'; };
-  set('#cc-dm', dm.length); set('#cc-cg', cg.length); set('#cc-gy', gy.length);
+  set('#cc-dm', dm.length); set('#cc-cg', cg.length);
   // đo tổng (ước lượng độ dài tin Zalo, mục tiêu gọn ~280)
   const meter=$('#zalo-meter');
   if(meter){
-    const total = dm.length+cg.length+gy.length;
+    const total = dm.length+cg.length;
     const ok = total<=320;
     meter.className = 'zalo-meter '+(ok?'zalo-ok':'zalo-long');
     meter.innerHTML = `<span>📨 Tổng nội dung: <b>${total}</b> ký tự</span><span>${ok?'✓ Gọn, vừa 1 tin Zalo':'Hơi dài — cân nhắc rút gọn cho dễ đọc'}</span>`;
@@ -1443,7 +1424,7 @@ function voiceCheck(){
   // check giọng thương hiệu
   const w=$('#voice-warn');
   if(w){
-    const r = ENG.checkVoice([dm,cg,gy].join(' '));
+    const r = ENG.checkVoice([dm,cg].join(' '));
     w.textContent = r.ok ? '' : '⚠ Có từ nên tránh theo giọng thương hiệu: '+r.banned.join(', ');
   }
 }
@@ -1458,7 +1439,7 @@ async function regen(){
 }
 function pasteAI(){
   modal(`<h3>Dán nháp từ Claude.ai / ChatGPT</h3>
-    <p class="h-sub">Dán nguyên đoạn. Hệ thống tự tách 3 dòng nếu thấy "Điểm mạnh/Cố gắng/Gợi ý"; nếu không, dán vào ô đang chọn.</p>
+    <p class="h-sub">Dán nguyên đoạn. Hệ thống tự tách 2 dòng nếu thấy "Điểm mạnh/Cố gắng"; nếu không, dán vào ô Điểm mạnh.</p>
     <textarea class="input" id="paste-src" style="min-height:160px"></textarea>
     <div class="row" style="justify-content:flex-end;margin-top:12px">
       <button class="btn ghost" onclick="CTRC.renderMsg()">Huỷ</button>
@@ -1469,14 +1450,13 @@ function applyPaste(){
   const src = $('#paste-src').value;
   const grab = (re)=>{ const m=src.match(re); return m?m[1].trim():''; };
   const dm = grab(/(?:điểm mạnh|👍)[:\-–]?\s*([\s\S]*?)(?:\n.*?(?:cố gắng|🎯)|$)/i);
-  const cg = grab(/(?:cố gắng|🎯)[:\-–]?\s*([\s\S]*?)(?:\n.*?(?:gợi ý|🏠)|$)/i);
-  const gy = grab(/(?:gợi ý|🏠)[:\-–]?\s*([\s\S]*?)$/i);
-  if (dm||cg||gy){
-    Object.assign(MSG.m,{diem_manh:dm||MSG.m.diem_manh,co_gang:cg||MSG.m.co_gang,goi_y:gy||MSG.m.goi_y,ai_draft:{diem_manh:dm,co_gang:cg,goi_y:gy},source:'ai'});
+  const cg = grab(/(?:cố gắng|🎯)[:\-–]?\s*([\s\S]*?)$/i);
+  if (dm||cg){
+    Object.assign(MSG.m,{diem_manh:dm||MSG.m.diem_manh,co_gang:cg||MSG.m.co_gang,ai_draft:{diem_manh:dm,co_gang:cg},source:'ai'});
     renderMsg(); toast('✓ Đã tách & áp nháp AI');
   } else {
     MSG.m.diem_manh = src.trim(); MSG.m.source='ai'; renderMsg();
-    toast('Đã dán vào ô Điểm mạnh (không thấy nhãn 3 dòng)','var(--primary-2)');
+    toast('Đã dán vào ô Điểm mạnh (không thấy nhãn 2 dòng)','var(--primary-2)');
   }
 }
 async function genAI(){
@@ -1489,13 +1469,31 @@ async function genAI(){
     const profile = await DB.getProfile(stu.id);
     const out = await AI.generate({student:stu,record:rec,theme,profile,center:CENTER});
     if(!out.diem_manh) throw new Error('Phản hồi AI rỗng');
-    Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang||MSG.m.co_gang,goi_y:out.goi_y||MSG.m.goi_y,ai_draft:out,source:'ai'});
+    Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang||MSG.m.co_gang,ai_draft:out,source:'ai'});
     renderMsg(); toast('✨ AI đã viết xong ('+AI.get().model+')');
   } catch(e){ toast('Lỗi AI: '+e.message+' — giữ nháp engine','var(--primary-2)'); }
 }
+/* Sinh lại theo yêu cầu tuỳ chỉnh của CSKH (giữ nội dung hiện tại + chỉ dẫn riêng) */
+async function genAICustom(){
+  if (!AI.usable()){ toast('Chưa cấu hình AI — vào Cấu hình → AI (Manager)','var(--primary-2)'); if(STAFF.role==='manager') go('config'); return; }
+  const note = (($('#ai-custom')||{}).value||'').trim();
+  if(!note){ toast('Nhập yêu cầu chỉnh sửa trước (vd: ngắn gọn hơn, ấm áp hơn)','var(--primary-2)'); return; }
+  const cur = readEdits();   // nội dung CSKH đang sửa làm điểm xuất phát
+  toast('✨ Đang sinh lại theo yêu cầu…','var(--blue)');
+  try {
+    const rec = await DB._getRecordById(MSG.m.record_id);
+    const stu = MSG.stu;
+    const theme = await DB.getThemeFor(CENTER.id, todayStr());
+    const profile = await DB.getProfile(stu.id);
+    const out = await AI.generate({student:stu,record:rec,theme,profile,center:CENTER, customNote:note, currentDraft:cur});
+    if(!out.diem_manh) throw new Error('Phản hồi AI rỗng');
+    Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang||MSG.m.co_gang,ai_draft:out,source:'ai'});
+    renderMsg(); toast('✨ Đã sinh lại theo yêu cầu — kiểm tra & chỉnh thêm nếu cần');
+  } catch(e){ toast('Lỗi AI: '+e.message,'var(--primary-2)'); }
+}
 async function approve(){
   const edits = readEdits();
-  if(!edits.diem_manh||!edits.co_gang||!edits.goi_y){ toast('Cần đủ 3 dòng trước khi duyệt','var(--primary-2)'); return; }
+  if(!edits.diem_manh||!edits.co_gang){ toast('Cần đủ 2 dòng (điểm mạnh + cố gắng) trước khi duyệt','var(--primary-2)'); return; }
   try {
     const upd = await DB.updateMessageGuarded(MSG.m.id, MSG.m.version, Object.assign({
       status:'approved', approved_by:STAFF.id, approved_at:new Date().toISOString(), edited_by:STAFF.id, lock_owner:null, lock_at:null,
@@ -1935,12 +1933,11 @@ async function aiTest(){
   if(!(AICFG.mode==='edge'?AICFG.edgeFnUrl:AICFG.apiKey)){ toast('Điền URL/key trước khi test','var(--primary-2)'); return; }
   toast('🧪 Đang gọi thử ('+AICFG.model+')…','var(--blue)');
   try{
-    const out=await AI.generate({student:{name:'Bé Minh'},record:{strength:{crit:'tu_lap',sentence:'Hoàn thành nhiệm vụ độc lập.'},improve:{crit:'hop_tac',sentence:'Còn ít tương tác với các bạn trong nhóm.'},observation:'tự ghép đúng 5 mảnh, kiên nhẫn thử lại khi sai',mood:'happy'},theme:{title:'Ghép hình'},profile:null,center:CENTER}, AICFG);
+    const out=await AI.generate({student:{name:'Bé Minh'},record:{strength:{crit:'tu_lap',sentence:'Hoàn thành nhiệm vụ độc lập.',detail:'tự ghép đúng 5 mảnh, kiên nhẫn thử lại khi sai'},improve:{crit:'hop_tac',sentence:'Còn ít tương tác với các bạn trong nhóm.',detail:'thường chơi một mình, ngại bắt chuyện'},mood:'happy'},theme:{title:'Ghép hình'},profile:null,center:CENTER}, AICFG);
     if(!out.diem_manh) throw new Error('Phản hồi rỗng');
     modal(`<h3>🧪 Kết quả thử — ${esc(AICFG.model)}</h3>
       <div class="draft-box"><div class="ln"><b>👍 Điểm mạnh:</b> ${esc(out.diem_manh)}</div>
-      <div class="ln"><b>🎯 Cố gắng:</b> ${esc(out.co_gang||'(trống)')}</div>
-      <div><b>🏠 Gợi ý:</b> ${esc(out.goi_y||'(trống)')}</div></div>
+      <div><b>🎯 Cố gắng:</b> ${esc(out.co_gang||'(trống)')}</div></div>
       <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" onclick="CTRC.closeModal()">Đóng</button></div>`);
     toast('✓ Kết nối AI OK');
   }catch(e){ toast('Lỗi: '+e.message,'var(--primary-2)'); }
@@ -2005,10 +2002,10 @@ window.CTRC = {
   login, logout, go, closeModal, helpSupabase,
   toggleAccountMenu, closeAccountMenu, switchAccount,
   openScore, setAttendance, saveScore,
-  pickStrengthCrit, pickStrengthSentence, pickImproveCrit, pickImproveSentence,
-  gvSuggest, gvSuggestAI, gvFilter,
+  pickStrengthCrit, pickStrengthSentence, pickImproveCrit, pickImproveSentence, scoreDetailInput,
+  gvFilter,
   addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
-  qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, approve, copyBlock, copyLink, markSent, voiceCheck, edInput,
+  qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, genAICustom, approve, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
   addStaff, editStaff, saveStaff, delStaff,
