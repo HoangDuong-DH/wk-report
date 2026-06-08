@@ -102,7 +102,7 @@ function render(r){
           <div class="meta">Báo cáo tuần · ${esc(dateLabel)}</div></div>
         ${s.hocGi?`<div class="sect s-tip"><div class="t">📖 Tuần này con học</div><p>${esc(s.hocGi)}</p></div>`:''}
         ${s.tongHop?`<div class="sect s-strong"><div class="t">🌟 Tổng hợp tuần của con</div><p>${esc(s.tongHop)}</p></div>`:''}
-        ${s.coGang?`<div class="sect s-effort"><div class="t">🎯 Điều con đang cố gắng</div><p>${esc(s.coGang)}</p></div>`:''}
+        ${s.coGang?`<div class="sect s-effort"><div class="t">📌 Điểm con cần cải thiện</div><p>${esc(s.coGang)}</p></div>`:''}
         ${s.oNha?`<div class="sect s-tip"><div class="t">🏠 Đồng hành ở nhà</div><p>${esc(s.oNha)}</p></div>`:''}
         ${r.class_comment?`<div class="sect s-strong"><div class="t">💬 Lời nhắn của cô</div><p>${esc(r.class_comment)}</p></div>`:''}
         ${r.child_comment?`<div class="sect s-effort"><div class="t">👶 Riêng ${esc(r.student_name)}</div><p>${esc(r.child_comment)}</p></div>`:''}

@@ -325,10 +325,10 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=17"></script>
-<script src="db.js?v=17"></script>
-<script src="engine.js?v=17"></script>
-<script src="lessons.js?v=17"></script>
+<script src="config.js?v=18"></script>
+<script src="db.js?v=18"></script>
+<script src="engine.js?v=18"></script>
+<script src="lessons.js?v=18"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -435,6 +435,31 @@ function buildAIPrompt(b){
   ].filter(Boolean).join('\n');
 }
 
+/* prompt BÁO CÁO TUẦN: gom các buổi của 1 bé → tổng hợp đầy đủ cho phụ huynh */
+function buildWeeklyPrompt(b){
+  const stu=b.student||{}, center=b.center||{}, les=b.lesson||null;
+  const recs=(b.records||[]).filter(r=>r.attendance==='present');
+  const sessions = recs.map((r,i)=>{
+    const st=r.strength||{}, im=r.improve||{};
+    return `• Buổi ${i+1}: LÀM ĐƯỢC = ${_critLabel(st.crit)} ("${st.sentence||''}"${st.detail?'; chi tiết: '+st.detail:''}); CHƯA ĐƯỢC = ${_critLabel(im.crit)} ("${im.sentence||''}"${im.detail?'; chi tiết: '+im.detail:''})${r.mood?'; tâm trạng: '+((window.MOODS&&MOODS[r.mood])||r.mood):''}.`;
+  }).join('\n');
+  const lesLine = (les&&(les.title||les.content))?`NỘI DUNG HỌC TUẦN: "${les.title||''}".${les.objective?' Mục tiêu: '+les.objective+'.':''}${les.activity?' Hoạt động: '+les.activity+'.':''}`:'';
+  return [
+    `Trung tâm TƯ DUY ${center.name||'WonderKids'}. Soạn BÁO CÁO TUẦN gửi phụ huynh cho bé ${stu.name}, TỔNG HỢP từ ${recs.length} buổi trong tuần.`,
+    lesLine,
+    `DỮ LIỆU TỪNG BUỔI (giáo viên ghi):`,
+    sessions||'(chưa có buổi nào)',
+    b.childComment?`Lời nhắn riêng của cô: "${b.childComment}".`:'',
+    '',
+    `Viết báo cáo ẤM ÁP, CỤ THỂ, ĐẦY ĐỦ — đúng kỳ vọng của phụ huynh khi cho con học trung tâm tư duy. Gồm 3 phần:`,
+    `1. tongHop: 3-4 câu tổng hợp cả tuần — con học/làm được gì (gắn nội dung học tuần + kỹ năng tư duy), nêu 1-2 khoảnh khắc cụ thể từ dữ liệu buổi. Không liệt kê khô khan.`,
+    `2. coGang: 2-3 câu nêu RÕ điểm con CẦN CẢI THIỆN (cụ thể, thẳng thắn nhưng tích cực), kèm cách trung tâm sẽ hỗ trợ con.`,
+    `3. oNha: 1 hoạt động 5-10 phút bố mẹ làm cùng con ở nhà, gắn điểm cần cải thiện, không cần mua đồ.`,
+    `Quy tắc: KHÔNG dùng từ kém/yếu/tệ/chậm/dốt/lười/hư; KHÔNG so sánh với bé khác; tiếng Việt tự nhiên, hướng tới trước.`,
+    `Trả về DUY NHẤT JSON: {"tongHop":"...","coGang":"...","oNha":"..."} — không thêm chữ nào khác.`,
+  ].filter(Boolean).join('\n');
+}
+
 const AI = {
   KEY:'ctrc:ai:v1',
   DEFAULT_MODELS:[
@@ -532,6 +557,21 @@ const AI = {
     const text=this._text(d);
     const m=text.match(/\{[\s\S]*\}/); let out={}; if(m){try{out=JSON.parse(m[0]);}catch(_){}}
     if(!out.diem_manh) out={diem_manh:text,co_gang:'',goi_y:''};
+    return out;
+  },
+  /* Tổng hợp BÁO CÁO TUẦN bằng AI từ các buổi của 1 bé → {tongHop, coGang, oNha} */
+  async generateWeekly(payload, cfg){
+    const c=cfg||this.get();
+    if(c.mode==='edge'){
+      if(!c.edgeFnUrl) throw new Error('Chưa có Edge Function URL');
+      const r=await fetch(c.edgeFnUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind:'weekly',model:c.model,max_tokens:c.maxTokens,thinking_effort:c.thinking},payload))});
+      if(!r.ok) throw new Error('Edge HTTP '+r.status);
+      return r.json();
+    }
+    if(!c.apiKey) throw new Error('Chưa có API key');
+    const d=await this._callMessages(c, this._sysFor('weekly'), buildWeeklyPrompt(payload));
+    const text=this._text(d);
+    const m=text.match(/\{[\s\S]*\}/); let out={}; if(m){try{out=JSON.parse(m[0]);}catch(_){}}
     return out;
   },
   /* gọi Claude tổng quát (cho Insights + trợ lý GV). Trả về text. */
@@ -1196,7 +1236,9 @@ async function viewWeekly(){
       <div class="ed-head" style="margin-bottom:6px"><span>👶 Tổng hợp theo từng bé (tự gom từ các buổi)</span><span class="cc">thêm lời nhắn riêng nếu muốn</span></div>
       <div id="wk-children"><p class="hint" style="margin:0">Đang tổng hợp…</p></div>
     </div>
-    <div class="row" style="justify-content:flex-end">
+    <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <label style="font:600 12px/1.3 var(--font);display:flex;gap:6px;align-items:center">
+        <input type="checkbox" id="wk-ai" ${AI.usable()?'checked':'disabled'}> ✨ AI tổng hợp đầy đủ (gom các buổi, nêu rõ điểm cần cải thiện)${AI.usable()?'':' — bật ⚙ AI để dùng'}</label>
       <button class="btn primary" onclick="CTRC.genWeekly()">📨 Tạo báo cáo tuần</button>
     </div>
     <div id="wk-result"></div>
@@ -1246,10 +1288,25 @@ async function genWeekly(){
   if(!studs.length){ toast('Lớp chưa có bé','var(--primary-2)'); return; }
   const lessonSnap = les ? {title:les.title, pages:les.pages, skill:les.skill, body:les.body, parent_content:les.parent_content||'', manager_summary:les.manager_summary||''} : null;
   const hocGi = ENG.lessonSummary(lessonSnap);
+  // ngữ cảnh bài học cho AI (mục tiêu + hoạt động)
+  const _join = x => Array.isArray(x) ? x.filter(Boolean).join('; ') : (x||'');
+  const lessonAI = les ? { title:les.title||'', objective:_join(les.objectives||les.knowledge||les.skill), activity:(les.pages&&les.pages.length? les.pages.map(p=>(p.range?p.range+': ':'')+(p.desc||p.type||'')).join('; '):''), content:hocGi } : null;
+  const useAI = !!($('#wk-ai') && $('#wk-ai').checked) && AI.usable();
   const made=[];
+  let idx=0;
   for(const s of studs){
-    const dg = WK.digests[s.id] || ENG.weeklyDigest(await DB.studentRecordsInRange(s.id, WK.from, WK.to));
-    const nar = ENG.weeklyNarrative(dg, s.name);
+    idx++;
+    const recs = await DB.studentRecordsInRange(s.id, WK.from, WK.to);
+    const dg = WK.digests[s.id] || ENG.weeklyDigest(recs);
+    let nar = null;
+    if(useAI && dg.sessions>0){
+      toast(`✨ AI đang tổng hợp ${idx}/${studs.length}…`,'var(--blue)');
+      try{
+        const out = await AI.generateWeekly({student:s, records:recs, lesson:lessonAI, childComment:WK.childComments[s.id]||'', center:CENTER});
+        if(out && out.tongHop) nar = { tongHop:out.tongHop, coGang:out.coGang||'', oNha:out.oNha||'' };
+      }catch(e){ /* fallback engine */ }
+    }
+    if(!nar) nar = ENG.weeklyNarrative(dg, s.name);
     const summary = { hocGi, tongHop:nar.tongHop, coGang:nar.coGang, oNha:nar.oNha, sessions:dg.sessions };
     const w=await DB.createWeekly({
       center_id:CENTER.id, class_id:WK.classId, student_id:s.id,
@@ -1272,7 +1329,7 @@ function composeWeekly(stu, w){
   let t=`📅 BÁO CÁO TUẦN — bé ${stu.name}\n(${_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date)})\n`;
   if(s.hocGi) t+=`\n📖 Tuần này con học: ${s.hocGi}\n`;
   if(s.tongHop) t+=`\n🌟 Tổng hợp tuần của con: ${s.tongHop}\n`;
-  if(s.coGang) t+=`\n🎯 Điều con đang cố gắng: ${s.coGang}\n`;
+  if(s.coGang) t+=`\n📌 Điểm con cần cải thiện: ${s.coGang}\n`;
   if(s.oNha) t+=`\n🏠 Đồng hành ở nhà: ${s.oNha}\n`;
   if(w.class_comment) t+=`\n💬 Lời nhắn của cô: ${w.class_comment}\n`;
   if(w.child_comment) t+=`👶 Riêng ${stu.name}: ${w.child_comment}\n`;
@@ -1290,7 +1347,7 @@ function weeklyCardHTML(stu, w){
     <div class="wcp-meta">${esc(_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date))}</div>
     ${sec('📖','Tuần này con học', s.hocGi,'b')}
     ${sec('🌟','Tổng hợp tuần của con', s.tongHop,'g')}
-    ${sec('🎯','Điều con đang cố gắng', s.coGang,'y')}
+    ${sec('📌','Điểm con cần cải thiện', s.coGang,'y')}
     ${sec('🏠','Đồng hành ở nhà', s.oNha,'b')}
     ${sec('💬','Lời nhắn của cô', w.class_comment,'g')}
     ${w.child_comment?sec('👶','Riêng '+stu.name, w.child_comment,'y'):''}

@@ -194,18 +194,19 @@
   function weeklyDigest(records) {
     const present = (records || []).filter((r) => r.attendance === 'present');
     const absent = (records || []).filter((r) => r.attendance === 'absent');
-    const sCnt = {}, iCnt = {}; const sSent = [];
+    const sCnt = {}, iCnt = {}; const sSent = [], iSent = [], sDet = [], iDet = [];
     present.forEach((r) => {
-      if (r.strength && r.strength.crit) { sCnt[r.strength.crit] = (sCnt[r.strength.crit] || 0) + 1; if (r.strength.sentence) sSent.push(r.strength.sentence); }
-      if (r.improve && r.improve.crit) iCnt[r.improve.crit] = (iCnt[r.improve.crit] || 0) + 1;
+      if (r.strength && r.strength.crit) { sCnt[r.strength.crit] = (sCnt[r.strength.crit] || 0) + 1; if (r.strength.sentence) sSent.push(r.strength.sentence); if (r.strength.detail) sDet.push(r.strength.detail.trim()); }
+      if (r.improve && r.improve.crit) { iCnt[r.improve.crit] = (iCnt[r.improve.crit] || 0) + 1; if (r.improve.sentence) iSent.push(r.improve.sentence); if (r.improve.detail) iDet.push(r.improve.detail.trim()); }
     });
     const topStrengths = Object.entries(sCnt).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => critLabel(k));
     const improveAreas = Object.entries(iCnt).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => critLabel(k));
     const highlights = present.map((r) => (((r.strength && r.strength.detail) || r.observation) || '').trim()).filter((o) => o.split(/\s+/).length >= 4).slice(0, 3);
     const topImp = Object.entries(iCnt).sort((a, b) => b[1] - a[1])[0];
+    const uniq = (a) => Array.from(new Set(a.filter(Boolean)));
     return {
       sessions: present.length, absent: absent.length, topStrengths, improveAreas, highlights,
-      strengthSentences: sSent,
+      strengthSentences: uniq(sSent), improveSentences: uniq(iSent), strengthDetails: uniq(sDet), improveDetails: uniq(iDet),
       weakest: topImp ? { key: topImp[0], label: critLabel(topImp[0]) } : null,
       moods: present.map((r) => r.mood),
     };
@@ -218,8 +219,11 @@
       if (dg.topStrengths.length) tongHop += `Con thể hiện tốt ở ${dg.topStrengths.join(', ').toLowerCase()}. `;
       if (dg.highlights.length) tongHop += 'Một vài khoảnh khắc đáng nhớ: ' + dg.highlights.map((h) => ensureDot(lowerFirst(h))).join(' ');
     }
+    // điểm cần cải thiện — ưu tiên câu cụ thể GV đã chọn/ghi
     let coGang;
-    if (dg && dg.improveAreas && dg.improveAreas.length) coGang = `${ten} đang cố gắng hơn ở ${dg.improveAreas.join(', ').toLowerCase()}, và ngày một tiến bộ.`;
+    const impBits = (dg && (dg.improveSentences || []).length) ? dg.improveSentences.map((s) => lowerFirst(stripDot(s))) : [];
+    if (impBits.length) coGang = `Điều ${ten} cần cải thiện thêm: ${impBits.join('; ')}. Cô sẽ tiếp tục đồng hành để con tiến bộ ở những điểm này.`;
+    else if (dg && dg.improveAreas && dg.improveAreas.length) coGang = `${ten} đang cố gắng hơn ở ${dg.improveAreas.join(', ').toLowerCase()}, và ngày một tiến bộ.`;
     else coGang = `${ten} đang làm quen với nhiều hoạt động mới và tham gia ngày một tích cực.`;
     const wk = (dg && dg.weakest) ? dg.weakest.key : 'tu_duy';
     return { tongHop: tongHop.trim(), coGang: ensureDot(coGang), oNha: ensureDot(TIP_BY_CRIT[wk] || TIP_BY_CRIT.tu_duy) };
