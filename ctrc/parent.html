@@ -30,6 +30,7 @@ html,body{margin:0;padding:0;font-family:var(--font);color:var(--ink);
 .sect{border-radius:16px;padding:16px 18px;margin-bottom:13px}
 .sect .t{display:flex;align-items:center;gap:8px;font:800 13px/1 var(--font-d);margin-bottom:7px}
 .sect p{margin:0;font:500 14px/1.65 var(--font);color:var(--ink)}
+.sect p.lesson-body{white-space:pre-line;font-size:13.5px;line-height:1.6}
 .s-strong{background:#f1fae8;border:1px solid #cfe9ad} .s-strong .t{color:#4a901f}
 .s-effort{background:#fff7e0;border:1px solid #f3e1a8} .s-effort .t{color:#b5860c}
 .s-tip{background:#eaf3fb;border:1px solid #c4ddf2} .s-tip .t{color:#2f6ea0}
@@ -117,7 +118,7 @@ function render(r){
         <h1>${esc(r.student_name)}</h1>
         <div class="meta">Buổi học ngày ${esc(fmtDate(r.date))}${r.theme?` · ${esc(r.theme)}`:''}</div>
       </div>
-      ${r.lesson_content?`<div class="sect s-tip"><div class="t">📖 Nội dung học tuần này</div><p>${esc(r.lesson_content)}</p></div>`:''}
+      ${r.lesson_content?`<div class="sect s-tip"><div class="t">📖 Nội dung học tuần này</div><p class="lesson-body">${esc(r.lesson_content)}</p></div>`:''}
       <div class="sect s-strong"><div class="t">✅ Điểm bé làm được</div><p>${esc(r.diem_manh)}</p></div>
       <div class="sect s-effort"><div class="t">📌 Điểm bé làm chưa được</div><p>${esc(r.co_gang)}</p></div>
       ${closing}

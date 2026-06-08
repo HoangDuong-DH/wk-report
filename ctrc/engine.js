@@ -128,11 +128,12 @@
   function composeZalo(student, dateStr, msg, link) {
     const les = msg.lesson_snapshot && msg.lesson_snapshot.content;
     return (
-      `Báo cáo buổi ${fmtDate(dateStr)} của bé ${student.name}\n\n` +
-      (les ? `📖 Nội dung học tuần này: ${les}\n\n` : '') +
-      `✅ Bé làm được: ${msg.diem_manh}\n` +
-      `📌 Bé làm chưa được: ${msg.co_gang}` +
-      (link ? `\n\nXem chi tiết: ${link}` : '')
+      `🧸 BÁO CÁO BUỔI HỌC\n` +
+      `Bé ${student.name} · ${fmtDate(dateStr)}\n\n` +
+      (les ? `📖 NỘI DUNG HỌC TUẦN NÀY\n${les}\n\n` : '') +
+      `✅ ĐIỂM BÉ LÀM ĐƯỢC\n${msg.diem_manh}\n\n` +
+      `📌 ĐIỂM BÉ LÀM CHƯA ĐƯỢC\n${msg.co_gang}` +
+      (link ? `\n\n🔗 Xem chi tiết: ${link}` : '')
     ).trim();
   }
   function fmtDate(d) { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }

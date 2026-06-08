@@ -325,10 +325,10 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=16"></script>
-<script src="db.js?v=16"></script>
-<script src="engine.js?v=16"></script>
-<script src="lessons.js?v=16"></script>
+<script src="config.js?v=17"></script>
+<script src="db.js?v=17"></script>
+<script src="engine.js?v=17"></script>
+<script src="lessons.js?v=17"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -673,14 +673,25 @@ function lessonSkillsText(les){
   if(les.pages && les.pages.length){ const t=Array.from(new Set(les.pages.map(p=>p.type).filter(Boolean))); if(t.length) return t.join(', '); }
   return les.skill||'';
 }
-/* gộp "nội dung học theo tuần" (mục tiêu + hoạt động) thành 1 đoạn cho phụ huynh/CSKH */
+/* gộp "nội dung học theo tuần" → BLOCK NHIỀU DÒNG, dễ đọc trong tin Zalo:
+   • Bài: …
+   • Mục tiêu: …
+   • Hoạt động:
+      – …
+      – … */
+function _cleanObjective(s){ return (s||'').replace(/^\s*mục\s*tiêu[^:]*:\s*/i,'').replace(/\s+/g,' ').trim().replace(/\.$/,''); }
+function _activityLines(s){ return (s||'').split(/\n|;/).map(x=>x.replace(/^[•\-–\s]+/,'').trim()).filter(Boolean); }
 function lessonContentText(cl){
   if(!cl) return '';
-  const bits=[];
-  if(cl.title) bits.push(cl.title.replace(/\.$/,'')+'.');
-  if(cl.objective) bits.push((/^mục tiêu/i.test(cl.objective)?'':'Mục tiêu: ')+cl.objective.replace(/\.$/,'')+'.');
-  if(cl.activity) bits.push('Hoạt động: '+cl.activity.replace(/\.$/,'')+'.');
-  return bits.join(' ').trim();
+  const lines=[];
+  const title=(cl.title||'').replace(/\.$/,'').trim();
+  if(title) lines.push('• Bài: '+title);
+  const obj=_cleanObjective(cl.objective);
+  if(obj) lines.push('• Mục tiêu: '+obj);
+  const acts=_activityLines(cl.activity);
+  if(acts.length>1){ lines.push('• Hoạt động:'); acts.forEach(a=>lines.push('   – '+a)); }
+  else if(acts.length===1){ lines.push('• Hoạt động: '+acts[0]); }
+  return lines.join('\n');
 }
 async function viewCham(){
   GV.classes = await DB.listClasses(CENTER.id);
@@ -755,10 +766,17 @@ function prefillLessonFromLib(){
   const les=lessonByKey(lessonKey(book, week));
   if(!les){ if(note) note.textContent='Thư viện chưa có cuốn '+book+' tuần '+week+' — nhập tay bên dưới'; return; }
   if(les.title) $('#le-title').value=les.title;
-  $('#le-obj').value = les.objectives || les.knowledge || lessonSkillsText(les) || '';
-  const acts = (les.pages&&les.pages.length)? les.pages.map(p=>(p.range?p.range+': ':'')+(p.desc||p.type||'')).join('; ') : (les.skill||'');
+  $('#le-obj').value = _cleanObjective(les.objectives || les.knowledge || lessonSkillsText(les) || '');
+  // mỗi hoạt động 1 dòng, gọn lại (1 câu đầu, cắt theo từ) cho dễ đọc
+  const clip=s=>{ s=(s||'').replace(/\s+/g,' ').trim();
+    const dot=s.indexOf('.'); if(dot>0 && dot<=110) return s.slice(0,dot);
+    if(s.length<=100) return s.replace(/\.$/,'');
+    let t=s.slice(0,100); const sp=t.lastIndexOf(' '); if(sp>40) t=t.slice(0,sp); return t+'…'; };
+  const acts = (les.pages&&les.pages.length)
+    ? les.pages.map(p=>(p.range?p.range.replace(/^Trang\s*/i,'Tr.')+': ':'')+clip(p.desc||p.type||'')).join('\n')
+    : (les.skill||'');
   $('#le-act').value = acts;
-  if(note) note.textContent='✓ Đã điền từ thư viện — chỉnh lại nếu cần';
+  if(note) note.textContent='✓ Đã điền từ thư viện — mỗi hoạt động 1 dòng, chỉnh lại nếu cần';
 }
 function saveLessonContext(){
   const cl={ month:+$('#le-month').value, week:+$('#le-week').value, book:$('#le-book').value,
@@ -1458,7 +1476,7 @@ function renderMsg(){
     <div class="msg-edit">
       ${(m.lesson_snapshot&&m.lesson_snapshot.content)?`<div class="ed-line">
         <div class="ed-head"><span>📖 Nội dung học tuần này</span><span class="cc">tự động từ giáo án</span></div>
-        <div class="lesson-card" style="margin:0">${esc(m.lesson_snapshot.content)}</div>
+        <div class="lesson-card" style="margin:0;white-space:pre-line">${esc(m.lesson_snapshot.content)}</div>
       </div>`:''}
       <div class="ed-line">
         <div class="ed-head"><span>✅ Điểm bé làm được</span><span class="cc" id="cc-dm"></span></div>
