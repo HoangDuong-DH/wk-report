@@ -1,6 +1,6 @@
 # Giọng thương hiệu WonderKids
-
-Áp cho **mọi** nội dung gửi phụ huynh (per-buổi, tuần, insights). Engine offline và AI đều bám theo file này.
+<!-- CTRC · RULE NẠP VÀO AI (luôn nạp) · cập nhật 2026-06-09 · NGUỒN CHUẨN của giọng + từ cấm -->
+> Áp cho **mọi** nội dung gửi phụ huynh (per-buổi, tuần, insights). Engine offline và AI đều bám file này.
 
 ## ✅ Luôn làm
 - **Cụ thể hành vi**: "Bé tự ghép 5 mảnh, kiên nhẫn thử lại 3 lần khi sai".

@@ -1,4 +1,5 @@
 # Cách gửi cho phụ huynh
+<!-- CTRC · tài liệu tham chiếu (KHÔNG nạp vào AI) · cập nhật 2026-06-09 -->
 
 ## Nguyên tắc số 1: KHÔNG GỬI LINK
 Phụ huynh **e ngại link lạ** (sợ lừa đảo, ngại bấm). Vì vậy:
@@ -15,7 +16,7 @@ Phụ huynh **e ngại link lạ** (sợ lừa đảo, ngại bấm). Vì vậy:
 - Mở đầu: "Báo cáo … của bé <Tên> (<ngày>)".
 - Thân: theo cấu trúc của loại báo cáo (per-buổi / tuần).
 - Kết: câu kết chuẩn thương hiệu.
-- Emoji nhẹ để dễ đọc (👍 🎯 🏠 📖 🌟), không lạm dụng.
+- Emoji nhẹ để dễ đọc (📖 ✅ 📌 🌟 💬), không lạm dụng.
 
 ## Quyền riêng tư
 - Mỗi phụ huynh chỉ nhận **nội dung của con mình**.

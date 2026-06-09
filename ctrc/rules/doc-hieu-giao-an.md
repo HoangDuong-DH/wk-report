@@ -1,6 +1,6 @@
-# Skill: Đọc & hiểu GIÁO ÁN theo tuần
-
-Đây là "skill" cho AI khi **đọc một tuần giáo án** (từ file import) và biến thành dữ liệu dùng được. Sửa file này để đổi cách AI hiểu/viết — cả importer lẫn app đều bám theo.
+# Đọc & hiểu GIÁO ÁN theo tuần
+<!-- CTRC · RULE NẠP VÀO AI (kind=giaoan, khi import docx) · cập nhật 2026-06-09 -->
+> Mục đích: AI đọc 1 tuần giáo án (docx import) → JSON dùng được. Sửa file là đổi cách AI hiểu/viết.
 
 ## Đầu vào
 Một đoạn văn bản giáo án của **một tuần** (một cuốn + một tuần), có thể lộn xộn: mục tiêu, mô tả trang sách, trò chơi, kỹ năng… (như các file `<mã>w<tuần>.docx`).

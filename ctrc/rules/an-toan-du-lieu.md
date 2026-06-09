@@ -1,4 +1,5 @@
 # An toàn dữ liệu & nhiều người dùng
+<!-- CTRC · tài liệu tham chiếu (KHÔNG nạp vào AI) · cập nhật 2026-06-09 -->
 
 ## Nội bộ, đơn giản
 - Đăng nhập = chọn tên nhân sự (GV/CSKH/Manager), không mật khẩu (xem SETUP.md).

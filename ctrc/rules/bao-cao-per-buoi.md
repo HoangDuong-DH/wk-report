@@ -1,52 +1,46 @@
 # Báo cáo PER-BUỔI (sau mỗi buổi học)
+<!-- CTRC · RULE NẠP VÀO AI (kind=perbuoi) · cập nhật 2026-06-09 · mô hình 5 tiêu chí -->
+> Mục đích: từ đánh giá 1 buổi của 1 bé → 2 câu nhận xét ấm áp, cụ thể, gửi phụ huynh. Tuân thủ `giong-thuong-hieu.md`.
 
-Cấu trúc **3 phần**, gọn cho Zalo. Tuân theo `giong-thuong-hieu.md`:
+## Mô hình đánh giá: 5 TIÊU CHÍ (tick, KHÔNG chấm điểm)
+Mỗi buổi GV tick **đúng 2** lựa chọn:
+- **1 tiêu chí = ĐIỂM MẠNH (bé làm được)** + 1 câu mô tả tích cực
+- **1 tiêu chí = CẦN CẢI THIỆN (bé làm chưa được)** + 1 câu mô tả — phải **khác** tiêu chí điểm mạnh
 
-1. **📖 Nội dung học tuần này** — mục tiêu + hoạt động của tuần (lấy từ "Bài học tuần" gắn cho lớp; **điều chỉnh được**). Giống nhau cho cả lớp trong tuần.
-2. **✅ Điểm bé làm được** — bám tiêu chí điểm mạnh GV tick + mô tả chi tiết.
-3. **📌 Điểm bé làm chưa được** — bám tiêu chí cần cải thiện + mô tả chi tiết, nhẹ nhàng, hướng tới trước.
+5 tiêu chí: 🎯 Tập trung · 🙋 Tham gia · 🧠 Tư duy · 🌱 Tự lập · 🤝 Hợp tác.
+> **Nguồn chuẩn** (mô tả tiêu chí + ngân hàng câu pos/neg): `ctrc/engine.js` mảng `CRITERIA`. Sửa câu mẫu tại đó. Bảng trên chỉ để tra nhanh.
 
-> Phần (1) do GV gắn ở màn Chấm ("📖 Bài học tuần": Tháng · Tuần · Sách · Mục tiêu · Hoạt động) — bấm "Lấy từ thư viện" để điền sẵn rồi chỉnh. Phần (2)(3) do AI/engine sinh từ tiêu chí + chi tiết GV.
+Mỗi tiêu chí đã tick có **1 ô "mô tả chi tiết" tuỳ chọn** — quan sát cụ thể của GV, là **LÕI quan trọng nhất** làm tin "đắt" hơn.
 
-## Mô hình 5 TIÊU CHÍ (lõi đánh giá)
+## Đầu vào (app cung cấp cho AI)
+- Tên bé, hồ sơ bé (nếu có: hướng nội/ngoại).
+- Nội dung học tuần (mục tiêu + hoạt động) — để câu chữ bám bài đang học.
+- ĐIỂM MẠNH: tiêu chí + câu mô tả + chi tiết GV.
+- CẦN CẢI THIỆN: tiêu chí + câu mô tả + chi tiết GV.
 
-Mỗi buổi GV **không chấm điểm 1–5** và **không đánh giá cả 5 tiêu chí cùng lúc**. Thay vào đó GV **tick đúng 2 lựa chọn**:
+## Đầu ra — HỢP ĐỒNG (bắt buộc khớp code)
+Trả về **DUY NHẤT** JSON: `{"diem_manh":"...","co_gang":"..."}`
+- `diem_manh` (1–2 câu): bám tiêu chí điểm mạnh; nếu có chi tiết GV → lồng vào ("Cụ thể, …").
+- `co_gang` (1–2 câu): bám tiêu chí cần cải thiện; nhẹ nhàng, hướng tới trước.
+- **Không** thêm trường khác, không markdown, không lời dẫn.
 
-- **1 tiêu chí = ĐIỂM MẠNH** hôm nay (+ chọn 1 câu mô tả tích cực)
-- **1 tiêu chí = CẦN CẢI THIỆN** hôm nay (+ chọn 1 câu mô tả). Phải **khác** tiêu chí điểm mạnh.
+## Báo cáo phụ huynh nhìn thấy (3 phần)
+1. **📖 Nội dung học tuần này** — mục tiêu + hoạt động (cố định từ "Bài học tuần" của lớp, **KHÔNG do AI sinh**).
+2. **✅ Điểm bé làm được** — = `diem_manh`.
+3. **📌 Điểm bé làm chưa được** — = `co_gang`.
+> Đã bỏ mục "Gợi ý ở nhà" ở per-buổi (theo vận hành).
 
-5 tiêu chí cốt lõi:
+## Quy tắc viết
+- **Chi tiết GV là vàng**: có thì dùng gần nguyên văn, chỉ khung nhẹ.
+- Cá nhân hoá theo hồ sơ: hướng nội → giọng nhẹ; hướng ngoại → giọng sôi nổi.
+- Chỉ 1 điểm mạnh + 1 điều cần cố gắng; không liệt kê dài; không phán xét.
+- Từ cấm + giọng: theo `giong-thuong-hieu.md` (nguồn chuẩn của danh sách từ cấm).
 
-| Tiêu chí | Mô tả |
-|---|---|
-| 🎯 **Tập trung** | Lắng nghe, duy trì sự chú ý và theo kịp hoạt động học tập |
-| 🙋 **Tham gia** | Hứng thú, chủ động tham gia trò chơi, hoạt động và thảo luận |
-| 🧠 **Tư duy** | Quan sát, phân loại, nhận biết quy luật, suy luận và giải quyết vấn đề phù hợp độ tuổi |
-| 🌱 **Tự lập** | Tự thực hiện nhiệm vụ, tự tìm cách giải quyết trước khi nhờ hỗ trợ |
-| 🤝 **Hợp tác** | Tương tác, làm việc cùng bạn, chờ đến lượt và chia sẻ ý kiến |
+> Ví dụ: "Hôm nay bé A tập trung tốt trong giờ học. Cụ thể, ngồi yên nghe cô kể hết câu chuyện. Bên cạnh đó, con còn ít tương tác với các bạn trong nhóm."
 
-> Câu mô tả mẫu (ngân hàng câu pos/neg cho từng tiêu chí) nằm trong `ctrc/engine.js` (mảng `CRITERIA`). Sửa ở đó để đổi câu GV được tick chọn.
+## Công cụ CSKH
+- CSKH sửa tay 2 ô; hoặc **✨ AI viết mới**; hoặc gõ **yêu cầu chỉnh sửa** ("ngắn gọn hơn"…) rồi **✨ Sinh lại theo yêu cầu**; hoặc **↩ Trả lại GV chấm lại** (kèm lý do).
 
-## Cấu trúc 2 dòng (tin gửi phụ huynh)
-1. **👍 Điểm mạnh hôm nay** — bám **tiêu chí điểm mạnh** đã tick + **mô tả chi tiết** GV ghi cho điểm mạnh (nếu có) → câu "Cụ thể, …".
-2. **🎯 Điều con đang cố gắng** — bám **tiêu chí cần cải thiện** + **mô tả chi tiết** GV ghi cho phần này (nếu có), nói nhẹ nhàng, hướng tới trước.
-
-> Bỏ mục "Gợi ý ở nhà" trong báo cáo per-buổi (theo yêu cầu vận hành). Gợi ý đồng hành ở nhà vẫn còn ở **báo cáo tuần**.
-
-> Ví dụ giọng văn: "Hôm nay bé A tập trung tốt trong giờ học. Cụ thể, ngồi yên nghe cô kể hết câu chuyện. Bên cạnh đó, con còn ít tương tác với các bạn trong nhóm."
-
-## Mô tả chi tiết theo từng tiêu chí (tuỳ chọn)
-- Mỗi tiêu chí GV tick (điểm mạnh / cần cải thiện) có **1 ô điền mô tả chi tiết tuỳ chọn** — đây là quan sát cụ thể, **LÕI quan trọng nhất** làm tin "đắt" hơn.
-- Khi viết bằng AI, phần "chi tiết GV" được bám sát; câu mẫu chỉ là khung.
-
-## Quy tắc sinh nội dung
-- **Chi tiết GV là vàng**: nếu có, dùng gần như nguyên văn (chỉ khung nhẹ).
-- **Cá nhân hoá theo hồ sơ bé** (nếu đã có): hướng nội → giọng nhẹ nhàng; hướng ngoại → giọng sôi nổi.
-- Mỗi tin **chỉ 1 điểm mạnh + 1 điều cần cố gắng** — không liệt kê dài, không phán xét.
-- Tuyệt đối tránh từ tiêu cực (kém, yếu, tệ, chậm, dốt, lười, hư).
-
-## Công cụ AI bên CSKH
-- CSKH **sửa tay** trực tiếp 2 ô nội dung. Nếu đọc thấy chưa ổn: dùng **✨ AI viết mới**, hoặc gõ **yêu cầu chỉnh sửa** (vd: "ngắn gọn hơn", "ấm áp hơn", "nhấn mạnh tiến bộ") rồi bấm **✨ Sinh lại theo yêu cầu** để AI viết lại theo ý.
-
-## Gửi đi
-- Theo `gui-phu-huynh.md`: **không kèm link**, gửi văn bản thẳng.
+## Ghim trong code
+- Sinh offline: `engine.js` → `generate()`. Sinh AI: `buildAIPrompt()` + `AI.generate()` (`_sysFor('perbuoi')`).
+- Gửi đi: theo `gui-phu-huynh.md` (KHÔNG link).
