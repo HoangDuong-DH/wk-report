@@ -14,8 +14,9 @@
 2. **📖 Tuần này con học gì** — mục tiêu + hoạt động của tuần.
 3. **🌟 Tổng hợp tuần của con** — gom CẢ các buổi: con đi mấy buổi; con làm được gì (gắn kỹ năng tư duy); 1–2 khoảnh khắc cụ thể từ chi tiết GV.
 4. **📌 Điểm con cần cải thiện** — nêu RÕ, cụ thể (không né tránh nhưng tích cực) + trung tâm sẽ hỗ trợ thế nào.
-5. **🏠 Đồng hành ở nhà** — 1 gợi ý 5–10 phút cho tuần tới, gắn điểm cần cải thiện.
-6. **Lời nhắn của cô** (nếu có) + câu kết chuẩn.
+5. **Lời nhắn của cô** (nếu có) + câu kết chuẩn.
+
+> Đã bỏ mục "Đồng hành ở nhà" trong báo cáo tuần theo yêu cầu vận hành.
 
 ## Quy tắc tổng hợp
 - **Dệt từ dữ liệu thật**, không bịa: nếu tuần chỉ có 1 buổi → nói đúng 1 buổi.

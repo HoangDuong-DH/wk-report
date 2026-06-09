@@ -330,11 +330,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=22"></script>
-<script src="db.js?v=22"></script>
-<script src="engine.js?v=22"></script>
-<script src="lessons.js?v=22"></script>
-<script src="objectives.js?v=22"></script>
+<script src="config.js?v=23"></script>
+<script src="db.js?v=23"></script>
+<script src="engine.js?v=23"></script>
+<script src="lessons.js?v=23"></script>
+<script src="objectives.js?v=23"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -458,12 +458,11 @@ function buildWeeklyPrompt(b){
     sessions||'(chưa có buổi nào)',
     b.childComment?`Lời nhắn riêng của cô: "${b.childComment}".`:'',
     '',
-    `Viết báo cáo ẤM ÁP, CỤ THỂ, ĐẦY ĐỦ — đúng kỳ vọng của phụ huynh khi cho con học trung tâm tư duy. Gồm 3 phần:`,
+    `Viết báo cáo ẤM ÁP, CỤ THỂ, ĐẦY ĐỦ — đúng kỳ vọng của phụ huynh khi cho con học trung tâm tư duy. Gồm 2 phần:`,
     `1. tongHop: 3-4 câu tổng hợp cả tuần — con học/làm được gì (gắn nội dung học tuần + kỹ năng tư duy), nêu 1-2 khoảnh khắc cụ thể từ dữ liệu buổi. Không liệt kê khô khan.`,
     `2. coGang: 2-3 câu nêu RÕ điểm con CẦN CẢI THIỆN (cụ thể, thẳng thắn nhưng tích cực), kèm cách trung tâm sẽ hỗ trợ con.`,
-    `3. oNha: 1 hoạt động 5-10 phút bố mẹ làm cùng con ở nhà, gắn điểm cần cải thiện, không cần mua đồ.`,
     `Quy tắc: KHÔNG dùng từ kém/yếu/tệ/chậm/dốt/lười/hư; KHÔNG so sánh với bé khác; tiếng Việt tự nhiên, hướng tới trước.`,
-    `Trả về DUY NHẤT JSON: {"tongHop":"...","coGang":"...","oNha":"..."} — không thêm chữ nào khác.`,
+    `Trả về DUY NHẤT JSON: {"tongHop":"...","coGang":"..."} — không thêm chữ nào khác.`,
   ].filter(Boolean).join('\n');
 }
 
@@ -1429,11 +1428,11 @@ async function genWeekly(){
       toast(`✨ AI đang tổng hợp ${idx}/${studs.length}…`,'var(--blue)');
       try{
         const out = await AI.generateWeekly({student:s, records:recs, lesson:lessonAI, childComment:WK.childComments[s.id]||'', center:CENTER});
-        if(out && out.tongHop) nar = { tongHop:out.tongHop, coGang:out.coGang||'', oNha:out.oNha||'' };
+        if(out && out.tongHop) nar = { tongHop:out.tongHop, coGang:out.coGang||'' };
       }catch(e){ /* fallback engine */ }
     }
     if(!nar) nar = ENG.weeklyNarrative(dg, s.name);
-    const summary = { hocGi, tongHop:nar.tongHop, coGang:nar.coGang, oNha:nar.oNha, sessions:dg.sessions };
+    const summary = { hocGi, tongHop:nar.tongHop, coGang:nar.coGang, sessions:dg.sessions };
     const w=await DB.createWeekly({
       center_id:CENTER.id, class_id:WK.classId, student_id:s.id,
       book:WK.book, week:WK.week, sent_date:WK.to, range_from:WK.from, range_to:WK.to,
@@ -1456,7 +1455,6 @@ function composeWeekly(stu, w){
   if(s.hocGi) t+=`\n📖 Tuần này con học: ${s.hocGi}\n`;
   if(s.tongHop) t+=`\n🌟 Tổng hợp tuần của con: ${s.tongHop}\n`;
   if(s.coGang) t+=`\n📌 Điểm con cần cải thiện: ${s.coGang}\n`;
-  if(s.oNha) t+=`\n🏠 Đồng hành ở nhà: ${s.oNha}\n`;
   if(w.class_comment) t+=`\n💬 Lời nhắn của cô: ${w.class_comment}\n`;
   if(w.child_comment) t+=`👶 Riêng ${stu.name}: ${w.child_comment}\n`;
   t+=`\n${(CENTER&&CENTER.closing_line)||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.'}`;
@@ -1474,7 +1472,6 @@ function weeklyCardHTML(stu, w){
     ${sec('📖','Tuần này con học', s.hocGi,'b')}
     ${sec('🌟','Tổng hợp tuần của con', s.tongHop,'g')}
     ${sec('📌','Điểm con cần cải thiện', s.coGang,'y')}
-    ${sec('🏠','Đồng hành ở nhà', s.oNha,'b')}
     ${sec('💬','Lời nhắn của cô', w.class_comment,'g')}
     ${w.child_comment?sec('👶','Riêng '+stu.name, w.child_comment,'y'):''}
     <div class="wcp-close">${esc((CENTER&&CENTER.closing_line)||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.')}</div>
@@ -1490,7 +1487,6 @@ function renderWeeklyResult(made){
         <label class="wk-lbl">📖 Tuần này con học</label><textarea class="input" data-f="hocGi" oninput="CTRC._wkGrow(this)">${esc(s.hocGi||'')}</textarea>
         <label class="wk-lbl">🌟 Tổng hợp tuần của con</label><textarea class="input" data-f="tongHop" oninput="CTRC._wkGrow(this)">${esc(s.tongHop||'')}</textarea>
         <label class="wk-lbl">📌 Điểm con cần cải thiện</label><textarea class="input" data-f="coGang" oninput="CTRC._wkGrow(this)">${esc(s.coGang||'')}</textarea>
-        <label class="wk-lbl">🏠 Đồng hành ở nhà</label><textarea class="input" data-f="oNha" oninput="CTRC._wkGrow(this)">${esc(s.oNha||'')}</textarea>
         <label class="wk-lbl">👶 Lời nhắn riêng cho ${esc(stu.name)} (tuỳ chọn)</label><textarea class="input" data-f="child_comment" oninput="CTRC._wkGrow(this)">${esc(w.child_comment||'')}</textarea>
       </div>
       <div class="row" style="gap:8px;margin:8px 0 18px">
