@@ -325,11 +325,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=19"></script>
-<script src="db.js?v=19"></script>
-<script src="engine.js?v=19"></script>
-<script src="lessons.js?v=19"></script>
-<script src="objectives.js?v=19"></script>
+<script src="config.js?v=20"></script>
+<script src="db.js?v=20"></script>
+<script src="engine.js?v=20"></script>
+<script src="lessons.js?v=20"></script>
+<script src="objectives.js?v=20"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -705,19 +705,28 @@ const CLASS_LESSON = {
   get(classId){ return this.all()[classId]||null; },
   setObj(classId, obj){ const m=this.all(); if(obj){ m[classId]=obj; } else { delete m[classId]; } try{ localStorage.setItem(this.KEY, JSON.stringify(m)); }catch(_){} },
 };
-/* ═══ THƯ VIỆN MỤC TIÊU TUẦN (seed objectives.js + override localStorage, sửa realtime) ═══ */
+/* ═══ THƯ VIỆN MỤC TIÊU TUẦN — nhóm CHƯƠNG TRÌNH→CUỐN→TUẦN (seed objectives.js + override localStorage) ═══
+   Mã cuốn là DUY NHẤT toàn hệ thống (201..410+, B1-1.., J1..) → API get/set theo book, override phẳng. */
 const OBJ = {
-  KEY:'ctrc:objectives:v1',
-  seed(){ return window.CTRC_OBJECTIVES || {}; },
-  overrides(){ try{ return JSON.parse(localStorage.getItem(this.KEY))||{}; }catch(_){ return {}; } },
-  books(){ const s=this.seed(), o=this.overrides(); return Array.from(new Set(Object.keys(s).concat(Object.keys(o)))).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})); },
-  get(book, week){ const o=this.overrides(); if(o[book]&&o[book][week]!=null) return o[book][week]; const s=this.seed(); return (s[book]&&s[book][week])||''; },
+  KEY:'ctrc:objectives:v2',
+  _flat:null,
+  seed(){ return window.CTRC_OBJECTIVES || {}; },                       // {program:{book:{week}}}
+  overrides(){ try{ return JSON.parse(localStorage.getItem(this.KEY))||{}; }catch(_){ return {}; } }, // {book:{week}}
+  flat(){ if(!this._flat){ const s=this.seed(), map={}, prog={}; for(const p in s){ for(const b in s[p]){ map[b]=s[p][b]; prog[b]=p; } } this._flat={map,prog}; } return this._flat; },
+  programs(){ return Object.keys(this.seed()); },
+  programOf(book){ return this.flat().prog[book] || ''; },
+  booksOf(program){ return Object.keys(this.seed()[program]||{}); },
+  allBooks(){ return Array.from(new Set(Object.keys(this.flat().map).concat(Object.keys(this.overrides())))); },
+  get(book, week){ const o=this.overrides(); if(o[book]&&o[book][week]!=null) return o[book][week]; const f=this.flat().map[book]; return (f&&f[week])||''; },
   isEdited(book, week){ const o=this.overrides(); return !!(o[book]&&o[book][week]!=null); },
   set(book, week, text){ const o=this.overrides(); (o[book]=o[book]||{})[week]=text; try{ localStorage.setItem(this.KEY, JSON.stringify(o)); }catch(e){ toast('Lưu lỗi (bộ nhớ đầy?)','var(--primary-2)'); } },
   reset(book, week){ const o=this.overrides(); if(o[book]){ delete o[book][week]; if(!Object.keys(o[book]).length) delete o[book]; localStorage.setItem(this.KEY, JSON.stringify(o)); } },
 };
-/* mọi mã sách: gộp thư viện giáo án (docx) + thư viện mục tiêu (xlsx) */
-function allBookCodes(){ return Array.from(new Set(bookCodes().concat(OBJ.books()))).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})); }
+/* mọi mã sách: gộp thư viện giáo án docx (nếu import) + thư viện mục tiêu */
+function allBookCodes(){ return Array.from(new Set(bookCodes().concat(OBJ.allBooks()))).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})); }
+function bookOptgroups(selected){
+  return OBJ.programs().map(p=>`<optgroup label="${esc(p)}">`+OBJ.booksOf(p).map(c=>`<option value="${esc(c)}" ${selected===c?'selected':''}>${esc(c)}</option>`).join('')+`</optgroup>`).join('');
+}
 
 /* bài học tuần đang gắn cho lớp đang chọn: {month,week,book,title,objective,activity} */
 function currentLesson(){ const cl=CLASS_LESSON.get(GV.classId); if(!cl||(!cl.book && !cl.title)) return null; return cl; }
@@ -794,7 +803,7 @@ function renderLessonBar(){
 }
 /* Modal sửa bài học tuần: Tháng · Tuần · Sách · Mục tiêu · Hoạt động (điều chỉnh được) */
 function editLessonContext(){
-  const cl=CLASS_LESSON.get(GV.classId)||{}; const codes=allBookCodes();
+  const cl=CLASS_LESSON.get(GV.classId)||{};
   const curMonth = cl.month || (new Date().getMonth()+1);
   modal(`
     <h3>📖 Bài học tuần của lớp</h3>
@@ -802,7 +811,7 @@ function editLessonContext(){
     <div class="row">
       <div class="field"><label>Tháng</label><select class="input" id="le-month">${VN_MONTHS.map(m=>`<option value="${m}" ${curMonth===m?'selected':''}>Tháng ${m}</option>`).join('')}</select></div>
       <div class="field"><label>Tuần</label><select class="input" id="le-week">${[1,2,3,4].map(w=>`<option value="${w}" ${(cl.week||1)===w?'selected':''}>Tuần ${w}</option>`).join('')}</select></div>
-      <div class="field" style="flex:1;min-width:140px"><label>Sách (cuốn)</label><select class="input" id="le-book"><option value="">—</option>${codes.map(c=>`<option value="${esc(c)}" ${cl.book===c?'selected':''}>Cuốn ${esc(c)}</option>`).join('')}</select></div>
+      <div class="field" style="flex:1;min-width:140px"><label>Sách (cuốn)</label><select class="input" id="le-book"><option value="">—</option>${bookOptgroups(cl.book)}</select></div>
     </div>
     <div class="row" style="margin:2px 0 4px"><button class="btn sm" type="button" onclick="CTRC.prefillLessonFromLib()">⬇ Lấy từ thư viện</button><span class="hint" id="le-libnote" style="margin:0;align-self:center"></span></div>
     <div class="field" style="margin-top:8px"><label>Tên bài / Chủ đề</label><input class="input" id="le-title" placeholder="VD: Câu chuyện 'Gum, Gum, Gummy'" value="${esc(cl.title||'')}"></div>
@@ -1103,23 +1112,34 @@ function parseLessonText(text, code, week){
 function _sundayStr(mondayStr){ const d=new Date(mondayStr); d.setDate(d.getDate()+6); return d.toISOString().slice(0,10); }
 
 /* ═══════════════ MỤC TIÊU TUẦN (xem + chỉnh sửa realtime) ═══════════════ */
-let OBJV = { book:'' };
+let OBJV = { program:'', book:'' };
 function viewObjectives(){
-  const books=OBJ.books();
-  if(!OBJV.book && books[0]) OBJV.book=books[0];
+  const progs=OBJ.programs();
+  if(!OBJV.program && progs[0]) OBJV.program=progs[0];
+  let books=OBJ.booksOf(OBJV.program);
+  if((!OBJV.book || books.indexOf(OBJV.book)<0) && books[0]) OBJV.book=books[0];
   view.innerHTML = `
     <h2 class="h-title">🎯 Mục tiêu tuần</h2>
-    <p class="h-sub">Mục tiêu học theo tuần cho từng cuốn (Level 3: 301–310, kèm 305+/310+). <b>Sửa trực tiếp & lưu</b> — bản sửa lưu trên máy, dùng làm nội dung "Bài học tuần" khi cô chấm & báo cáo.</p>
+    <p class="h-sub">Mục tiêu học theo tuần — trích từ <b>SÁCH HOẠT ĐỘNG</b> thực tế (UCREA L2/L3/L4 · BLACKHOLE · BRIGHT IG). <b>Sửa trực tiếp & lưu</b> — bản sửa dùng làm nội dung "Bài học tuần" khi cô chấm & báo cáo.</p>
     <div class="card" style="margin-bottom:12px">
       <div class="row" style="align-items:flex-end">
-        <div class="field" style="min-width:220px"><label>Cuốn sách</label>
-          <select class="input" id="obj-book">${books.map(c=>`<option value="${esc(c)}" ${OBJV.book===c?'selected':''}>Cuốn ${esc(c)}${OBJ.overrides()[c]?' ✎':''}</option>`).join('')||'<option value="">(trống)</option>'}</select></div>
-        <div class="hint" style="margin:0;align-self:center">Chọn cuốn → sửa mục tiêu 4 tuần bên dưới.</div>
+        <div class="field" style="min-width:170px"><label>Chương trình</label>
+          <select class="input" id="obj-prog">${progs.map(p=>`<option value="${esc(p)}" ${OBJV.program===p?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+        <div class="field" style="min-width:160px"><label>Cuốn sách</label>
+          <select class="input" id="obj-book"></select></div>
+        <div class="hint" style="margin:0;align-self:center">Chọn cuốn → sửa mục tiêu các tuần bên dưới.</div>
       </div>
     </div>
     <div id="obj-weeks"></div>`;
+  $('#obj-prog').onchange = e=>{ OBJV.program=e.target.value; const bs=OBJ.booksOf(OBJV.program); OBJV.book=bs[0]||''; renderObjBooks(); renderObjWeeks(); };
   $('#obj-book').onchange = e=>{ OBJV.book=e.target.value; renderObjWeeks(); };
+  renderObjBooks();
   renderObjWeeks();
+}
+function renderObjBooks(){
+  const sel=$('#obj-book'); if(!sel) return;
+  const books=OBJ.booksOf(OBJV.program);
+  sel.innerHTML = books.map(c=>`<option value="${esc(c)}" ${OBJV.book===c?'selected':''}>${esc(c)}${[1,2,3,4].some(w=>OBJ.isEdited(c,w))?' ✎':''}</option>`).join('')||'<option value="">(trống)</option>';
 }
 function renderObjWeeks(){
   const box=$('#obj-weeks'); if(!box) return;
@@ -1141,9 +1161,9 @@ function renderObjWeeks(){
   }).join('') + `<div class="row" style="justify-content:flex-end"><button class="btn primary" onclick="CTRC.objSaveAll()">💾 Lưu tất cả 4 tuần</button></div>`;
 }
 function objCount(w){ const t=$('#obj-tx-'+w), c=$('#obj-cc-'+w); if(t&&c) c.textContent=t.value.length; }
-function objSave(w){ OBJ.set(OBJV.book, w, $('#obj-tx-'+w).value.trim()); toast('✓ Đã lưu mục tiêu Tuần '+w+' · Cuốn '+OBJV.book); renderObjWeeks(); }
-function objSaveAll(){ [1,2,3,4].forEach(w=>{ const t=$('#obj-tx-'+w); if(t) OBJ.set(OBJV.book, w, t.value.trim()); }); toast('✓ Đã lưu 4 tuần · Cuốn '+OBJV.book); renderObjWeeks(); }
-function objReset(w){ OBJ.reset(OBJV.book, w); toast('Đã khôi phục bản gốc Tuần '+w); renderObjWeeks(); }
+function objSave(w){ OBJ.set(OBJV.book, w, $('#obj-tx-'+w).value.trim()); toast('✓ Đã lưu mục tiêu Tuần '+w+' · Cuốn '+OBJV.book); renderObjBooks(); renderObjWeeks(); }
+function objSaveAll(){ [1,2,3,4].forEach(w=>{ const t=$('#obj-tx-'+w); if(t) OBJ.set(OBJV.book, w, t.value.trim()); }); toast('✓ Đã lưu các tuần · Cuốn '+OBJV.book); renderObjBooks(); renderObjWeeks(); }
+function objReset(w){ OBJ.reset(OBJV.book, w); toast('Đã khôi phục bản gốc Tuần '+w); renderObjBooks(); renderObjWeeks(); }
 
 /* ═══════════════ THƯ VIỆN GIÁO ÁN (import + AI làm giàu) ═══════════════ */
 let LIBV = { staged:null };
