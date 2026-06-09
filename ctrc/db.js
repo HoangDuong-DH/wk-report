@@ -427,6 +427,10 @@
       }, row));
       return r;
     },
+    async updateWeekly(id, patch) {
+      const rows = await adapter.update('weekly_reports', { id }, Object.assign({ updated_at: nowISO() }, patch));
+      return rows && rows[0];
+    },
     async listWeekly(centerId, classId) {
       const m = { center_id: centerId };
       if (classId) m.class_id = classId;

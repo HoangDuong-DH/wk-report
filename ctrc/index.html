@@ -180,6 +180,9 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .lesson-card b{font:800 13px/1.3 var(--font-d);color:#2f6ea0;display:block}
 .lesson-card .sk{margin-top:3px;color:#3a7fb5}
 .return-banner{background:#fff3e8;border:1px solid #f3c8a8;border-left:4px solid var(--primary-2);border-radius:0 10px 10px 0;padding:10px 13px;margin-bottom:14px;font:500 13px/1.55 var(--font);color:var(--ink)}
+.wk-out{border-top:1px dashed #d7e8c2;padding-top:10px}
+.wk-edit textarea{width:100%;min-height:44px;margin:2px 0 8px;line-height:1.55}
+.wk-lbl{display:block;font:700 11.5px/1.3 var(--font);color:var(--ink-soft);margin-top:4px}
 
 .ed-line{margin-bottom:13px}
 .ed-head{display:flex;justify-content:space-between;align-items:baseline;font:800 12.5px/1 var(--font-d);color:var(--ink);margin-bottom:6px}
@@ -327,11 +330,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=21"></script>
-<script src="db.js?v=21"></script>
-<script src="engine.js?v=21"></script>
-<script src="lessons.js?v=21"></script>
-<script src="objectives.js?v=21"></script>
+<script src="config.js?v=22"></script>
+<script src="db.js?v=22"></script>
+<script src="engine.js?v=22"></script>
+<script src="lessons.js?v=22"></script>
+<script src="objectives.js?v=22"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -1074,7 +1077,7 @@ async function maybeDraftProfile(stu){
 /* ═══════════════════════════════════════════════════════════
    BÁO CÁO TUẦN (nội dung bài học từ thư viện + nhận xét)
    ═══════════════════════════════════════════════════════════ */
-let WK = { classId:'', book:'', week:1, from:'', to:'', childComments:{}, digests:{}, made:[] };
+let WK = { classId:'', program:'', book:'', week:1, from:'', to:'', childComments:{}, digests:{}, made:[] };
 /* ── Thư viện giáo án: seed (lessons.js) + imported (localStorage) ── */
 const LIB = {
   KEY:'ctrc:lessons:v1',
@@ -1296,28 +1299,38 @@ function renderLessonHTML(les){
   if(les.skill) h+=`<div class="hint" style="margin-top:10px"><b style="color:var(--ink)">Mục tiêu kỹ năng:</b> ${esc(les.skill)}</div>`;
   return h;
 }
+function _wkSyncFromClass(){
+  // lấy "Bài học tuần" cô đã gắn cho lớp ở màn Chấm → đồng bộ chương trình/cuốn/tuần
+  const cl=CLASS_LESSON.get(WK.classId);
+  if(cl && cl.book){ WK.book=cl.book; WK.week=cl.week||WK.week||1; WK.program=OBJ.programOf(cl.book)||WK.program||OBJ.programs()[0]; return; }
+  if(!WK.program) WK.program=OBJ.programs()[0]||'';
+  const bs=OBJ.booksOf(WK.program);
+  if(!WK.book || bs.indexOf(WK.book)<0) WK.book=bs[0]||'';
+}
 async function viewWeekly(){
   const classes = await DB.listClasses(CENTER.id);
   if(!WK.classId && classes[0]) WK.classId = classes[0].id;
-  const codes = allBookCodes();
-  if(!WK.book && codes[0]) WK.book = codes[0];
   if(!WK.from){ WK.from=DB._mondayOf(new Date()); WK.to=_sundayStr(WK.from); }
+  _wkSyncFromClass();
   view.innerHTML = `
     <h2 class="h-title">📅 Báo cáo tuần</h2>
-    <p class="h-sub">Tổng hợp <b>các buổi trong tuần của từng bé</b> + nội dung bài học → một báo cáo gửi phụ huynh. Gửi dạng <b>văn bản hoặc ảnh</b> (không link).</p>
+    <p class="h-sub">Cô chấm từng buổi → AI <b>tự gom các buổi trong tuần của từng bé</b> thành 1 báo cáo, bám <b>mục tiêu tuần</b>. Tạo cho <b>cả lớp</b> một lượt; <b>sửa lại được</b> trước khi gửi.</p>
     <div class="card" style="margin-bottom:12px">
       <div class="row" style="align-items:flex-end">
         <div class="field"><label>Lớp</label><select class="input" id="wk-class">${classes.map(c=>`<option value="${c.id}" ${WK.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
         <div class="field"><label>Từ ngày</label><input type="date" class="input" id="wk-from" value="${WK.from}"></div>
         <div class="field"><label>Đến ngày</label><input type="date" class="input" id="wk-to" value="${WK.to}"></div>
+        <button class="btn sm" type="button" onclick="CTRC.wkThisWeek()">Tuần này</button>
       </div>
       <div class="row" style="align-items:flex-end;margin-top:10px">
-        <div class="field"><label>Cuốn sách (bài học tuần)</label><input class="input" id="wk-book" list="wk-books" value="${esc(WK.book)}" placeholder="207" style="width:120px"><datalist id="wk-books">${codes.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
-        <div class="field"><label>Tuần (trong sách)</label><select class="input" id="wk-week">${[1,2,3,4].map(w=>`<option value="${w}" ${WK.week===w?'selected':''}>Tuần ${w}</option>`).join('')}</select></div>
+        <div class="field"><label>📖 Chương trình</label><select class="input" id="wk-prog">${OBJ.programs().map(p=>`<option value="${esc(p)}" ${WK.program===p?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+        <div class="field"><label>Cuốn</label><select class="input" id="wk-book"></select></div>
+        <div class="field"><label>Tuần</label><select class="input" id="wk-week">${[1,2,3,4].map(w=>`<option value="${w}" ${WK.week===w?'selected':''}>Tuần ${w}</option>`).join('')}</select></div>
       </div>
+      <div class="hint" style="margin-top:6px">Mặc định lấy theo "Bài học tuần" cô đã gắn cho lớp ở màn Chấm — đổi tại đây nếu cần.</div>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div class="ed-head" style="margin-bottom:8px"><span>📖 Tuần này lớp học gì (từ thư viện)</span><span class="cc" id="wk-key"></span></div>
+      <div class="ed-head" style="margin-bottom:8px"><span>🎯 Mục tiêu tuần này (đưa vào báo cáo)</span><span class="cc" id="wk-key"></span></div>
       <div id="wk-lesson"></div>
     </div>
     <div class="card" style="margin-bottom:12px">
@@ -1325,29 +1338,43 @@ async function viewWeekly(){
       <textarea class="input" id="wk-class-comment" style="width:100%;min-height:64px" placeholder="VD: Tuần này cả lớp rất sôi nổi, mong các con duy trì nề nếp…"></textarea>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div class="ed-head" style="margin-bottom:6px"><span>👶 Tổng hợp theo từng bé (tự gom từ các buổi)</span><span class="cc">thêm lời nhắn riêng nếu muốn</span></div>
+      <div class="ed-head" style="margin-bottom:6px"><span>👶 Cả lớp — tự gom từ các buổi</span><span class="cc">thêm lời nhắn riêng nếu muốn</span></div>
       <div id="wk-children"><p class="hint" style="margin:0">Đang tổng hợp…</p></div>
     </div>
     <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <label style="font:600 12px/1.3 var(--font);display:flex;gap:6px;align-items:center">
         <input type="checkbox" id="wk-ai" ${AI.usable()?'checked':'disabled'}> ✨ AI tổng hợp đầy đủ (gom các buổi, nêu rõ điểm cần cải thiện)${AI.usable()?'':' — bật ⚙ AI để dùng'}</label>
-      <button class="btn primary" onclick="CTRC.genWeekly()">📨 Tạo báo cáo tuần</button>
+      <button class="btn primary" onclick="CTRC.genWeekly()">📨 Tạo báo cáo cả lớp</button>
     </div>
     <div id="wk-result"></div>
     <div id="wk-recent" style="margin-top:18px"></div>`;
-  $('#wk-class').onchange = e=>{ WK.classId=e.target.value; loadWeeklyChildren(); loadWeeklyRecent(); };
+  $('#wk-class').onchange = e=>{ WK.classId=e.target.value; _wkSyncFromClass(); $('#wk-prog').value=WK.program; renderWkBooks(); $('#wk-week').value=WK.week; renderWeeklyLesson(); loadWeeklyChildren(); loadWeeklyRecent(); };
   $('#wk-from').onchange = e=>{ WK.from=e.target.value; loadWeeklyChildren(); };
   $('#wk-to').onchange = e=>{ WK.to=e.target.value; loadWeeklyChildren(); };
-  $('#wk-book').oninput = e=>{ WK.book=e.target.value; renderWeeklyLesson(); };
+  $('#wk-prog').onchange = e=>{ WK.program=e.target.value; const bs=OBJ.booksOf(WK.program); WK.book=bs[0]||''; renderWkBooks(); renderWeeklyLesson(); };
+  $('#wk-book').onchange = e=>{ WK.book=e.target.value; renderWeeklyLesson(); };
   $('#wk-week').onchange = e=>{ WK.week=+e.target.value; renderWeeklyLesson(); };
+  renderWkBooks();
   renderWeeklyLesson();
   loadWeeklyChildren();
   loadWeeklyRecent();
 }
+function wkThisWeek(){ WK.from=DB._mondayOf(new Date()); WK.to=_sundayStr(WK.from); const f=$('#wk-from'),t=$('#wk-to'); if(f)f.value=WK.from; if(t)t.value=WK.to; loadWeeklyChildren(); }
+function renderWkBooks(){
+  const sel=$('#wk-book'); if(!sel) return;
+  const bs=OBJ.booksOf(WK.program);
+  sel.innerHTML = bs.map(c=>`<option value="${esc(c)}" ${WK.book===c?'selected':''}>${esc(c)}</option>`).join('')||'<option value="">(trống)</option>';
+}
 function renderWeeklyLesson(){
-  const key=lessonKey(WK.book, WK.week);
-  const k=$('#wk-key'); if(k) k.textContent=key;
-  const box=$('#wk-lesson'); if(box) box.innerHTML=renderLessonHTML(lessonByKey(key));
+  const k=$('#wk-key'); if(k) k.textContent=(WK.book||'?')+' · Tuần '+WK.week;
+  const box=$('#wk-lesson'); if(!box) return;
+  const obj=OBJ.get(WK.book, WK.week);
+  const les=lessonByKey(lessonKey(WK.book, WK.week));   // giáo án docx (nếu có) → hoạt động
+  let h='';
+  if(obj) h+=`<div class="lesson-card" style="white-space:pre-line">${esc(_cleanObjective(obj))}</div>`;
+  else h+='<p class="hint" style="margin:0">Cuốn/tuần này chưa có mục tiêu — bổ sung ở tab 🎯 Mục tiêu tuần.</p>';
+  if(les) h+=`<div style="margin-top:10px">${renderLessonHTML(les)}</div>`;
+  box.innerHTML=h;
 }
 async function loadWeeklyChildren(){
   const box=$('#wk-children'); if(!box) return;
@@ -1456,35 +1483,72 @@ function weeklyCardHTML(stu, w){
 function renderWeeklyResult(made){
   const box=$('#wk-result'); if(!box) return;
   box.innerHTML = `<div class="card" style="margin-top:12px;border-color:#cce8a5;background:#f7fcef">
-    <div class="ed-head" style="margin-bottom:10px"><span>✅ Đã tạo ${made.length} báo cáo — gửi từng phụ huynh (văn bản hoặc ảnh, không link)</span></div>
-    ${made.map(({stu,w})=>`<div class="wk-out">
-      ${weeklyCardHTML(stu,w)}
-      <div class="row" style="gap:8px;margin:8px 0 16px">
+    <div class="ed-head" style="margin-bottom:10px"><span>✅ Đã tạo ${made.length} báo cáo — <b>sửa lại nếu cần</b> rồi Copy / Lưu ảnh gửi phụ huynh (không link)</span></div>
+    ${made.map(({stu,w})=>{const s=w.summary||{};return `<div class="wk-out" id="wkout-${w.id}">
+      <div class="ed-head" style="margin:2px 0 8px"><span>${AV(stu.gender)} <b>${esc(stu.name)}</b> · ${esc(_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date))}${s.sessions?` · ${s.sessions} buổi`:''}</span><span class="cc">có thể sửa ↓</span></div>
+      <div class="wk-edit" data-wid="${w.id}">
+        <label class="wk-lbl">📖 Tuần này con học</label><textarea class="input" data-f="hocGi" oninput="CTRC._wkGrow(this)">${esc(s.hocGi||'')}</textarea>
+        <label class="wk-lbl">🌟 Tổng hợp tuần của con</label><textarea class="input" data-f="tongHop" oninput="CTRC._wkGrow(this)">${esc(s.tongHop||'')}</textarea>
+        <label class="wk-lbl">📌 Điểm con cần cải thiện</label><textarea class="input" data-f="coGang" oninput="CTRC._wkGrow(this)">${esc(s.coGang||'')}</textarea>
+        <label class="wk-lbl">🏠 Đồng hành ở nhà</label><textarea class="input" data-f="oNha" oninput="CTRC._wkGrow(this)">${esc(s.oNha||'')}</textarea>
+        <label class="wk-lbl">👶 Lời nhắn riêng cho ${esc(stu.name)} (tuỳ chọn)</label><textarea class="input" data-f="child_comment" oninput="CTRC._wkGrow(this)">${esc(w.child_comment||'')}</textarea>
+      </div>
+      <div class="row" style="gap:8px;margin:8px 0 18px">
+        <button class="btn sm" onclick="CTRC.saveWeeklyEdit('${w.id}')">💾 Lưu chỉnh sửa</button>
         <button class="btn sm primary" onclick="CTRC.copyWeekly('${w.id}')">📋 Copy văn bản</button>
         <button class="btn sm" onclick="CTRC.saveWeeklyImg('${w.id}')">🖼 Lưu ảnh</button>
       </div>
-    </div>`).join('')}
+    </div>`;}).join('')}
   </div>`;
+  document.querySelectorAll('#wk-result textarea').forEach(t=>_wkGrow(t));
+}
+function _wkGrow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
+function _readWkEdit(wid){
+  const box=document.querySelector('.wk-edit[data-wid="'+wid+'"]'); if(!box) return null;
+  const o={summary:{}};
+  box.querySelectorAll('textarea').forEach(t=>{ const f=t.dataset.f; if(f==='child_comment') o.child_comment=t.value.trim(); else o.summary[f]=t.value.trim(); });
+  return o;
+}
+/* gộp chỉnh sửa trong ô textarea vào bản ghi (in-memory) — để copy/ảnh luôn khớp text mới nhất */
+function _wkApplyEdits(weeklyId){
+  const m=WK.made.find(x=>x.w.id===weeklyId); if(!m) return null;
+  const ed=_readWkEdit(weeklyId);
+  if(ed){ m.w.summary=Object.assign({}, m.w.summary, ed.summary); m.w.child_comment=ed.child_comment; }
+  return m;
+}
+async function saveWeeklyEdit(weeklyId){
+  const m=_wkApplyEdits(weeklyId); if(!m) return;
+  try{
+    const upd=await DB.updateWeekly(weeklyId, {summary:m.w.summary, child_comment:m.w.child_comment});
+    if(upd) m.w=upd;
+    toast('💾 Đã lưu chỉnh sửa cho '+(m.stu.name||'bé'));
+  }catch(e){ toast('Lỗi lưu: '+e.message,'var(--primary-2)'); }
 }
 async function copyWeekly(weeklyId){
-  const w=WK.made.find(m=>m.w.id===weeklyId)?.w || (await DB.listWeekly(CENTER.id)).find(x=>x.id===weeklyId);
+  const m=_wkApplyEdits(weeklyId);
+  const w=m?m.w:((await DB.listWeekly(CENTER.id)).find(x=>x.id===weeklyId));
   if(!w) return;
-  const stu=await DB.getStudent(w.student_id);
+  const stu=m?m.stu:(await DB.getStudent(w.student_id));
   try{ await navigator.clipboard.writeText(composeWeekly(stu,w)); toast('📋 Đã copy — dán vào Zalo PH '+stu.name); }
   catch(_){ toast('Trình duyệt chặn clipboard — bôi đen thẻ để copy','var(--primary-2)'); }
 }
 function _loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('Không tải được '+src)); document.head.appendChild(s); }); }
 async function saveWeeklyImg(weeklyId){
-  const el=document.getElementById('wcp-'+weeklyId); if(!el){ toast('Không thấy thẻ','var(--primary-2)'); return; }
+  const m=_wkApplyEdits(weeklyId); if(!m){ toast('Không thấy báo cáo','var(--primary-2)'); return; }
   toast('🖼 Đang tạo ảnh…','var(--blue)');
+  // dựng thẻ in từ dữ liệu (đã gồm chỉnh sửa) trong khung ẩn
+  const holder=document.createElement('div');
+  holder.style.cssText='position:fixed;left:-9999px;top:0';
+  holder.innerHTML=weeklyCardHTML(m.stu, m.w);
+  document.body.appendChild(holder);
   try{
     if(!window.html2canvas) await _loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
-    const canvas=await window.html2canvas(el,{scale:2,backgroundColor:'#fffaf0'});
-    const w=WK.made.find(m=>m.w.id===weeklyId);
-    const name=(w?w.stu.name:'bao-cao').replace(/\s+/g,'_');
+    const canvas=await window.html2canvas(holder.firstChild,{scale:2,backgroundColor:'#fffaf0'});
+    const name=(m.stu.name||'bao-cao').replace(/\s+/g,'_');
     const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download='BaoCaoTuan_'+name+'.png'; a.click();
     toast('✓ Đã lưu ảnh — gửi như hình trên Zalo');
   }catch(e){ toast('Lỗi tạo ảnh: '+e.message+' (cần mạng để tải thư viện)','var(--primary-2)'); }
+  finally{ holder.remove(); }
 }
 async function loadWeeklyRecent(){
   const box=$('#wk-recent'); if(!box) return;
@@ -2319,7 +2383,7 @@ window.CTRC = {
   approveProfile, editProfile, saveEditProfile, addTheme,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
   addStaff, editStaff, saveStaff, delStaff,
-  genWeekly, copyWeekly, saveWeeklyImg,
+  genWeekly, copyWeekly, saveWeeklyImg, saveWeeklyEdit, wkThisWeek, _wkGrow,
   importLessons, cancelStage, saveStage, viewLesson, delLesson,
 };
 boot();
