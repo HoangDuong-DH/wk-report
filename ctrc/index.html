@@ -89,6 +89,7 @@ input,select,textarea{font-family:inherit}
 .btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none}
 .btn.primary:hover{box-shadow:0 6px 16px rgba(233,78,27,.3);transform:translateY(-1px)}
 .btn.green{background:var(--green);color:#fff;border:none}
+.btn.warn{background:#fff3e8;color:var(--primary-2);border:1.5px solid var(--primary-2)}
 .btn.ghost{background:transparent}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn.sm{padding:7px 11px;font-size:12px}
@@ -178,6 +179,7 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .lesson-card{background:#eef6fb;border:1px solid #cfe3f2;border-radius:12px;padding:9px 12px;font:500 12.5px/1.45 var(--font);color:#2f6ea0}
 .lesson-card b{font:800 13px/1.3 var(--font-d);color:#2f6ea0;display:block}
 .lesson-card .sk{margin-top:3px;color:#3a7fb5}
+.return-banner{background:#fff3e8;border:1px solid #f3c8a8;border-left:4px solid var(--primary-2);border-radius:0 10px 10px 0;padding:10px 13px;margin-bottom:14px;font:500 13px/1.55 var(--font);color:var(--ink)}
 
 .ed-line{margin-bottom:13px}
 .ed-head{display:flex;justify-content:space-between;align-items:baseline;font:800 12.5px/1 var(--font-d);color:var(--ink);margin-bottom:6px}
@@ -325,11 +327,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=20"></script>
-<script src="db.js?v=20"></script>
-<script src="engine.js?v=20"></script>
-<script src="lessons.js?v=20"></script>
-<script src="objectives.js?v=20"></script>
+<script src="config.js?v=21"></script>
+<script src="db.js?v=21"></script>
+<script src="engine.js?v=21"></script>
+<script src="lessons.js?v=21"></script>
+<script src="objectives.js?v=21"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -389,6 +391,7 @@ const MOODS = {happy:'😊 Vui',normal:'🙂 Bình thường',sad:'😟 Buồn',
 const STATUS = {
   waiting_gv:['Chờ GV','b-wait'], ai_writing:['AI đang viết','b-wait'],
   waiting_cs:['Chờ CS duyệt','b-cs'], cs_editing:['CS đang sửa','b-edit'],
+  returned:['Trả lại GV','b-err'],
   approved:['Đã duyệt','b-ok'], sent:['Đã gửi PH','b-sent'], error:['Lỗi — xem lại','b-err'],
 };
 
@@ -863,7 +866,11 @@ async function loadRoster(){
     let cat='todo', badge=['Chờ chấm','b-wait'];
     if (rec){
       if (rec.attendance==='absent'){ cat='absent'; badge=['Nghỉ','b-absent']; }
-      else { cat='done'; const m = await DB.getMessage(rec.id); badge = m ? STATUS[m.status] : ['Đã chấm','b-ok']; }
+      else {
+        const m = await DB.getMessage(rec.id);
+        if (m && m.status==='returned'){ cat='todo'; badge=['⚠ Cần chấm lại','b-err']; }   // CSKH trả về → lên đầu
+        else { cat='done'; badge = m ? STATUS[m.status] : ['Đã chấm','b-ok']; }
+      }
     }
     return { stu:s, cat, badge };
   }));
@@ -911,7 +918,10 @@ let SCORE = null;
 async function openScore(studentId){
   const stu = await DB.getStudent(studentId);
   const rec = await DB.getRecord(GV.session.id, studentId) || { attendance:'present', observation:'', mood:'normal', strength:null, improve:null };
-  SCORE = { stu, rec: JSON.parse(JSON.stringify(rec)) };
+  // nếu CSKH đã trả lại → lấy lý do để GV biết cần chỉnh gì
+  let returnReason='';
+  if(rec.id){ try{ const m=await DB.getMessage(rec.id); if(m && m.status==='returned') returnReason=m.return_reason||''; }catch(_){} }
+  SCORE = { stu, rec: JSON.parse(JSON.stringify(rec)), returnReason };
   renderScore();
 }
 function renderScore(){
@@ -929,6 +939,7 @@ function renderScore(){
       <button class="btn sm ${!absent?'green':''}" onclick="CTRC.setAttendance('present')">Đi học</button>
       <button class="btn sm ${absent?'primary':''}" onclick="CTRC.setAttendance('absent')">Nghỉ</button>
     </div>
+    ${SCORE.returnReason?`<div class="return-banner">↩ <b>CSKH trả lại — cần chấm lại:</b> ${esc(SCORE.returnReason)}</div>`:''}
     <div id="score-body" class="${absent?'hidden':''}">
       ${les?`<div class="lesson-card" style="margin-bottom:12px"><b>📖 ${esc(lessonTitleOf(les))}${lessonPeriodOf(les)?` · ${esc(lessonPeriodOf(les))}`:''}</b>${les.objective?`<div class="sk"><b>Mục tiêu:</b> ${esc(les.objective)}</div>`:''}${les.activity?`<div class="sk"><b>Hoạt động:</b> ${esc(les.activity)}</div>`:''}</div>`:''}
       <div class="ln">
@@ -1035,6 +1046,7 @@ async function generateForRecord(rec, stu){
     diem_manh: out.diem_manh, co_gang: out.co_gang, goi_y: out.goi_y,
     ai_draft: {diem_manh:out.diem_manh,co_gang:out.co_gang,goi_y:out.goi_y},
     featured_strength: out.featured_strength, lesson_snapshot: lessonSnap,
+    return_reason:'', returned_by:null, returned_at:null,   // chấm lại → xoá cờ "trả lại"
   });
   await DB.audit(CENTER.id, STAFF, 'generate', 'message', rec.id, {student:stu.name, source:'engine'});
   // kích hoạt hồ sơ sau ≥3 buổi
@@ -1498,7 +1510,7 @@ function timeAgo(iso){
   const h=m/60; if(h<24) return Math.round(h)+' giờ trước';
   return Math.round(h/24)+' ngày trước';
 }
-function _qCat(m){ return ['waiting_cs','cs_editing','ai_writing'].includes(m.status)?'pending':(m.status==='approved'?'approved':(m.status==='sent'?'sent':(m.status==='error'?'error':'other'))); }
+function _qCat(m){ return ['waiting_cs','cs_editing','ai_writing'].includes(m.status)?'pending':(m.status==='returned'?'returned':(m.status==='approved'?'approved':(m.status==='sent'?'sent':(m.status==='error'?'error':'other')))); }
 async function viewQueue(){
   Q.classes = await DB.listClasses(CENTER.id);
   view.innerHTML = `
@@ -1528,11 +1540,11 @@ async function loadQueue(){
   renderQueue();
 }
 function renderQueue(){
-  const counts={pending:0,approved:0,sent:0,error:0};
+  const counts={pending:0,returned:0,approved:0,sent:0,error:0};
   Q.items.forEach(it=>{ const c=_qCat(it.m); if(counts[c]!=null) counts[c]++; });
   const tb=$('#q-tabs');
   if(tb){
-    const T=[['pending','Chờ duyệt'],['approved','Đã duyệt'],['sent','Đã gửi'],['error','Lỗi']];
+    const T=[['pending','Chờ duyệt'],['returned','Đã trả lại GV'],['approved','Đã duyệt'],['sent','Đã gửi'],['error','Lỗi']];
     tb.innerHTML=T.map(([k,l])=>`<button class="btn sm ${Q.tab===k?'primary':''}" onclick="CTRC.qTab('${k}')">${l} (${counts[k]})</button>`).join('');
   }
   const box=$('#q-list'); if(!box) return;
@@ -1658,9 +1670,12 @@ function renderMsg(){
     </details>`}
 
     <div id="approve-zone">${approved?renderCopyZone():`
-      <div class="row" style="justify-content:flex-end;margin-top:14px">
-        <button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button>
-        <button class="btn green" onclick="CTRC.approve()">✓ Duyệt</button>
+      <div class="row" style="justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:8px">
+        <button class="btn warn" onclick="CTRC.returnToGV()">↩ Trả lại GV chấm lại</button>
+        <div class="row" style="gap:8px">
+          <button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button>
+          <button class="btn green" onclick="CTRC.approve()">✓ Duyệt</button>
+        </div>
       </div>`}</div>
   `, 'wide');
   // auto-grow + đếm ký tự ban đầu
@@ -1777,6 +1792,30 @@ async function approve(){
     $('#approve-zone').innerHTML = renderCopyZone();
     toast('✓ Đã duyệt — bấm Copy để gửi Zalo');
   } catch(e){ toast(e.message,'var(--primary-2)'); }
+}
+/* ↩ Trả tin về cho giáo viên chấm lại (kèm lý do) */
+function returnToGV(){
+  modal(`<h3>↩ Trả lại giáo viên chấm lại</h3>
+    <p class="h-sub">Bé <b>${esc(MSG.stu.name)}</b> — ghi rõ điều cần chỉnh để giáo viên chấm lại buổi này.</p>
+    <textarea class="input" id="ret-reason" style="min-height:96px" placeholder="VD: Quan sát còn chung chung, cần nêu cụ thể bé làm gì; hoặc chọn nhầm tiêu chí điểm mạnh…"></textarea>
+    <div class="row" style="justify-content:flex-end;margin-top:12px;gap:8px">
+      <button class="btn ghost" onclick="CTRC.renderMsg()">Huỷ</button>
+      <button class="btn warn" onclick="CTRC.confirmReturn()">↩ Trả lại GV</button>
+    </div>`);
+}
+async function confirmReturn(){
+  const reason=(($('#ret-reason')||{}).value||'').trim();
+  if(!reason){ toast('Ghi lý do để GV biết cần chỉnh gì','var(--primary-2)'); return; }
+  try{
+    const upd = await DB.updateMessageGuarded(MSG.m.id, MSG.m.version, {
+      status:'returned', return_reason:reason, returned_by:STAFF.id, returned_at:new Date().toISOString(),
+      lock_owner:null, lock_at:null,
+    });
+    MSG.m = upd; EDITING_MSG = null;
+    await DB.audit(CENTER.id, STAFF, 'return','message',MSG.m.id,{student:MSG.stu.name, reason});
+    toast('↩ Đã trả lại GV — buổi này hiện "Cần chấm lại" ở màn Chấm của giáo viên');
+    closeModal(); loadQueue();
+  }catch(e){ toast(e.message,'var(--primary-2)'); }
 }
 function _includeLink(){ return !!(CFG.delivery && CFG.delivery.includeLink); }
 function renderCopyZone(){
@@ -2276,7 +2315,7 @@ window.CTRC = {
   gvFilter, editLessonContext, prefillLessonFromLib, saveLessonContext, clearLessonContext,
   objCount, objSave, objSaveAll, objReset,
   addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
-  qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, genAICustom, approve, copyBlock, copyLink, markSent, voiceCheck, edInput,
+  qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, genAICustom, approve, returnToGV, confirmReturn, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
   addStaff, editStaff, saveStaff, delStaff,
