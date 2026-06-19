@@ -222,6 +222,14 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .qa-row span:first-child{display:flex;align-items:center;gap:8px}
 .qa-switch{font:600 12px/1 var(--font);color:var(--primary-2);white-space:nowrap;display:flex;align-items:center;gap:5px}
 #qa-list{max-height:48vh;overflow:auto;margin:0 -4px}
+/* dashboard */
+.kpi.click{cursor:pointer;transition:transform .1s, box-shadow .1s}
+.kpi.click:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.funnel{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#f0e8d8}
+.funnel div{transition:width .4s}
+.funnel-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:9px;font:600 11px/1.3 var(--font);color:var(--ink-soft)}
+.funnel-legend span{display:inline-flex;align-items:center;gap:5px}
+.funnel-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .pb-done{animation:pb-pulse 1.1s ease}
 @keyframes pb-pulse{0%,100%{filter:none}50%{filter:brightness(1.15)}}
 /* THANH ĐIỀU HƯỚNG ĐÁY (mobile, vai trò ít tab) — ở cấp body để không bị backdrop-filter của topbar "giữ" lại */
@@ -385,11 +393,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=28"></script>
-<script src="db.js?v=28"></script>
-<script src="engine.js?v=28"></script>
-<script src="lessons.js?v=28"></script>
-<script src="objectives.js?v=28"></script>
+<script src="config.js?v=29"></script>
+<script src="db.js?v=29"></script>
+<script src="engine.js?v=29"></script>
+<script src="lessons.js?v=29"></script>
+<script src="objectives.js?v=29"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -2131,26 +2139,82 @@ async function markSent(){
    MANAGER — TỔNG QUAN / HỒ SƠ / CẤU HÌNH / NHẬT KÝ
    ═══════════════════════════════════════════════════════════ */
 async function viewOverview(){
-  const students = await DB.listStudents(CENTER.id);
-  const msgs = await DB.listMessages(CENTER.id);
-  const profiles = await DB.listProfiles(CENTER.id,'draft');
+  view.innerHTML = `<h2 class="h-title">📊 Bảng điều khiển</h2><p class="h-sub">Đang tổng hợp số liệu trung tâm…</p>`+skeletonList(3);
   const today = todayStr();
-  const pending = msgs.filter(m=>['waiting_cs','cs_editing'].includes(m.status)).length;
-  const sentToday = msgs.filter(m=>m.status==='sent' && (m.sent_at||'').slice(0,10)===today).length;
+  const monday = DB._mondayOf(new Date()), sunday = _sundayStr(monday);
+  const [students, classes, msgs, weeklies] = await Promise.all([
+    DB.listStudents(CENTER.id), DB.listClasses(CENTER.id), DB.listMessages(CENTER.id), DB.listWeekly(CENTER.id)
+  ]);
+  const sMap={}; students.forEach(s=>sMap[s.id]=s);
+  const inWeek = d => (d||'') >= monday && (d||'')<=sunday+'T99';
+  // pipeline tin
+  const pending = msgs.filter(m=>['waiting_cs','cs_editing'].includes(m.status));
+  const returned = msgs.filter(m=>m.status==='returned');
+  const approved = msgs.filter(m=>m.status==='approved');
+  const sent = msgs.filter(m=>m.status==='sent');
+  const overdue = pending.filter(m=>_hoursSince(m.created_at)>=2).length;
+  const sentToday = sent.filter(m=>(m.sent_at||m.updated_at||'').slice(0,10)===today).length;
+  const scoredToday = msgs.filter(m=>(m.created_at||'').slice(0,10)===today).length;
+  const weekWk = weeklies.filter(w=> (w.range_to||w.sent_date||'')>=monday);
+  // bé cần chú ý (gom các buổi)
+  const items = await Promise.all(students.map(async s=>({student:s, records: await DB._allSessionsOfStudent(s.id)})));
+  const ins = ENG.computeInsights(items);
+  // pipeline funnel (tổng vòng đời)
+  const total = msgs.length||1;
+  const seg = (n,c)=>`<div style="height:100%;width:${Math.round(n/total*100)}%;background:${c}"></div>`;
+  // per-class
+  const cRows = classes.map(c=>{
+    const stuN = students.filter(s=>s.class_id===c.id).length;
+    const pend = pending.filter(m=>(sMap[m.student_id]||{}).class_id===c.id).length;
+    const wkN = weekWk.filter(w=>w.class_id===c.id).length;
+    return `<tr><td><b>${esc(c.name)}</b></td><td style="text-align:center">${stuN}</td><td style="text-align:center">${pend?`<span class="badge b-cs">${pend}</span>`:'0'}</td><td style="text-align:center">${wkN}</td></tr>`;
+  }).join('')||'<tr><td colspan=4 style="color:var(--mute)">Chưa có lớp.</td></tr>';
+
   view.innerHTML = `
-    <h2 class="h-title">Tổng quan</h2>
-    <p class="h-sub">Trung tâm ${esc(CENTER.name)} · ${ENG.fmtDate(today)}</p>
+    <h2 class="h-title">📊 Bảng điều khiển</h2>
+    <p class="h-sub">${esc(CENTER.name)} · ${ENG.fmtDate(today)} · tuần ${ENG.fmtDate(monday)}–${ENG.fmtDate(sunday)}</p>
+
     <div class="kpis">
-      <div class="kpi"><div class="n">${students.length}</div><div class="l">Bé đang học</div></div>
-      <div class="kpi"><div class="n">${pending}</div><div class="l">Tin chờ CSKH duyệt</div></div>
-      <div class="kpi"><div class="n">${sentToday}</div><div class="l">Đã gửi PH hôm nay</div></div>
-      <div class="kpi"><div class="n">${profiles.length}</div><div class="l">Hồ sơ chờ duyệt</div></div>
+      <div class="kpi click" onclick="CTRC.go('queue')"><div class="n" style="color:${pending.length?'var(--primary-2)':'var(--green)'}">${pending.length}</div><div class="l">⏳ Chờ duyệt${overdue?` · ${overdue} quá hạn`:''}</div></div>
+      <div class="kpi click" onclick="CTRC.go('queue')"><div class="n" style="color:${returned.length?'var(--primary-2)':'var(--ink)'}">${returned.length}</div><div class="l">↩ Trả lại GV</div></div>
+      <div class="kpi"><div class="n">${scoredToday}</div><div class="l">✍️ Chấm hôm nay</div></div>
+      <div class="kpi"><div class="n">${sentToday}</div><div class="l">📨 Gửi PH hôm nay</div></div>
     </div>
-    <div class="card" style="margin-top:16px">
-      <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Pipeline tin nhắn gần đây</b>
-      <table class="tb" style="margin-top:10px"><thead><tr><th>Bé</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead>
-      <tbody>${msgs.slice(0,10).map(m=>{const st=STATUS[m.status];const stu=students.find(s=>s.id===m.student_id);
-        return `<tr><td>${esc(stu?stu.name:'?')}</td><td><span class="badge ${st[1]}">${st[0]}</span></td><td>${fmtTime(m.updated_at)}</td></tr>`;}).join('')||'<tr><td colspan=3 style="color:var(--mute)">Chưa có tin.</td></tr>'}</tbody></table>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+      <div class="card">
+        <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Pipeline tin (toàn bộ)</b>
+        <div class="funnel" style="margin-top:12px">${seg(pending.length,'#f3a83f')}${seg(returned.length,'#e07b4a')}${seg(approved.length,'#9bd166')}${seg(sent.length,'#4a901f')}</div>
+        <div class="funnel-legend">
+          <span><i style="background:#f3a83f"></i>Chờ duyệt ${pending.length}</span>
+          <span><i style="background:#e07b4a"></i>Trả lại ${returned.length}</span>
+          <span><i style="background:#9bd166"></i>Đã duyệt ${approved.length}</span>
+          <span><i style="background:#4a901f"></i>Đã gửi ${sent.length}</span>
+        </div>
+        <div class="row" style="gap:8px;margin-top:12px">
+          <button class="btn sm" onclick="CTRC.go('weekly')">📅 Báo cáo tuần</button>
+          <button class="btn sm" onclick="CTRC.go('insights')">✨ AI Insights</button>
+        </div>
+      </div>
+      <div class="card">
+        <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Theo lớp</b>
+        <table class="tb" style="margin-top:10px"><thead><tr><th>Lớp</th><th style="text-align:center">Bé</th><th style="text-align:center">Chờ duyệt</th><th style="text-align:center">BC tuần</th></tr></thead>
+        <tbody>${cRows}</tbody></table>
+      </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+      <div class="card">
+        <div class="ed-head" style="margin-bottom:8px"><span>👀 Bé cần chú ý (${ins.attention.length})</span><span class="cc">tiêu chí yếu nhất: ${ins.weakest?esc(ins.weakest.label):'—'}</span></div>
+        ${ins.attention.length? ins.attention.slice(0,6).map(it=>`<div class="stu-row" style="cursor:default">${avatar(it)}<span class="nm">${esc(it.name)}<small>${esc(it.reasons.join('; '))}</small></span></div>`).join('')
+          : emptyState('🎉','Không bé nào cần chú ý đặc biệt','')}
+      </div>
+      <div class="card">
+        <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Hoạt động gần đây</b>
+        <table class="tb" style="margin-top:10px"><thead><tr><th>Bé</th><th>Trạng thái</th><th>Lúc</th></tr></thead>
+        <tbody>${msgs.slice(0,8).map(m=>{const st=STATUS[m.status]||['',''];const stu=sMap[m.student_id];
+          return `<tr><td>${esc(stu?stu.name:'?')}</td><td><span class="badge ${st[1]}">${st[0]}</span></td><td style="white-space:nowrap">${fmtTime(m.updated_at)}</td></tr>`;}).join('')||'<tr><td colspan=3 style="color:var(--mute)">Chưa có tin.</td></tr>'}</tbody></table>
+      </div>
     </div>`;
 }
 function fmtTime(iso){ if(!iso)return''; const d=new Date(iso); return d.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
