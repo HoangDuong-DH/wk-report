@@ -117,7 +117,10 @@ input,select,textarea{font-family:inherit}
 .scale button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;font:700 13px/1 var(--font);color:var(--ink-soft)}
 .scale button.on{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none}
 .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
-.chip{padding:7px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font:600 12px/1.2 var(--font);color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.chip{padding:7px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font:600 12px/1.2 var(--font);color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:transform .1s ease, background .12s, border-color .12s}
+.chip:active{transform:scale(.94)}
+.chip.on{animation:chip-pop .18s ease}
+@keyframes chip-pop{0%{transform:scale(.9)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
 .chip:hover{border-color:var(--green)}
 .chip.imp:hover{border-color:var(--primary-2)}
 .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
@@ -183,6 +186,33 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .wk-out{border-top:1px dashed #d7e8c2;padding-top:10px}
 .wk-edit textarea{width:100%;min-height:44px;margin:2px 0 8px;line-height:1.55}
 .wk-lbl{display:block;font:700 11.5px/1.3 var(--font);color:var(--ink-soft);margin-top:4px}
+/* khối tiêu chí 2 màu — phân biệt "làm được" / "chưa được" tức thì */
+.ln.sec-strength{background:#f3fae9;border:1px solid #d7ecb8;border-left:4px solid var(--green);border-radius:0 12px 12px 0;padding:11px 13px}
+.ln.sec-strength label{color:#4a901f}
+.ln.sec-improve{background:#fff5ec;border:1px solid #f5d9c0;border-left:4px solid var(--primary-2);border-radius:0 12px 12px 0;padding:11px 13px}
+.ln.sec-improve label{color:var(--primary-2)}
+/* thanh hành động dán đáy bottom-sheet */
+.modal-actions{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;background:var(--card);margin:8px -22px -22px;padding:12px 22px;border-top:1px solid var(--line);box-shadow:0 -4px 14px rgba(0,0,0,.05)}
+/* xem trước dạng bong bóng Zalo */
+.zalo-prev{margin-top:14px}
+.zb-head{font:700 10.5px/1 var(--font);color:var(--mute);letter-spacing:.04em;margin-bottom:6px}
+.zb-bubble{background:#d8f1ff;border:1px solid #b9e3fb;border-radius:14px 14px 14px 4px;padding:11px 13px;max-width:92%}
+.zb-line{display:flex;gap:7px;align-items:flex-start;margin:0 0 6px}
+.zb-line:last-child{margin-bottom:0}
+.zb-line span{font-size:13px;flex:none;line-height:1.5}
+.zb-line p{margin:0;font:500 12.5px/1.5 var(--font);color:var(--ink)}
+.zb-line.b p{color:#2f6ea0}
+.pb-done{animation:pb-pulse 1.1s ease}
+@keyframes pb-pulse{0%,100%{filter:none}50%{filter:brightness(1.15)}}
+/* THANH ĐIỀU HƯỚNG ĐÁY (mobile, vai trò ít tab) — ở cấp body để không bị backdrop-filter của topbar "giữ" lại */
+.bottomnav{display:none}
+@media (max-width:640px){
+  .bottomnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:8000;padding:5px 8px;padding-bottom:calc(5px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line);box-shadow:0 -3px 14px rgba(0,0,0,.08);justify-content:space-around;gap:6px}
+  .bottomnav button{flex:1 1 0;font:700 12.5px/1.2 var(--font);padding:11px 8px;border:none;background:transparent;border-radius:12px;text-align:center;color:var(--ink-soft);cursor:pointer}
+  .bottomnav button.active{background:#fff3e8;color:var(--primary-2)}
+  body.has-bottomnav .nav{display:none}          /* ẩn nav trên cùng, dùng thanh đáy */
+  body.has-bottomnav .wrap{padding-bottom:84px}
+}
 
 .ed-line{margin-bottom:13px}
 .ed-head{display:flex;justify-content:space-between;align-items:baseline;font:800 12.5px/1 var(--font-d);color:var(--ink);margin-bottom:6px}
@@ -274,6 +304,7 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
   /* vùng chạm >=44px cho phần bấm nhiều nhất (chip tiêu chí + câu) và nút nhỏ */
   .chip{padding:12px 14px;font-size:13.5px}
   .chip.sent{padding:11px 13px}
+  .modal-actions{margin:8px -14px -16px;padding:12px 14px}
   .btn{padding:12px 15px}
   .btn.sm{padding:10px 13px;font-size:12.5px}
   .stu-row{padding:13px 13px}
@@ -334,11 +365,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=25"></script>
-<script src="db.js?v=25"></script>
-<script src="engine.js?v=25"></script>
-<script src="lessons.js?v=25"></script>
-<script src="objectives.js?v=25"></script>
+<script src="config.js?v=26"></script>
+<script src="db.js?v=26"></script>
+<script src="engine.js?v=26"></script>
+<script src="lessons.js?v=26"></script>
+<script src="objectives.js?v=26"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -698,16 +729,23 @@ async function switchAccount(id){
 /* ── nav theo vai trò ── */
 function buildNav(){
   const tabs = {
-    gv:[['cham','Chấm buổi'],['weekly','📅 Báo cáo tuần']],
-    cskh:[['queue','Hàng đợi']],
+    gv:[['cham','✍️ Chấm buổi'],['weekly','📅 Báo cáo tuần']],
+    cskh:[['queue','📋 Hàng đợi']],
     manager:[['overview','Tổng quan'],['insights','✨ AI Insights'],['weekly','📅 Báo cáo tuần'],['objectives','🎯 Mục tiêu tuần'],['lessons','📚 Thư viện'],['students','Lớp & Bé'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
   }[STAFF.role] || [];
-  $('#nav').innerHTML = tabs.map(([k,l])=>`<button data-tab="${k}" onclick="CTRC.go('${k}')">${l}</button>`).join('');
+  const html = tabs.map(([k,l])=>`<button data-tab="${k}" onclick="CTRC.go('${k}')">${l}</button>`).join('');
+  $('#nav').innerHTML = html;
+  // ít tab (GV/CSKH) → thêm thanh điều hướng ĐÁY trên điện thoại (escape backdrop-filter của topbar)
+  const bottom = tabs.length>=2 && tabs.length<=4;
+  let bn=document.getElementById('bottomnav');
+  if(!bn){ bn=document.createElement('div'); bn.id='bottomnav'; bn.className='bottomnav'; document.body.appendChild(bn); }
+  bn.innerHTML = bottom ? html : '';
+  document.body.classList.toggle('has-bottomnav', bottom);
   go(tabs[0][0]);
 }
 function go(tab){
   TAB = tab;
-  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('#nav button, #bottomnav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   ({cham:viewCham, weekly:viewWeekly, objectives:viewObjectives, lessons:viewLessonLib, queue:viewQueue, overview:viewOverview, insights:viewInsights, students:viewStudents, profiles:viewProfiles, config:viewConfig, audit:viewAudit}[tab]||(()=>{}))();
 }
 
@@ -900,9 +938,13 @@ function renderRoster(){
   const pb = $('#gv-progress');
   if(pb){
     const pct = total ? Math.round(handled/total*100) : 0;
+    const done = total>0 && handled===total;
     pb.innerHTML = `<div style="display:flex;justify-content:space-between;font:600 12px/1 var(--font);margin-bottom:6px">
-        <span>Tiến độ chấm lớp này</span><span><b style="color:var(--primary-2)">${handled}/${total}</b> · còn ${total-handled} bé</span></div>
-      <div style="height:9px;background:#f0e8d8;border-radius:5px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--green),#7ed957);transition:width .3s"></div></div>`;
+        <span>Tiến độ chấm lớp này</span><span>${done?'<b style="color:var(--green)">🎉 Xong cả lớp!</b>':`<b style="color:var(--primary-2)">${handled}/${total}</b> · còn ${total-handled} bé`}</span></div>
+      <div style="height:9px;background:#f0e8d8;border-radius:5px;overflow:hidden"><div class="${done?'pb-done':''}" style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--green),#7ed957);transition:width .4s"></div></div>`;
+    // chúc mừng 1 lần khi vừa chấm xong cả lớp
+    if(done && GV._lastHandled!=null && GV._lastHandled<total) toast('🎉 Tuyệt vời! Đã chấm xong cả lớp','var(--green)');
+    GV._lastHandled = handled;
   }
   // bộ lọc + đếm
   const fb = $('#gv-filters');
@@ -961,25 +1003,29 @@ function renderScore(){
     ${SCORE.returnReason?`<div class="return-banner">↩ <b>CSKH trả lại — cần chấm lại:</b> ${esc(SCORE.returnReason)}</div>`:''}
     <div id="score-body" class="${absent?'hidden':''}">
       ${les?`<div class="lesson-card" style="margin-bottom:12px"><b>📖 ${esc(lessonTitleOf(les))}${lessonPeriodOf(les)?` · ${esc(lessonPeriodOf(les))}`:''}</b>${les.objective?`<div class="sk"><b>Mục tiêu:</b> ${esc(les.objective)}</div>`:''}${les.activity?`<div class="sk"><b>Hoạt động:</b> ${esc(les.activity)}</div>`:''}</div>`:''}
-      <div class="ln">
-        <label style="color:var(--green)">✅ Điểm bé làm được — chọn 1 tiêu chí</label>
+      <div class="ln sec-strength">
+        <label>✅ Điểm bé làm được — chọn 1 tiêu chí</label>
         <div class="chips">${critChips(stCrit, imCrit, 'pickStrengthCrit')}</div>
         ${stCrit?`<div class="hint" style="margin:7px 0 4px">Chọn câu mô tả:</div><div class="chips">${sentChips(stCrit,'pos',stSent,'pickStrengthSentence')}</div>`:''}
         ${stSent?`<textarea class="input gold detail" id="sc-st-detail" oninput="CTRC.scoreDetailInput()" placeholder="⭐ Mô tả chi tiết bé làm được (tuỳ chọn) — VD: bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần">${esc((rec.strength&&rec.strength.detail)||rec.observation||'')}</textarea>`:''}
       </div>
-      <div class="ln" style="margin-top:14px">
-        <label style="color:var(--primary-2)">📌 Điểm bé làm chưa được — chọn 1 tiêu chí</label>
+      <div class="ln sec-improve" style="margin-top:12px">
+        <label>📌 Điểm bé làm chưa được — chọn 1 tiêu chí</label>
         <div class="chips">${critChips(imCrit, stCrit, 'pickImproveCrit', 'imp')}</div>
         ${imCrit?`<div class="hint" style="margin:7px 0 4px">Chọn câu mô tả:</div><div class="chips">${sentChips(imCrit,'neg',imSent,'pickImproveSentence','imp')}</div>`:''}
         ${imSent?`<textarea class="input detail" id="sc-im-detail" oninput="CTRC.scoreDetailInput()" placeholder="Mô tả chi tiết bé làm chưa được (tuỳ chọn) — VD: con thường chơi một mình, ngại bắt chuyện">${esc((rec.improve&&rec.improve.detail)||'')}</textarea>`:''}
       </div>
       <div class="field" style="margin:14px 0"><label>Tâm trạng</label>
         <select class="input" id="sc-mood">${Object.entries(MOODS).map(([k,v])=>`<option value="${k}" ${rec.mood===k?'selected':''}>${v}</option>`).join('')}</select></div>
-      <div id="sc-preview" class="hint"></div>
+      <div id="sc-preview"></div>
     </div>
-    <div class="row" style="justify-content:flex-end;margin-top:6px">
+    <div class="modal-actions ${absent?'hidden':''}" id="sc-actions">
       <button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
-      <button class="btn primary" onclick="CTRC.saveScore()">Lưu & sinh nháp</button>
+      <button class="btn primary" style="flex:1" onclick="CTRC.saveScore()">💾 Lưu & sinh nháp</button>
+    </div>
+    <div class="modal-actions ${absent?'':'hidden'}">
+      <button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
+      <button class="btn primary" style="flex:1" onclick="CTRC.saveScore()">Lưu (bé nghỉ)</button>
     </div>`);
   updateScorePreview();
   // giữ vị trí cuộn để thao tác tick liên tục không bị nhảy lên đầu
@@ -988,10 +1034,22 @@ function renderScore(){
 function _snapScroll(){ const sc=$('#modal-root .modal'); if(sc) SCORE._scroll=sc.scrollTop; }
 function updateScorePreview(){
   const el=$('#sc-preview'); if(!el) return;
-  const r=SCORE.rec, bits=[];
-  if(r.strength&&r.strength.sentence){ let s=r.strength.sentence; if(r.strength.detail&&r.strength.detail.trim()) s+=' ('+r.strength.detail.trim()+')'; bits.push(s); }
-  if(r.improve&&r.improve.sentence){ let s=r.improve.sentence; if(r.improve.detail&&r.improve.detail.trim()) s+=' ('+r.improve.detail.trim()+')'; bits.push(s); }
-  el.innerHTML = bits.length? '📝 <b>Xem trước:</b> '+esc(bits.join(' ')) : '';
+  const r=SCORE.rec;
+  const hasWork = (r.strength&&r.strength.sentence) || (r.improve&&r.improve.sentence);
+  if(!hasWork){ el.innerHTML=''; return; }
+  // dựng đúng nội dung phụ huynh sẽ nhận (engine sinh thật) → hiện dạng bong bóng Zalo
+  let out={diem_manh:'',co_gang:''};
+  try{ out=ENG.generate({student:SCORE.stu, record:r, theme:null, profile:null, date:(GV&&GV.date)||''}); }catch(_){}
+  const les=currentLesson(); const lesContent=les?lessonContentText(les):'';
+  const line=(ic,txt,cls)=> txt?`<div class="zb-line ${cls||''}"><span>${ic}</span><p>${esc(txt)}</p></div>`:'';
+  el.innerHTML = `<div class="zalo-prev">
+    <div class="zb-head">📱 Phụ huynh sẽ nhận</div>
+    <div class="zb-bubble">
+      ${les?line('📖', lesContent, 'b'):''}
+      ${line('✅', out.diem_manh, 'g')}
+      ${line('📌', out.co_gang, 'y')}
+    </div>
+  </div>`;
 }
 function syncScoreForm(){ _snapScroll();
   if($('#sc-st-detail') && SCORE.rec.strength) SCORE.rec.strength.detail=$('#sc-st-detail').value;
