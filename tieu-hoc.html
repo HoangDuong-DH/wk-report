@@ -4335,19 +4335,28 @@ function importWonderkids(rows){
   }
 
   // ── Section 2: ĐÁNH GIÁ THEO LĨNH VỰC → t-nl
-  // Chỉ fill số liệu, KHÔNG đè label (giữ DEFAULT_LABELS 'Tư duy ...' mới)
-  // KHÔNG đè điểm chuẩn (max) vì đã fix cứng theo CMS — chỉ fill điểm đạt (cur)
+  // LẤY TỪ FILE: nhãn lĩnh vực + ĐIỂM CHUẨN + ĐIỂM ĐẠT (mỗi chương trình/level có chuẩn riêng:
+  // I.G L2 = 145đ, chương trình khác khác → KHÔNG hard-code, để báo cáo đúng % & mức của bài thực tế).
   const nlA=_findAnchor(rows, /đánh giá theo lĩnh vực/);
   if(nlA){
-    const data=_readTable(rows, nlA.r, nlA.c, null, {labelCol:/phân loại/, stdCol:/điểm chuẩn/, actCol:/điểm thực tế/});
+    const data=_readTable(rows, nlA.r, nlA.c, null, {labelCol:/phân loại/, stdCol:/điểm chuẩn|tiêu chuẩn/, actCol:/điểm thực tế/});
     if(data.length){
-      const trs=document.querySelectorAll('#t-nl tbody tr[data-row]');
+      const body=document.getElementById('t-nl-body');
+      let trs=body?[].slice.call(body.querySelectorAll('tr[data-row]')):[];
+      // số dòng khớp số lĩnh vực trong file (đa dạng chương trình)
+      while(trs.length < data.length){ if(typeof addRow==='function') addRow('t-nl'); trs=[].slice.call(body.querySelectorAll('tr[data-row]')); if(trs.length>=40) break; }
       data.forEach((d,i)=>{
         const r=trs[i]; if(!r) return;
-        const cu=r.querySelector('[data-cur]');
-        if(cu && d.act!=null) cu.value=d.act;
+        const lbl=r.querySelector('.label-cell'); if(lbl && d.lbl){ lbl.value=d.lbl; if(typeof autoGrow==='function') autoGrow(lbl); }
+        const mx=r.querySelector('[data-max]'); if(mx && d.std!=null){ mx.removeAttribute('readonly'); mx.classList.remove('fixed-max'); mx.value=d.std; }
+        const cu=r.querySelector('[data-cur]'); if(cu && d.act!=null) cu.value=d.act;
         count++;
       });
+      // dòng mặc định dư (file ít lĩnh vực hơn) → xoá giá trị để không lệch TỔNG
+      for(let i=data.length;i<trs.length;i++){
+        const r=trs[i]; const lbl=r.querySelector('.label-cell'); const mx=r.querySelector('[data-max]'); const cu=r.querySelector('[data-cur]');
+        if(lbl) lbl.value=''; if(mx){ mx.removeAttribute('readonly'); mx.classList.remove('fixed-max'); mx.value=''; } if(cu) cu.value='';
+      }
     }
   }
 
