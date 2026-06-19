@@ -202,6 +202,21 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .zb-line span{font-size:13px;flex:none;line-height:1.5}
 .zb-line p{margin:0;font:500 12.5px/1.5 var(--font);color:var(--ink)}
 .zb-line.b p{color:#2f6ea0}
+/* skeleton loading */
+.skel{display:inline-block;background:linear-gradient(90deg,#eee2d2 25%,#f6efe4 37%,#eee2d2 63%);background-size:400% 100%;animation:skel 1.2s ease infinite;border-radius:6px}
+@keyframes skel{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.skel-row{pointer-events:none}
+.skel-av{width:40px;height:40px;border-radius:50%}
+.skel-line{height:12px}
+.skel-pill{width:54px;height:20px;border-radius:99px}
+/* empty state */
+.empty-state{text-align:center;padding:30px 18px;color:var(--ink-soft)}
+.empty-state .es-icon{font-size:40px;line-height:1}
+.empty-state .es-title{font:800 14px/1.4 var(--font-d);color:var(--ink);margin:8px 0 3px}
+.empty-state .es-sub{font:500 12.5px/1.55 var(--font);color:var(--mute);max-width:340px;margin:0 auto 12px}
+/* phone chip (chạm copy) */
+.phone-chip{font:700 11px/1 var(--font);color:#2f6ea0;background:#eaf3fb;border:1px solid #c4ddf2;border-radius:99px;padding:5px 9px;cursor:pointer;white-space:nowrap}
+.phone-chip:hover{background:#dcecfa}
 .pb-done{animation:pb-pulse 1.1s ease}
 @keyframes pb-pulse{0%,100%{filter:none}50%{filter:brightness(1.15)}}
 /* THANH ĐIỀU HƯỚNG ĐÁY (mobile, vai trò ít tab) — ở cấp body để không bị backdrop-filter của topbar "giữ" lại */
@@ -365,11 +380,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=26"></script>
-<script src="db.js?v=26"></script>
-<script src="engine.js?v=26"></script>
-<script src="lessons.js?v=26"></script>
-<script src="objectives.js?v=26"></script>
+<script src="config.js?v=27"></script>
+<script src="db.js?v=27"></script>
+<script src="engine.js?v=27"></script>
+<script src="lessons.js?v=27"></script>
+<script src="objectives.js?v=27"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -433,6 +448,16 @@ supabaseAnonKey:'eyJhbG...'  (anon public key)</div>
 }
 const todayStr = () => new Date().toISOString().slice(0,10);
 const AV = g => g==='Nữ' ? '👧' : '👦';
+/* màu nền avatar theo tên (giúp quét danh sách nhanh) */
+function avBg(name){ let h=0; const s=String(name||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return `hsl(${h%360},62%,89%)`; }
+function avatar(stu, size){ const sz=size?`width:${size}px;height:${size}px;font-size:${Math.round(size*0.5)}px;`:''; return `<span class="av" style="background:${avBg(stu.name)};${sz}">${AV(stu.gender)}</span>`; }
+/* khung xương khi đang tải (mượt hơn chữ "Đang tải…") */
+function skeletonList(n){ let h=''; for(let i=0;i<(n||4);i++) h+=`<div class="stu-row skel-row"><span class="skel skel-av"></span><span style="flex:1"><span class="skel skel-line" style="width:42%"></span><span class="skel skel-line" style="width:62%;height:9px;margin-top:6px"></span></span><span class="skel skel-pill"></span></div>`; return h; }
+/* trạng thái rỗng thân thiện */
+function emptyState(icon, title, sub, actionHtml){ return `<div class="empty-state"><div class="es-icon">${icon}</div><div class="es-title">${esc(title)}</div>${sub?`<div class="es-sub">${esc(sub)}</div>`:''}${actionHtml||''}</div>`; }
+/* SĐT phụ huynh — chạm để copy (CSKH dán vào Zalo) */
+async function copyPhone(num){ try{ await navigator.clipboard.writeText(num); toast('📋 Đã copy SĐT '+num); }catch(_){ toast('Bôi đen để copy: '+num,'var(--primary-2)'); } }
+function phoneChip(stu){ const p=(stu&&stu.parent_phone||'').trim(); return p?`<button class="phone-chip" onclick="event.stopPropagation();CTRC.copyPhone('${esc(p)}')" title="Chạm để copy">📞 ${esc(p)}</button>`:''; }
 const MOODS = {happy:'😊 Vui',normal:'🙂 Bình thường',sad:'😟 Buồn',tired:'😴 Mệt'};
 const STATUS = {
   waiting_gv:['Chờ GV','b-wait'], ai_writing:['AI đang viết','b-wait'],
@@ -908,7 +933,7 @@ function saveLessonContext(){
 function clearLessonContext(){ CLASS_LESSON.setObj(GV.classId, null); closeModal(); renderLessonBar(); toast('Đã bỏ gắn bài học'); }
 async function loadRoster(){
   const box = $('#gv-roster'); if(!box) return;
-  box.innerHTML = '<p style="color:var(--mute)">Đang tải…</p>';
+  box.innerHTML = skeletonList(5);
   GV.students = await DB.listStudents(CENTER.id, GV.classId);
   GV.session = await DB.ensureSession(CENTER.id, GV.classId, GV.date, STAFF.id);
   const recs = await DB.listRecordsBySession(GV.session.id);
@@ -963,10 +988,12 @@ function renderRoster(){
   list.sort((a,b)=> (ord[a.cat]-ord[b.cat]) || a.stu.name.localeCompare(b.stu.name,'vi'));
   const clsName=(GV.classes.find(c=>c.id===GV.classId)||{}).name||'';
   box.innerHTML = list.map(r=>`<div class="stu-row" onclick="CTRC.openScore('${r.stu.id}')">
-      <span class="av">${AV(r.stu.gender)}</span>
+      ${avatar(r.stu)}
       <span class="nm">${esc(r.stu.name)}<small>${r.stu.session_count||0} buổi · ${esc(clsName)}</small></span>
       <span class="badge ${r.badge[1]}">${r.badge[0]}</span></div>`).join('')
-    || `<p style="color:var(--mute);padding:8px">${total?'Không có bé khớp bộ lọc/tìm kiếm.':'Lớp chưa có bé nào — thêm ở tab “Lớp & Bé” (Manager).'}</p>`;
+    || (total
+        ? emptyState('🔍','Không có bé khớp','Thử xoá bộ lọc hoặc từ khoá tìm kiếm.')
+        : emptyState('👶','Lớp chưa có bé nào','Thêm học viên ở tab "Lớp & Bé" (vai trò Quản lý) trước khi chấm.'));
 }
 function gvFilter(k){ GV.filter=k; renderRoster(); }
 
@@ -1579,7 +1606,7 @@ function renderWeeklyResult(made, skipped){
     ${(skipped&&skipped.length)?`<div class="hint" style="margin:0 0 8px;color:var(--primary-2)">⚠ Bỏ qua ${skipped.length} bé chưa học buổi nào: ${esc(skipped.join(', '))}</div>`:''}
     <div class="ed-head" style="margin-bottom:10px"><span>✅ Đã tạo ${made.length} báo cáo — <b>sửa lại nếu cần</b> rồi Copy / Lưu ảnh gửi phụ huynh (không link)</span></div>
     ${made.map(({stu,w})=>{const s=w.summary||{};return `<div class="wk-out" id="wkout-${w.id}">
-      <div class="ed-head" style="margin:2px 0 8px"><span>${AV(stu.gender)} <b>${esc(stu.name)}</b> · ${esc(_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date))}${s.sessions?` · ${s.sessions} buổi`:''}</span><span class="cc">có thể sửa ↓</span></div>
+      <div class="ed-head" style="margin:2px 0 8px"><span>${AV(stu.gender)} <b>${esc(stu.name)}</b> · ${esc(_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date))}${s.sessions?` · ${s.sessions} buổi`:''}</span>${phoneChip(stu)||'<span class="cc">có thể sửa ↓</span>'}</div>
       <div class="wk-edit" data-wid="${w.id}">
         <label class="wk-lbl">📖 Tuần này con học</label><textarea class="input" data-f="hocGi" oninput="CTRC._wkGrow(this)">${esc(s.hocGi||'')}</textarea>
         <label class="wk-lbl">🌟 Tổng hợp tuần của con</label><textarea class="input" data-f="tongHop" oninput="CTRC._wkGrow(this)">${esc(s.tongHop||'')}</textarea>
@@ -1687,7 +1714,7 @@ async function viewQueue(){
 }
 function qTab(t){ Q.tab=t; renderQueue(); }
 async function loadQueue(){
-  const box=$('#q-list'); if(box) box.innerHTML='<p style="color:var(--mute)">Đang tải…</p>';
+  const box=$('#q-list'); if(box) box.innerHTML=skeletonList(5);
   const studs = await DB.listStudents(CENTER.id);
   const sMap={}; studs.forEach(s=>sMap[s.id]=s);
   if(!Q.classes.length) Q.classes = await DB.listClasses(CENTER.id);
@@ -1715,13 +1742,18 @@ function renderQueue(){
     const m=it.m, st=STATUS[m.status]||['',''];
     const overdue = Q.tab==='pending' && _hoursSince(m.created_at) >= 2;
     return `<div class="stu-row ${overdue?'overdue':''}" onclick="CTRC.openMsg('${m.id}')">
-      <span class="av">${AV(it.stu.gender)}</span>
-      <span class="nm">${esc(it.stu.name||'?')}<small>${esc(it.className)}${it.className?' · ':''}${esc((m.diem_manh||'').slice(0,44))}…</small></span>
+      ${avatar(it.stu)}
+      <span class="nm">${esc(it.stu.name||'?')}<small>${esc(it.className)}${it.className?' · ':''}${esc((m.diem_manh||'').slice(0,40))}…</small>${phoneChip(it.stu)?`<div style="margin-top:5px">${phoneChip(it.stu)}</div>`:''}</span>
       <span class="q-right">
         <span class="badge ${st[1]}">${st[0]}</span>
         <span class="sla ${overdue?'over':''}">${overdue?'⏰ ':''}${esc(timeAgo(m.created_at))}</span>
       </span></div>`;
-  }).join('') || `<p style="color:var(--mute);padding:8px">Không có tin ở mục này${(Q.classId||q)?' (theo lọc)':''}.</p>`;
+  }).join('') || (function(){
+      const empt={pending:['📭','Không có tin chờ duyệt','Tin giáo viên gửi lên sẽ hiện ở đây.'],
+        returned:['↩️','Chưa trả lại tin nào',''],approved:['✅','Chưa có tin đã duyệt',''],
+        sent:['📨','Chưa gửi tin nào',''],error:['⚠️','Không có tin lỗi','']}[Q.tab]||['📭','Trống',''];
+      return emptyState(empt[0], (Q.classId||q)?'Không có tin khớp bộ lọc':empt[1], (Q.classId||q)?'':empt[2]);
+    })();
 }
 
 let MSG = null;
@@ -1782,9 +1814,10 @@ function renderMsg(){
   const editAttr = approved?'disabled':'';
   modal(`
     <div class="msg-head">
-      <h3>${AV(stu.gender)} ${esc(stu.name)} · ${ENG.fmtDate(MSG_DATE())}</h3>
+      <h3>${avatar(stu,28)} ${esc(stu.name)} · ${ENG.fmtDate(MSG_DATE())}</h3>
       <span class="badge ${st[1]}">${st[0]}</span>
     </div>
+    ${(stu.parent_phone||'').trim()?`<div style="margin:-4px 0 10px">${phoneChip(stu)} <span class="hint" style="margin:0">— gửi báo cáo tới số này</span></div>`:''}
     ${ctx}
     <div class="msg-edit">
       ${(m.lesson_snapshot&&m.lesson_snapshot.content)?`<div class="ed-line">
@@ -1827,11 +1860,11 @@ function renderMsg(){
     </details>`}
 
     <div id="approve-zone">${approved?renderCopyZone():`
-      <div class="row" style="justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:8px">
-        <button class="btn warn" onclick="CTRC.returnToGV()">↩ Trả lại GV chấm lại</button>
-        <div class="row" style="gap:8px">
+      <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <button class="btn warn" onclick="CTRC.returnToGV()">↩ Trả lại GV</button>
+        <div class="row" style="gap:8px;flex:1;justify-content:flex-end">
           <button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button>
-          <button class="btn green" onclick="CTRC.approve()">✓ Duyệt</button>
+          <button class="btn green" style="flex:1;max-width:160px" onclick="CTRC.approve()">✓ Duyệt</button>
         </div>
       </div>`}</div>
   `, 'wide');
@@ -1986,6 +2019,7 @@ function renderCopyZone(){
   return `
     <div style="border-top:1px solid var(--line);margin:14px 0 12px"></div>
     <div class="ed-head" style="margin-bottom:6px"><span>${sent?'✅ Đã gửi phụ huynh':'✅ Đã duyệt — nội dung sẵn sàng gửi Zalo'}</span><span class="cc">${block.length} ký tự</span></div>
+    ${(MSG.stu.parent_phone||'').trim()?`<div style="margin-bottom:8px">Gửi tới: ${phoneChip(MSG.stu)}</div>`:'<div class="hint" style="margin-bottom:8px;color:var(--primary-2)">⚠ Bé chưa có SĐT phụ huynh — bổ sung ở Lớp & Bé</div>'}
     <div class="copy-card" id="copy-src"><span class="cc-badge">paste vào Zalo</span>${esc(block)}</div>
     ${link?`<div class="linkbox"><input class="input" id="p-link" readonly value="${esc(link)}"><button class="btn sm" onclick="CTRC.copyLink()">🔗 Copy link</button></div>`:''}
     <div class="row" style="justify-content:space-between;align-items:center;margin-top:12px">
@@ -2480,7 +2514,7 @@ window.CTRC = {
   approveProfile, editProfile, saveEditProfile, addTheme,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
   addStaff, editStaff, saveStaff, delStaff,
-  genWeekly, copyWeekly, saveWeeklyImg, saveWeeklyEdit, wkThisWeek, _wkGrow,
+  genWeekly, copyWeekly, saveWeeklyImg, saveWeeklyEdit, wkThisWeek, _wkGrow, copyPhone,
   importLessons, cancelStage, saveStage, viewLesson, delLesson,
 };
 boot();
