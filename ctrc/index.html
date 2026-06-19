@@ -217,6 +217,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 /* phone chip (chạm copy) */
 .phone-chip{font:700 11px/1 var(--font);color:#2f6ea0;background:#eaf3fb;border:1px solid #c4ddf2;border-radius:99px;padding:5px 9px;cursor:pointer;white-space:nowrap}
 .phone-chip:hover{background:#dcecfa}
+/* điểm danh nhanh */
+.qa-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);font:600 13px/1.3 var(--font);cursor:pointer}
+.qa-row span:first-child{display:flex;align-items:center;gap:8px}
+.qa-switch{font:600 12px/1 var(--font);color:var(--primary-2);white-space:nowrap;display:flex;align-items:center;gap:5px}
+#qa-list{max-height:48vh;overflow:auto;margin:0 -4px}
 .pb-done{animation:pb-pulse 1.1s ease}
 @keyframes pb-pulse{0%,100%{filter:none}50%{filter:brightness(1.15)}}
 /* THANH ĐIỀU HƯỚNG ĐÁY (mobile, vai trò ít tab) — ở cấp body để không bị backdrop-filter của topbar "giữ" lại */
@@ -380,11 +385,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=27"></script>
-<script src="db.js?v=27"></script>
-<script src="engine.js?v=27"></script>
-<script src="lessons.js?v=27"></script>
-<script src="objectives.js?v=27"></script>
+<script src="config.js?v=28"></script>
+<script src="db.js?v=28"></script>
+<script src="engine.js?v=28"></script>
+<script src="lessons.js?v=28"></script>
+<script src="objectives.js?v=28"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -851,7 +856,10 @@ async function viewCham(){
       </div>
       <div id="gv-lesson-bar" class="lesson-hint"></div>
       <div id="gv-progress" style="margin-top:14px"></div>
-      <div class="row" id="gv-filters" style="margin-top:11px;gap:6px"></div>
+      <div class="row" style="margin-top:11px;gap:6px;align-items:center">
+        <div class="row" id="gv-filters" style="gap:6px;flex:1"></div>
+        <button class="btn sm" onclick="CTRC.quickAttendance()" title="Đánh dấu nhanh bé vắng">✓ Điểm danh nhanh</button>
+      </div>
     </div>
     <div id="gv-roster" class="roster"></div>`;
   $('#gv-date').onchange = e=>{ GV.date=e.target.value; loadRoster(); };
@@ -996,6 +1004,46 @@ function renderRoster(){
         : emptyState('👶','Lớp chưa có bé nào','Thêm học viên ở tab "Lớp & Bé" (vai trò Quản lý) trước khi chấm.'));
 }
 function gvFilter(k){ GV.filter=k; renderRoster(); }
+/* ── Điểm danh nhanh: bật "Nghỉ" cho bé vắng, lưu 1 lần ── */
+function quickAttendance(){
+  const studs=GV.students||[];
+  const absentNow={}; GV.roster.forEach(r=>{ if(r.cat==='absent') absentNow[r.stu.id]=true; });
+  modal(`<h3>✓ Điểm danh nhanh</h3>
+    <p class="h-sub">Bật <b>Nghỉ</b> cho bé vắng rồi Lưu. Bé đi học cứ chấm như thường.</p>
+    <div id="qa-list">${studs.map(s=>`<label class="qa-row"><span>${avatar(s,26)} ${esc(s.name)}</span>
+      <span class="qa-switch"><input type="checkbox" data-sid="${s.id}" ${absentNow[s.id]?'checked':''}> Nghỉ</span></label>`).join('')||'<p class="hint">Lớp chưa có bé.</p>'}</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button>
+      <button class="btn primary" style="flex:1" onclick="CTRC.saveQuickAttendance()">Lưu điểm danh</button>
+    </div>`);
+}
+async function saveQuickAttendance(){
+  if(saveQuickAttendance._busy) return; saveQuickAttendance._busy=true;
+  try{
+    const inputs=[].slice.call(document.querySelectorAll('#qa-list input[data-sid]'));
+    let nAbsent=0, nBack=0;
+    for(const inp of inputs){
+      const sid=inp.dataset.sid;
+      const existed=await DB.getRecord(GV.session.id, sid);
+      const pm=existed?await DB.getMessage(existed.id):null;
+      if(pm && ['approved','sent'].includes(pm.status)) continue;   // đã duyệt/gửi → bỏ qua
+      if(inp.checked){
+        if(existed && existed.attendance==='absent') continue;       // đã nghỉ rồi
+        const wasPresent=!!(existed && existed.attendance==='present');
+        await DB.saveRecord({ session_id:GV.session.id, student_id:sid, attendance:'absent', created_by:STAFF.id });
+        if(wasPresent) await DB.softUpdateSessionCount(sid,-1).catch(()=>{});
+        nAbsent++;
+      } else if(existed && existed.attendance==='absent'){
+        await DB.deleteRecord(existed.id).catch(()=>{});   // bỏ tick → xoá bản ghi nghỉ, trả về "chưa chấm"
+        nBack++;
+      }
+    }
+    await DB.audit(CENTER.id, STAFF, 'attendance','session',GV.session.id,{absent:nAbsent});
+    toast('✓ Đã điểm danh'+(nAbsent?` · ${nAbsent} bé nghỉ`:''));
+    closeModal(); loadRoster();
+  }catch(e){ toast('Lỗi: '+(e.message||e),'var(--primary-2)'); }
+  finally{ saveQuickAttendance._busy=false; }
+}
 
 let SCORE = null;
 let SCORE_DRAFTS = {};   // giữ nháp chấm dở theo (buổi|bé) — chống mất khi lỡ chạm nền
@@ -1021,6 +1069,7 @@ function renderScore(){
   const critChips=(sel,excl,h,tone)=>C.map(c=>c.key===excl?'':`<button class="chip ${tone||''} ${sel===c.key?'on':''}" title="${esc(c.desc)}" onclick="CTRC.${h}('${c.key}')">${c.emoji} ${esc(c.label)}</button>`).join('');
   const sentChips=(crit,type,sel,h,tone)=>{ const c=C.find(x=>x.key===crit); if(!c)return ''; const arr=type==='pos'?c.pos:c.neg; return arr.map((s,i)=>`<button class="chip sent ${tone||''} ${sel===s?'on':''}" onclick="CTRC.${h}(${i})">${esc(s)}</button>`).join(''); };
   const les=currentLesson();
+  const moreTodo=(GV.roster||[]).filter(r=>r.cat==='todo' && r.stu.id!==stu.id).length;
   modal(`
     <h3>${AV(stu.gender)} ${esc(stu.name)}</h3>
     <div class="row" style="margin-bottom:14px">
@@ -1047,12 +1096,18 @@ function renderScore(){
       <div id="sc-preview"></div>
     </div>
     <div class="modal-actions ${absent?'hidden':''}" id="sc-actions">
-      <button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
-      <button class="btn primary" style="flex:1" onclick="CTRC.saveScore()">💾 Lưu & sinh nháp</button>
+      ${moreTodo>0
+        ? `<button class="btn ghost" onclick="CTRC.saveScore(false)">Lưu & đóng</button>
+           <button class="btn primary" style="flex:1" onclick="CTRC.saveScore(true)">💾 Lưu & bé tiếp → <small style="opacity:.85">(còn ${moreTodo})</small></button>`
+        : `<button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
+           <button class="btn primary" style="flex:1" onclick="CTRC.saveScore(false)">💾 Lưu & sinh nháp</button>`}
     </div>
     <div class="modal-actions ${absent?'':'hidden'}">
-      <button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
-      <button class="btn primary" style="flex:1" onclick="CTRC.saveScore()">Lưu (bé nghỉ)</button>
+      ${moreTodo>0
+        ? `<button class="btn ghost" onclick="CTRC.saveScore(false)">Lưu & đóng</button>
+           <button class="btn primary" style="flex:1" onclick="CTRC.saveScore(true)">Nghỉ & bé tiếp →</button>`
+        : `<button class="btn ghost" onclick="CTRC.closeModal()">Huỷ</button>
+           <button class="btn primary" style="flex:1" onclick="CTRC.saveScore(false)">Lưu (bé nghỉ)</button>`}
     </div>`);
   updateScorePreview();
   // giữ vị trí cuộn để thao tác tick liên tục không bị nhảy lên đầu
@@ -1090,12 +1145,15 @@ function scoreDetailInput(){
   updateScorePreview();
 }
 function setAttendance(a){ syncScoreForm(); SCORE._scroll=0; SCORE.rec.attendance=a; renderScore(); }
-function pickStrengthCrit(k){ syncScoreForm(); const r=SCORE.rec; r.strength=(r.strength&&r.strength.crit===k)?null:{crit:k,sentence:'',detail:''}; if(r.improve&&r.improve.crit===k) r.improve=null; renderScore(); }
+/* chọn tiêu chí → TỰ chọn luôn câu mô tả đầu tiên (bớt 1 chạm; cô đổi câu nếu muốn) */
+function pickStrengthCrit(k){ syncScoreForm(); const r=SCORE.rec; if(r.strength&&r.strength.crit===k){ r.strength=null; } else { const c=ENG.CRITERIA.find(x=>x.key===k); r.strength={crit:k, sentence:(c&&c.pos[0])||'', detail:''}; } if(r.improve&&r.improve.crit===k) r.improve=null; renderScore(); }
 function pickStrengthSentence(i){ syncScoreForm(); const c=ENG.CRITERIA.find(x=>x.key===(SCORE.rec.strength&&SCORE.rec.strength.crit)); if(c) SCORE.rec.strength.sentence=c.pos[i]; renderScore(); }
-function pickImproveCrit(k){ syncScoreForm(); const r=SCORE.rec; r.improve=(r.improve&&r.improve.crit===k)?null:{crit:k,sentence:'',detail:''}; if(r.strength&&r.strength.crit===k) r.strength=null; renderScore(); }
+function pickImproveCrit(k){ syncScoreForm(); const r=SCORE.rec; if(r.improve&&r.improve.crit===k){ r.improve=null; } else { const c=ENG.CRITERIA.find(x=>x.key===k); r.improve={crit:k, sentence:(c&&c.neg[0])||'', detail:''}; } if(r.strength&&r.strength.crit===k) r.strength=null; renderScore(); }
 function pickImproveSentence(i){ syncScoreForm(); const c=ENG.CRITERIA.find(x=>x.key===(SCORE.rec.improve&&SCORE.rec.improve.crit)); if(c) SCORE.rec.improve.sentence=c.neg[i]; renderScore(); }
 
-async function saveScore(){
+/* tìm bé KẾ TIẾP chưa chấm (để nhảy thẳng, khỏi quay lại danh sách) */
+function _nextTodoId(exceptId){ const r=(GV.roster||[]).find(x=>x.cat==='todo' && x.stu.id!==exceptId); return r?r.stu.id:null; }
+async function saveScore(advance){
   if (saveScore._busy) return;                       // chống bấm đúp tạo bản ghi trùng
   const rec = SCORE.rec, stu = SCORE.stu;
   // validate TRƯỚC khi khoá busy (để còn bấm lại sau khi sửa)
@@ -1130,13 +1188,16 @@ async function saveScore(){
     delete SCORE_DRAFTS[_scoreKey(stu.id)];          // đã lưu → bỏ nháp dở
     SCORE = null;                                     // tránh closeModal lưu lại nháp
 
-    if (rec.attendance==='absent'){
-      toast('✓ Đã ghi nhận bé nghỉ'); closeModal(); loadRoster(); return;
+    if (rec.attendance==='absent') toast('✓ Đã ghi nhận bé nghỉ');
+    else { await generateForRecord(saved, stu); toast('✓ Đã lưu & sinh nháp → chuyển CSKH'); }
+
+    await loadRoster();                               // cập nhật danh sách (sau lưng modal)
+    if (advance){
+      const nextId=_nextTodoId(stu.id);
+      if (nextId){ openScore(nextId); return; }       // nhảy thẳng bé chưa chấm kế tiếp
+      toast('🎉 Đã chấm xong cả lớp!','var(--green)');
     }
-    // sinh nháp bằng engine (idempotent theo record)
-    await generateForRecord(saved, stu);
-    toast('✓ Đã lưu & sinh nháp → chuyển CSKH');
-    closeModal(); loadRoster();
+    closeModal();
   } catch(e){
     toast('Lỗi khi lưu: '+(e.message||e),'var(--primary-2)');
   } finally {
@@ -1747,6 +1808,7 @@ function renderQueue(){
       <span class="q-right">
         <span class="badge ${st[1]}">${st[0]}</span>
         <span class="sla ${overdue?'over':''}">${overdue?'⏰ ':''}${esc(timeAgo(m.created_at))}</span>
+        ${Q.tab==='pending'?`<button class="btn green sm" style="padding:7px 10px" onclick="CTRC.quickApprove('${m.id}',event)" title="Duyệt nhanh (tin đã đạt chuẩn)">✓ Duyệt nhanh</button>`:''}
       </span></div>`;
   }).join('') || (function(){
       const empt={pending:['📭','Không có tin chờ duyệt','Tin giáo viên gửi lên sẽ hiện ở đây.'],
@@ -1873,6 +1935,22 @@ function renderMsg(){
   voiceCheck();
 }
 function MSG_DATE(){ return (MSG && MSG.date) || todayStr(); }
+/* CSKH duyệt nhanh ngay trên hàng đợi — chỉ áp tin ĐÃ ĐẠT (đủ 2 dòng + không từ cấm); tin cần sửa thì mở ra */
+async function quickApprove(id, ev){
+  if(ev) ev.stopPropagation();
+  if(quickApprove._busy) return; quickApprove._busy=true;
+  try{
+    const m=await DB.getMessageById(id); if(!m){ toast('Tin không còn','var(--primary-2)'); loadQueue(); return; }
+    const v=ENG.checkVoice([m.diem_manh||'',m.co_gang||''].join(' '));
+    if(!m.diem_manh||!m.co_gang||!v.ok){ toast('Tin cần xem lại trước khi duyệt'+(v.ok?'':' (có từ nên tránh)'),'var(--primary-2)'); openMsg(id); return; }
+    if(['approved','sent'].includes(m.status)){ toast('Tin đã duyệt rồi'); loadQueue(); return; }
+    const upd=await DB.updateMessageGuarded(m.id, m.version, {status:'approved', approved_by:STAFF.id, approved_at:new Date().toISOString(), edited_by:STAFF.id, lock_owner:null, lock_at:null});
+    let tok=await DB.getExistingToken(m.id); if(!tok) await DB.createParentToken(m.id);
+    await DB.audit(CENTER.id, STAFF, 'approve','message',m.id,{quick:true});
+    toast('✓ Đã duyệt nhanh'); loadQueue();
+  }catch(e){ toast(e.message,'var(--primary-2)'); }
+  finally{ quickApprove._busy=false; }
+}
 
 function _autogrow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
 /* gõ trong editor: auto-grow + đếm ký tự + đo độ dài Zalo + check giọng */
@@ -2507,7 +2585,8 @@ window.CTRC = {
   toggleAccountMenu, closeAccountMenu, switchAccount,
   openScore, setAttendance, saveScore,
   pickStrengthCrit, pickStrengthSentence, pickImproveCrit, pickImproveSentence, scoreDetailInput,
-  gvFilter, editLessonContext, prefillLessonFromLib, saveLessonContext, clearLessonContext,
+  gvFilter, quickAttendance, saveQuickAttendance, quickApprove,
+  editLessonContext, prefillLessonFromLib, saveLessonContext, clearLessonContext,
   objCount, objSave, objSaveAll, objReset,
   addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, genAICustom, approve, returnToGV, confirmReturn, copyBlock, copyLink, markSent, voiceCheck, edInput,

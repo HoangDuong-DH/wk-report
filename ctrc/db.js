@@ -327,6 +327,11 @@
       if (ex) return adapter.update('session_records', { id: ex.id }, Object.assign({ updated_at: nowISO() }, rec)).then((r) => r[0]);
       return adapter.insert('session_records', Object.assign({ created_at: nowISO(), updated_at: nowISO() }, rec));
     },
+    async deleteRecord(id) {
+      const msg = await this.getMessage(id);
+      if (msg) await adapter.remove('session_messages', { id: msg.id });   // xoá kèm tin nháp (nếu có)
+      return adapter.remove('session_records', { id });
+    },
 
     /* tin nhắn */
     async getMessage(recordId) { return (await adapter.select('session_messages', { record_id: recordId }))[0]; },
