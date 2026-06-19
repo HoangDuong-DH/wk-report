@@ -155,7 +155,7 @@
   let adapter = LocalAdapter;
   let supaClient = null;
   async function initAdapter() {
-    if (!useSupa) { await seedDemo(); return 'demo'; }
+    if (!useSupa) { await seedDemo(); await migrateDemoStaffNames(); return 'demo'; }
     // nạp supabase-js từ CDN
     if (!window.supabase) {
       await new Promise((res, rej) => {
@@ -201,9 +201,9 @@
       });
     }
     const staff = [
-      { name: 'Cô Mai', role: 'gv', pin: '1111' },
-      { name: 'Chị Lan', role: 'cskh', pin: '2222' },
-      { name: 'Anh Tuấn', role: 'manager', pin: '3333' },
+      { name: 'Giáo viên', role: 'gv', pin: '1111' },
+      { name: 'CSKH', role: 'cskh', pin: '2222' },
+      { name: 'Quản lý', role: 'manager', pin: '3333' },
     ];
     for (const s of staff)
       await LocalAdapter.insert('staff', Object.assign({ center_id: center.id, active: true, created_at: nowISO() }, s));
@@ -228,6 +228,16 @@
     ];
     for (const [idx, label, phrase] of STR)
       await LocalAdapter.insert('strength_templates', { center_id: center.id, idx, label, phrase });
+  }
+
+  /* Di trú: đổi tên 3 nhân sự demo cũ sang tên trung tính trên các máy đã cài từ trước.
+     Chỉ đụng đúng tên demo mặc định; nếu trung tâm đã đổi tên thật thì giữ nguyên. */
+  async function migrateDemoStaffNames() {
+    const map = { 'Cô Mai': 'Giáo viên', 'Chị Lan': 'CSKH', 'Anh Tuấn': 'Quản lý' };
+    try {
+      const staff = await LocalAdapter.select('staff');
+      for (const s of staff) if (map[s.name]) await LocalAdapter.update('staff', { id: s.id }, { name: map[s.name] });
+    } catch (_) {}
   }
 
   function mondayOf(d) {

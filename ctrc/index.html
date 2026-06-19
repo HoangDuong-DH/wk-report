@@ -269,10 +269,14 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
   /* thẻ báo cáo tuần + nhập liệu */
   .wk-card-print{max-width:100%}
   .wk-child{flex-wrap:wrap} .wk-child .wk-cc{flex:1 1 100%}
-  .msg-edit textarea{font-size:15px} /* >=16 tránh iOS zoom; 15 đủ thoáng */
-  .scale button{width:38px;height:38px} /* chạm dễ hơn */
-  .btn{padding:11px 15px}
-  .stu-row{padding:12px 13px}
+  /* font 16px: ngưỡng để iOS KHÔNG tự phóng to khi chạm ô nhập */
+  .input,.field input,.field select,textarea.input{font-size:16px}
+  /* vùng chạm >=44px cho phần bấm nhiều nhất (chip tiêu chí + câu) và nút nhỏ */
+  .chip{padding:12px 14px;font-size:13.5px}
+  .chip.sent{padding:11px 13px}
+  .btn{padding:12px 15px}
+  .btn.sm{padding:10px 13px;font-size:12.5px}
+  .stu-row{padding:13px 13px}
 }
 @media (max-width:380px){
   .nav button{font-size:12px;padding:8px 11px}
@@ -330,11 +334,11 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=23"></script>
-<script src="db.js?v=23"></script>
-<script src="engine.js?v=23"></script>
-<script src="lessons.js?v=23"></script>
-<script src="objectives.js?v=23"></script>
+<script src="config.js?v=25"></script>
+<script src="db.js?v=25"></script>
+<script src="engine.js?v=25"></script>
+<script src="lessons.js?v=25"></script>
+<script src="objectives.js?v=25"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CTRC — APP (UI + flows). Dùng CTRC_DB + CTRC_ENGINE.
@@ -357,6 +361,14 @@ function modal(html, cls) {
 let EDITING_MSG = null;   // id tin CSKH đang giữ lock (để nhả khi đóng)
 async function closeModal(){
   const editId = EDITING_MSG; EDITING_MSG = null;
+  // giữ nháp CHẤM dở của GV (chống mất khi lỡ chạm nền / bấm Huỷ)
+  if (SCORE && SCORE.stu && $('#score-body')) {
+    try { syncScoreForm(); } catch(_){}
+    const k = _scoreKey(SCORE.stu.id);
+    if (_hasScoreWork(SCORE.rec)) { SCORE_DRAFTS[k] = JSON.parse(JSON.stringify(SCORE.rec)); toast('Đã giữ nháp chấm dở — mở lại bé này là còn nguyên','var(--blue)'); }
+    else delete SCORE_DRAFTS[k];
+  }
+  SCORE = null;
   // đọc nháp đang sửa (nếu editor còn mở) để KHÔNG mất công sửa
   let edits = null;
   if (editId && $('#m-dm')) edits = readEdits();
@@ -917,13 +929,18 @@ function renderRoster(){
 function gvFilter(k){ GV.filter=k; renderRoster(); }
 
 let SCORE = null;
+let SCORE_DRAFTS = {};   // giữ nháp chấm dở theo (buổi|bé) — chống mất khi lỡ chạm nền
+function _scoreKey(studentId){ return (GV.session?GV.session.id:'')+'|'+studentId; }
+function _hasScoreWork(r){ return !!(r && ((r.strength&&r.strength.crit) || (r.improve&&r.improve.crit) || (r.strength&&r.strength.detail||'').trim() || (r.improve&&r.improve.detail||'').trim() || (r.observation||'').trim())); }
 async function openScore(studentId){
   const stu = await DB.getStudent(studentId);
   const rec = await DB.getRecord(GV.session.id, studentId) || { attendance:'present', observation:'', mood:'normal', strength:null, improve:null };
   // nếu CSKH đã trả lại → lấy lý do để GV biết cần chỉnh gì
   let returnReason='';
   if(rec.id){ try{ const m=await DB.getMessage(rec.id); if(m && m.status==='returned') returnReason=m.return_reason||''; }catch(_){} }
-  SCORE = { stu, rec: JSON.parse(JSON.stringify(rec)), returnReason };
+  // khôi phục nháp chấm dở (nếu trước đó lỡ đóng giữa chừng)
+  const draft = SCORE_DRAFTS[_scoreKey(studentId)];
+  SCORE = { stu, rec: draft ? JSON.parse(JSON.stringify(draft)) : JSON.parse(JSON.stringify(rec)), returnReason };
   renderScore();
 }
 function renderScore(){
@@ -994,41 +1011,52 @@ function pickImproveCrit(k){ syncScoreForm(); const r=SCORE.rec; r.improve=(r.im
 function pickImproveSentence(i){ syncScoreForm(); const c=ENG.CRITERIA.find(x=>x.key===(SCORE.rec.improve&&SCORE.rec.improve.crit)); if(c) SCORE.rec.improve.sentence=c.neg[i]; renderScore(); }
 
 async function saveScore(){
+  if (saveScore._busy) return;                       // chống bấm đúp tạo bản ghi trùng
   const rec = SCORE.rec, stu = SCORE.stu;
-  const existed = await DB.getRecord(GV.session.id, stu.id);
-  // chặn ghi đè tin đã duyệt/đã gửi (SO_TAY mục 7)
-  if (existed){
-    const pm = await DB.getMessage(existed.id);
-    if (pm && ['approved','sent'].includes(pm.status)){
-      toast('Buổi này đã được CSKH duyệt — liên hệ CSKH để mở lại','var(--primary-2)');
-      return;
-    }
-  }
+  // validate TRƯỚC khi khoá busy (để còn bấm lại sau khi sửa)
   if (rec.attendance==='present'){
     syncScoreForm();
     if(!(rec.strength && rec.strength.crit && rec.strength.sentence)){ toast('Chọn 1 tiêu chí ĐIỂM MẠNH + câu mô tả','var(--primary-2)'); return; }
     if(!(rec.improve && rec.improve.crit && rec.improve.sentence)){ toast('Chọn 1 tiêu chí CẦN CẢI THIỆN + câu mô tả','var(--primary-2)'); return; }
   }
-  const wasPresent = !!(existed && existed.attendance === 'present');
-  const saved = await DB.saveRecord({
-    session_id: GV.session.id, student_id: stu.id, attendance: rec.attendance,
-    strength: rec.strength, improve: rec.improve,
-    mood: rec.mood, created_by: STAFF.id,
-  });
-  await DB.audit(CENTER.id, STAFF, 'score', 'record', saved.id, {student:stu.name});
+  saveScore._busy = true;
+  try {
+    const existed = await DB.getRecord(GV.session.id, stu.id);
+    // chặn ghi đè tin đã duyệt/đã gửi (SO_TAY mục 7)
+    if (existed){
+      const pm = await DB.getMessage(existed.id);
+      if (pm && ['approved','sent'].includes(pm.status)){
+        toast('Buổi này đã được CSKH duyệt — liên hệ CSKH để mở lại','var(--primary-2)');
+        return;
+      }
+    }
+    const wasPresent = !!(existed && existed.attendance === 'present');
+    const saved = await DB.saveRecord({
+      session_id: GV.session.id, student_id: stu.id, attendance: rec.attendance,
+      strength: rec.strength, improve: rec.improve,
+      mood: rec.mood, created_by: STAFF.id,
+    });
+    await DB.audit(CENTER.id, STAFF, 'score', 'record', saved.id, {student:stu.name});
 
-  // đếm buổi: chỉ đổi khi trạng thái present thay đổi (chống tăng trùng + có giảm)
-  if (rec.attendance === 'present' && !wasPresent) await DB.softUpdateSessionCount(stu.id, +1).catch(()=>{});
-  if (rec.attendance === 'absent'  &&  wasPresent) await DB.softUpdateSessionCount(stu.id, -1).catch(()=>{});
+    // đếm buổi: chỉ đổi khi trạng thái present thay đổi (chống tăng trùng + có giảm)
+    if (rec.attendance === 'present' && !wasPresent) await DB.softUpdateSessionCount(stu.id, +1).catch(()=>{});
+    if (rec.attendance === 'absent'  &&  wasPresent) await DB.softUpdateSessionCount(stu.id, -1).catch(()=>{});
 
-  if (rec.attendance==='absent'){
-    toast('✓ Đã ghi nhận bé nghỉ'); closeModal(); loadRoster(); return;
+    delete SCORE_DRAFTS[_scoreKey(stu.id)];          // đã lưu → bỏ nháp dở
+    SCORE = null;                                     // tránh closeModal lưu lại nháp
+
+    if (rec.attendance==='absent'){
+      toast('✓ Đã ghi nhận bé nghỉ'); closeModal(); loadRoster(); return;
+    }
+    // sinh nháp bằng engine (idempotent theo record)
+    await generateForRecord(saved, stu);
+    toast('✓ Đã lưu & sinh nháp → chuyển CSKH');
+    closeModal(); loadRoster();
+  } catch(e){
+    toast('Lỗi khi lưu: '+(e.message||e),'var(--primary-2)');
+  } finally {
+    saveScore._busy = false;
   }
-
-  // sinh nháp bằng engine (idempotent theo record)
-  await generateForRecord(saved, stu);
-  toast('✓ Đã lưu & sinh nháp → chuyển CSKH');
-  closeModal(); loadRoster();
 }
 
 /* ảnh chụp bài học (lưu lên message để CSKH/AI/phụ huynh dùng lại) */
@@ -1398,12 +1426,17 @@ function _readWeeklyChildComments(){
   document.querySelectorAll('#wk-children .wk-cc').forEach(i=>{ WK.childComments[i.dataset.sid]=i.value.trim(); });
 }
 async function genWeekly(){
+  if(genWeekly._busy) return;                                  // chống bấm đúp nhân đôi cả lớp
   const key=lessonKey(WK.book, WK.week);
   const les=lessonByKey(key);
   const classComment=$('#wk-class-comment').value.trim();
   _readWeeklyChildComments();
   const studs=await DB.listStudents(CENTER.id, WK.classId);
   if(!studs.length){ toast('Lớp chưa có bé','var(--primary-2)'); return; }
+  genWeekly._busy = true;
+  const genBtn=[].slice.call(document.querySelectorAll('button')).find(b=>/Tạo báo cáo cả lớp/.test(b.textContent));
+  if(genBtn){ genBtn.disabled=true; genBtn.textContent='⏳ Đang tạo…'; }
+  try{
   const objText = OBJ.get(WK.book, WK.week);   // mục tiêu tuần từ thư viện mục tiêu (xlsx)
   const lessonSnap = les ? {title:les.title, pages:les.pages, skill:les.skill, body:les.body, parent_content:les.parent_content||'', manager_summary:les.manager_summary||''} : (objText? {title:'', objective:objText} : null);
   // "tuần này con học" — ưu tiên giáo án docx; nếu không có thì dùng mục tiêu tuần
@@ -1417,12 +1450,13 @@ async function genWeekly(){
     content: hocGi
   } : null;
   const useAI = !!($('#wk-ai') && $('#wk-ai').checked) && AI.usable();
-  const made=[];
+  const made=[]; const skipped=[];
   let idx=0;
   for(const s of studs){
     idx++;
     const recs = await DB.studentRecordsInRange(s.id, WK.from, WK.to);
     const dg = WK.digests[s.id] || ENG.weeklyDigest(recs);
+    if(dg.sessions===0){ skipped.push(s.name); continue; }      // bỏ qua bé chưa học buổi nào trong tuần
     let nar = null;
     if(useAI && dg.sessions>0){
       toast(`✨ AI đang tổng hợp ${idx}/${studs.length}…`,'var(--blue)');
@@ -1443,9 +1477,12 @@ async function genWeekly(){
   }
   await DB.audit(CENTER.id, STAFF, 'weekly_report','class',WK.classId,{book:WK.book,week:WK.week,count:made.length});
   WK.childComments={}; WK.made=made;
-  toast('✓ Đã tạo '+made.length+' báo cáo tuần — Copy hoặc lưu ảnh để gửi');
-  renderWeeklyResult(made);
+  if(!made.length){ toast(skipped.length?('Tất cả '+skipped.length+' bé chưa học buổi nào trong tuần — chưa tạo báo cáo'):'Không có dữ liệu để tạo','var(--primary-2)'); }
+  else toast('✓ Đã tạo '+made.length+' báo cáo'+(skipped.length?(' · bỏ qua '+skipped.length+' bé chưa học buổi nào'):'')+' — Copy hoặc lưu ảnh để gửi');
+  renderWeeklyResult(made, skipped);
   loadWeeklyRecent();
+  }catch(e){ toast('Lỗi tạo báo cáo: '+(e.message||e),'var(--primary-2)'); }
+  finally{ genWeekly._busy=false; if(genBtn){ genBtn.disabled=false; genBtn.textContent='📨 Tạo báo cáo cả lớp'; } }
 }
 function _dateLabel(from,to){ return ENG.fmtDate(from)+' – '+ENG.fmtDate(to); }
 /* văn bản gửi Zalo — KHÔNG link (gui-phu-huynh.md) */
@@ -1477,9 +1514,11 @@ function weeklyCardHTML(stu, w){
     <div class="wcp-close">${esc((CENTER&&CENTER.closing_line)||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.')}</div>
   </div>`;
 }
-function renderWeeklyResult(made){
+function renderWeeklyResult(made, skipped){
   const box=$('#wk-result'); if(!box) return;
+  if(!made.length){ box.innerHTML = `<div class="card" style="margin-top:12px"><p class="hint" style="margin:0">${(skipped&&skipped.length)?('⚠ '+skipped.length+' bé chưa học buổi nào trong tuần ('+esc(skipped.join(', '))+') — không tạo báo cáo trống.'):'Chưa có báo cáo nào được tạo.'}</p></div>`; return; }
   box.innerHTML = `<div class="card" style="margin-top:12px;border-color:#cce8a5;background:#f7fcef">
+    ${(skipped&&skipped.length)?`<div class="hint" style="margin:0 0 8px;color:var(--primary-2)">⚠ Bỏ qua ${skipped.length} bé chưa học buổi nào: ${esc(skipped.join(', '))}</div>`:''}
     <div class="ed-head" style="margin-bottom:10px"><span>✅ Đã tạo ${made.length} báo cáo — <b>sửa lại nếu cần</b> rồi Copy / Lưu ảnh gửi phụ huynh (không link)</span></div>
     ${made.map(({stu,w})=>{const s=w.summary||{};return `<div class="wk-out" id="wkout-${w.id}">
       <div class="ed-head" style="margin:2px 0 8px"><span>${AV(stu.gender)} <b>${esc(stu.name)}</b> · ${esc(_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date))}${s.sessions?` · ${s.sessions} buổi`:''}</span><span class="cc">có thể sửa ↓</span></div>
@@ -1783,6 +1822,7 @@ async function regen(){
   renderMsg(); toast('↻ Đã sinh lại bằng engine');
 }
 function pasteAI(){
+  Object.assign(MSG.m, readEdits());   // giữ nội dung CSKH đang gõ trước khi mở hộp thoại con
   modal(`<h3>Dán nháp từ Claude.ai / ChatGPT</h3>
     <p class="h-sub">Dán nguyên đoạn. Hệ thống tự tách 2 dòng nếu thấy "Điểm mạnh/Cố gắng"; nếu không, dán vào ô Điểm mạnh.</p>
     <textarea class="input" id="paste-src" style="min-height:160px"></textarea>
@@ -1806,6 +1846,7 @@ function applyPaste(){
 }
 async function genAI(){
   if (!AI.usable()){ toast('Chưa cấu hình AI — vào Cấu hình → AI (Manager)','var(--primary-2)'); if(STAFF.role==='manager') go('config'); return; }
+  if (genAI._busy) return; genAI._busy = true;            // chống gọi AI 2 lần khi bấm đúp
   toast('✨ Đang gọi AI ('+AI.get().model+')…','var(--blue)');
   try {
     const rec = await DB._getRecordById(MSG.m.record_id);
@@ -1817,6 +1858,7 @@ async function genAI(){
     Object.assign(MSG.m,{diem_manh:out.diem_manh,co_gang:out.co_gang||MSG.m.co_gang,ai_draft:out,source:'ai'});
     renderMsg(); toast('✨ AI đã viết xong ('+AI.get().model+')');
   } catch(e){ toast('Lỗi AI: '+e.message+' — giữ nháp engine','var(--primary-2)'); }
+  finally { genAI._busy = false; }
 }
 /* Sinh lại theo yêu cầu tuỳ chỉnh của CSKH (giữ nội dung hiện tại + chỉ dẫn riêng) */
 async function genAICustom(){
@@ -1855,6 +1897,7 @@ async function approve(){
 }
 /* ↩ Trả tin về cho giáo viên chấm lại (kèm lý do) */
 function returnToGV(){
+  Object.assign(MSG.m, readEdits());   // giữ nội dung CSKH đang gõ trước khi mở hộp thoại con
   modal(`<h3>↩ Trả lại giáo viên chấm lại</h3>
     <p class="h-sub">Bé <b>${esc(MSG.stu.name)}</b> — ghi rõ điều cần chỉnh để giáo viên chấm lại buổi này.</p>
     <textarea class="input" id="ret-reason" style="min-height:96px" placeholder="VD: Quan sát còn chung chung, cần nêu cụ thể bé làm gì; hoặc chọn nhầm tiêu chí điểm mạnh…"></textarea>

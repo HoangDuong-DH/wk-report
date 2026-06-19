@@ -212,9 +212,12 @@
     };
   }
   function weeklyNarrative(dg, ten) {
+    // bé không học buổi nào → không bịa nhận xét (báo cáo tuần sẽ bỏ qua bé này)
+    if (!dg || dg.sessions === 0) {
+      return { tongHop: `Tuần này ${ten} chưa có buổi học nào được ghi nhận.`, coGang: '', oNha: '' };
+    }
     let tongHop;
-    if (!dg || dg.sessions === 0) tongHop = `Tuần này ${ten} chưa có buổi học nào được ghi nhận.`;
-    else {
+    {
       tongHop = `Tuần này ${ten} tham gia ${dg.sessions} buổi học` + (dg.absent ? ` (nghỉ ${dg.absent} buổi)` : '') + '. ';
       if (dg.topStrengths.length) tongHop += `Con thể hiện tốt ở ${dg.topStrengths.join(', ').toLowerCase()}. `;
       if (dg.highlights.length) tongHop += 'Một vài khoảnh khắc đáng nhớ: ' + dg.highlights.map((h) => ensureDot(lowerFirst(h))).join(' ');
