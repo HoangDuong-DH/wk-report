@@ -3216,7 +3216,8 @@ document.addEventListener('keydown', e=>{
 });
 
 /* ── Autosave to localStorage — v3: id-based cho named fields, index-based cho anon ── */
-const SAVE_KEY='wk-baocao-v3';
+const SAVE_KEY='wk-baocao-primary-v3';
+const LEGACY_SAVE_KEY='wk-baocao-v3';
 let saveTimer=null;
 function scheduleSave(){
   const ind=document.getElementById('save-ind');
@@ -3239,6 +3240,12 @@ function saveNow(){
 }
 function loadSaved(){
   try{
+    if(!localStorage.getItem(SAVE_KEY) && localStorage.getItem(LEGACY_SAVE_KEY)){
+      try{
+        localStorage.setItem(SAVE_KEY, localStorage.getItem(LEGACY_SAVE_KEY));
+        localStorage.setItem(LEGACY_SAVE_KEY+'-migrated-primary', '1');
+      }catch(_){}
+    }
     const raw=localStorage.getItem(SAVE_KEY); if(!raw) return;
     const data=JSON.parse(raw); if(!data.v || data.v<3) return;
     // STRUCTURE CHECK — nếu số input/textarea ẩn không khớp (do thêm/bớt
@@ -4376,6 +4383,62 @@ else { saveNow(); localStorage.removeItem('wk-baocao-v2'); }
 //     từ saved state. Đảm bảo người dùng luôn thấy label mới.
 const __postLoadMigrated = __runLabelMigration();
 if(__postLoadMigrated > 0){ setTimeout(()=>{ try{ saveNow(); }catch(_){} }, 200); }
+
+// Align legacy WonderKids file with tieu-hoc.html: fixed CMS max total 209
+// for the six t-nl thinking-domain rows.
+function enforceFixedT_NL_Maxes(){
+  const fixed = [34, 31, 39, 38, 43, 24];
+  document.querySelectorAll('#t-nl tbody tr[data-row]').forEach((tr, i)=>{
+    if(i >= fixed.length) return;
+    const mx = tr.querySelector('[data-max]');
+    if(!mx) return;
+    tr.setAttribute('data-nl-fixed-max', String(fixed[i]));
+    mx.value = fixed[i];
+    mx.readOnly = true;
+    mx.classList.add('fixed-max');
+  });
+}
+function migrateT_NL_To209(){
+  const FLAG = 'wk-primary-t-nl-migrated-209';
+  if(localStorage.getItem(FLAG) === '1') return;
+  localStorage.setItem(FLAG, '1');
+  const OLD_MAX = [30, 25, 35, 30, 25, 20];
+  const NEW_MAX = [34, 31, 39, 38, 43, 24];
+  let saved;
+  try{ saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); }catch(_){ return; }
+  if(!saved || !Array.isArray(saved.anonInputs)) return;
+  const allAnonInputs = [...document.querySelectorAll('.page input')].filter(el => !el.id);
+  let migrated = 0;
+  document.querySelectorAll('#t-nl tbody tr[data-row]').forEach((tr, i)=>{
+    if(i >= NEW_MAX.length) return;
+    const mxEl = tr.querySelector('[data-max]');
+    const cuEl = tr.querySelector('[data-cur]');
+    if(!mxEl || !cuEl) return;
+    const mxIdx = allAnonInputs.indexOf(mxEl);
+    const cuIdx = allAnonInputs.indexOf(cuEl);
+    if(mxIdx < 0 || cuIdx < 0) return;
+    const savedMx = parseFloat(saved.anonInputs[mxIdx]);
+    const savedCu = parseFloat(saved.anonInputs[cuIdx]);
+    if(isNaN(savedMx) || isNaN(savedCu) || savedCu === 0) return;
+    if(Math.abs(savedMx - OLD_MAX[i]) >= 0.5) return;
+    cuEl.value = Math.round(savedCu * NEW_MAX[i] / OLD_MAX[i] * 10) / 10;
+    migrated++;
+  });
+  if(migrated > 0){
+    setTimeout(()=>{ try{ refreshSummary(); saveNow(); }catch(_){} }, 350);
+  }
+}
+enforceFixedT_NL_Maxes();
+migrateT_NL_To209();
+if(typeof _cleanSlate === 'function' && !window.__fixedTnlCleanHooked){
+  window.__fixedTnlCleanHooked = true;
+  const __origCleanSlate = _cleanSlate;
+  window._cleanSlate = function(){
+    const result = __origCleanSlate.apply(this, arguments);
+    enforceFixedT_NL_Maxes();
+    return result;
+  };
+}
 
 refreshSummary();
 autoGrowAll();

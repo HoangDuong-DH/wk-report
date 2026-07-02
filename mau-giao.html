@@ -993,7 +993,7 @@ body.drag-over-mg #drop-overlay-mg{display:flex}
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ATOMIC WORKSPACE — Floating panel cho GV chấm 63 tiêu chí
+   ATOMIC WORKSPACE — Floating panel cho GV chấm bộ tiêu chí atomic
    ═══════════════════════════════════════════════════════════════ */
 #atomic-workspace{
   position:fixed;top:60px;left:50%;transform:translateX(-50%);
@@ -1391,118 +1391,6 @@ body.parent-mode::after{
 .validation-panel li.warn{color:#a86616}
 .validation-panel li.info{color:#666}
 
-/* INTEL_CSS_INJECTED */
-/* ═══════════════════════════════════════════════════════════════
-   INTELLIGENCE PANEL — Profile + Insights + Action Plan
-   ═══════════════════════════════════════════════════════════════ */
-.intel-panel{
-  padding:0 44px;margin-top:22px;position:relative;
-}
-.intel-panel-inner{
-  background:linear-gradient(135deg,#fff8ec 0%,#fff3e0 100%);
-  border:1.5px solid rgba(233,78,27,.2);
-  border-radius:16px;padding:24px 28px;
-}
-.intel-profile{
-  background:#fff;border-radius:12px;padding:18px 22px;margin-bottom:18px;
-  box-shadow:0 2px 12px rgba(0,0,0,.04);
-}
-.intel-profile-header{
-  display:flex;align-items:center;gap:18px;margin-bottom:10px;
-}
-.intel-profile-emoji{
-  font-size:54px;line-height:1;
-}
-.intel-profile-label{
-  font:700 10.5px/1 'Be Vietnam Pro', sans-serif;
-  color:#a4886a;letter-spacing:.12em;text-transform:uppercase;
-  margin-bottom:4px;
-}
-.intel-profile h3{
-  margin:0;font:800 22px/1.2 'Fredoka', 'Be Vietnam Pro', sans-serif;
-}
-.intel-headline{
-  margin:8px 0 14px;font:500 13.5px/1.55 'Be Vietnam Pro', sans-serif;
-  color:#3d2e1f;
-}
-.intel-grid-2col{
-  display:grid;grid-template-columns:1fr 1fr;gap:16px;
-  font:500 12.5px/1.55 'Be Vietnam Pro', sans-serif;
-  color:#5a4530;
-}
-.intel-grid-2col > div{
-  background:#fff8ec;padding:12px 14px;border-radius:8px;
-}
-.intel-grid-2col b{color:#df5728;font-weight:700}
-
-.intel-section{margin-top:18px}
-.intel-section h4{
-  margin:0 0 12px;font:800 15px/1.2 'Fredoka', 'Be Vietnam Pro', sans-serif;
-  color:#df5728;
-}
-
-.intel-insight{
-  display:flex;gap:12px;align-items:flex-start;
-  background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;
-  font:500 12.5px/1.55 'Be Vietnam Pro', sans-serif;color:#3d2e1f;
-  border-left:3px solid #f5b223;
-}
-.intel-insight-icon{
-  font-size:22px;line-height:1;flex-shrink:0;
-}
-.intel-insight b{color:#a44400}
-.intel-insight-desc{color:#5a4530}
-
-.intel-plan-note{
-  margin:0 0 10px;font:500 12px/1.5 'Be Vietnam Pro', sans-serif;
-  color:#a4886a;font-style:italic;
-}
-.intel-plan{
-  background:#fff;border-radius:10px;padding:14px 18px;margin-bottom:10px;
-  border-left:3px solid #5fa860;
-}
-.intel-plan-header{
-  font:700 13.5px/1.3 'Be Vietnam Pro', sans-serif;color:#3d2e1f;
-  margin-bottom:8px;
-}
-.intel-plan-sub{
-  font:500 11.5px/1 'Be Vietnam Pro', sans-serif;color:#a4886a;
-}
-.intel-plan-weeks{
-  margin:0;padding-left:20px;
-  font:500 12.5px/1.65 'Be Vietnam Pro', sans-serif;color:#3d2e1f;
-}
-.intel-plan-weeks li{margin-bottom:4px}
-.intel-plan-weeks b{color:#5fa860;font-weight:700}
-.intel-plan-followup{
-  margin:14px 0 0;font:600 12.5px/1.5 'Be Vietnam Pro', sans-serif;
-  color:#3d2e1f;text-align:center;
-  background:#fff3da;padding:10px 14px;border-radius:8px;
-}
-.intel-plan-followup b{color:#df5728}
-
-/* Parent mode: emphasize profile + plan, dim tech */
-body.parent-mode .intel-insight{display:none}
-
-/* Mobile responsive */
-@media (max-width:900px){
-  .intel-panel{padding:0 16px}
-  .intel-panel-inner{padding:18px 20px}
-  .intel-grid-2col{grid-template-columns:1fr}
-  .intel-profile-emoji{font-size:42px}
-  .intel-profile h3{font-size:18px}
-}
-
-/* Print: gọn hơn, không phá page break */
-@media print{
-  .intel-panel{padding:0 16mm;margin-top:14mm;break-inside:avoid;page-break-inside:avoid}
-  .intel-panel-inner{padding:12mm 16mm;background:#fff !important;border:1px solid #ccc}
-  .intel-insight{padding:6mm 8mm;background:#fff !important;break-inside:avoid}
-  .intel-plan{padding:6mm 8mm;background:#fff !important;break-inside:avoid}
-  .intel-profile{break-inside:avoid;background:#fff !important;border-left:3pt solid var(--orange-deep)}
-  .intel-section{break-before:auto}
-}
-
 /* DED_CSS_INJECTED */
 /* ═══════════════════════════════════════════════════════════════
    DEDUCTION PANEL CSS
@@ -1655,7 +1543,7 @@ body.parent-mode .deduction-section{display:none !important}
   <div id="batch-body">
     <div class="batch-empty" id="batch-empty">
       <div>Chưa có file nào tải</div>
-      <div style="margin-top:6px;font-size:11px">Chấm xong 63 tiêu chí trong Excel → upload nhiều file cùng lúc</div>
+      <div style="margin-top:6px;font-size:11px">Chấm xong bộ tiêu chí atomic trong Excel → upload nhiều file cùng lúc</div>
       <label class="upload-btn" for="batch-files-input">📂 Chọn file Excel...</label>
     </div>
     <div class="batch-list" id="batch-list" style="display:none"></div>
@@ -1675,10 +1563,10 @@ body.parent-mode .deduction-section{display:none !important}
 
 <div id="atomic-workspace">
   <div class="atomic-header">
-    <h2>🎓 Chấm chi tiết 63 tiêu chí</h2>
+    <h2>🎓 Chấm chi tiết <span data-atomic-total-label>0</span> tiêu chí</h2>
     <div class="atomic-actions">
       <button onclick="resetAtomicMG();_buildAtomicUI_MG();" title="Xóa hết điểm đã chấm">↻ Reset</button>
-      <button class="primary" onclick="applyAtomicToReportMG();_showToastMG('Đã áp dụng vào báo cáo','#5fb74f')" title="Tổng hợp 63 → 16 năng lực → cập nhật báo cáo">✓ Áp dụng vào báo cáo</button>
+      <button class="primary" onclick="applyAtomicToReportMG();_showToastMG('Đã áp dụng vào báo cáo','#5fb74f')" title="Tổng hợp atomic → 16 năng lực → cập nhật báo cáo">✓ Áp dụng vào báo cáo</button>
       <button onclick="toggleAtomicWorkspaceMG()" title="Đóng workspace">✕ Đóng</button>
     </div>
   </div>
@@ -1696,9 +1584,9 @@ body.parent-mode .deduction-section{display:none !important}
     <!-- 14 câu groups render bằng _buildAtomicUI_MG() -->
   </div>
   <div class="atomic-status">
-    <span>Tiến độ: <span id="atomic-filled-count">0</span>/63 tiêu chí</span>
+    <span>Tiến độ: <span id="atomic-filled-count">0</span>/<span data-atomic-total-label>0</span> tiêu chí</span>
     <div class="progress"><div class="fill" id="atomic-progress-fill"></div></div>
-    <span class="total" id="atomic-total-display">0/170 — 0%</span>
+    <span class="total" id="atomic-total-display">0/0 — 0%</span>
   </div>
 </div>
 
@@ -2019,9 +1907,6 @@ body.parent-mode .deduction-section{display:none !important}
     </div>
   </div>
   <!-- ─── SECTION 4: NHẬN XÉT CHUNG ─── -->
-  
-<!-- ═════ INTELLIGENCE LAYER — Profile + Insights + Action Plan ═════ -->
-
 <!-- DEDUCTION PANEL removed — không phù hợp với mô hình atomic 0-5 (GV đã tính trừ trong mức) -->
 <script>
 /* Cleanup: zero out deduction state để KPI không hiển thị trừ chuẩn nữa */
@@ -2040,9 +1925,6 @@ body.parent-mode .deduction-section{display:none !important}
   setTimeout(() => clearInterval(reset), 3000);
 })();
 </script>
-
-<!-- INTELLIGENCE PANEL removed — user yêu cầu bỏ section Profile + Insights -->
-
 <div class="s6">
     <div class="sec-h"><span class="num">4</span>Nhận xét chung
       <button class="auto-comment-btn-mg" onclick="fillCommentsMG(true)" title="Sinh nhận xét tự động từ kết quả đánh giá">🪄 Tự động nhận xét</button>
@@ -2489,8 +2371,9 @@ function aggregateAtomicMG(scores){
   scores = scores || __atomicScoresMG;
   const skillSum = {};   // {observation: {score: X, max: Y}}
   const cauSum = {};     // {1: {score: X, max: 10}, ...}
-  const supportSum = {1:{score:0,max:0,count:0,filled:0}, 2:{score:0,max:0,count:0,filled:0},
-                      3:{score:0,max:0,count:0,filled:0}, 4:{score:0,max:0,count:0,filled:0}};
+  const supportSum = {0:{score:0,max:0,count:0,filled:0}, 1:{score:0,max:0,count:0,filled:0},
+                      2:{score:0,max:0,count:0,filled:0}, 3:{score:0,max:0,count:0,filled:0},
+                      4:{score:0,max:0,count:0,filled:0}};
   const bloomSum = {};   // {bloom_label: {score, max, count}}
   const difficultySum = {Dễ:{score:0,max:0,count:0,filled:0},
                          'Trung bình':{score:0,max:0,count:0,filled:0},
@@ -2511,7 +2394,7 @@ function aggregateAtomicMG(scores){
     cauSum[c.cau].total++;
     if(scored) cauSum[c.cau].filled++;
     // Per-support (1-4)
-    if(c.support && supportSum[c.support]){
+    if(c.support != null && supportSum[c.support]){
       supportSum[c.support].score += point;
       supportSum[c.support].max += c.weight;
       supportSum[c.support].count++;
@@ -2622,6 +2505,8 @@ function setAtomicScoreMG(ma, level){
 // Reset all atomic scores
 function resetAtomicMG(){
   __atomicScoresMG = {};
+  if(typeof recomputeAllMG === 'function') recomputeAllMG();
+  if(typeof scheduleSaveMG === 'function') scheduleSaveMG();
 }
 
 
@@ -2683,6 +2568,92 @@ function _pctBadgeMG(p){
 function _scoreFromPctMG(max, pct){
   const m = Number(max) || 0;
   return Math.round(m * (Number(pct) || 0) / 100);
+}
+function _roundScoreMG(n){
+  const v = Math.round((Number(n) || 0) * 10) / 10;
+  return Number.isInteger(v) ? v : v;
+}
+function _hasAtomicScoresMG(){
+  return Object.keys(__atomicScoresMG || {}).length > 0;
+}
+function _atomicMaxScoreMG(){
+  return _roundScoreMG(__ATOMIC_CRITERIA_L3.reduce((a,c)=>a+(Number(c.weight)||0),0));
+}
+function _questionListMG(criteria){
+  return [...new Set(criteria.map(c=>c.cau))]
+    .sort((a,b)=>Number(a)-Number(b))
+    .join(', ');
+}
+function _criteriaStatsMG(criteria, scores){
+  scores = scores || __atomicScoresMG || {};
+  let score = 0, max = 0, filled = 0;
+  criteria.forEach(c=>{
+    max += Number(c.weight) || 0;
+    if(scores[c.ma] != null){
+      filled++;
+      score += _atomicPointMG(c.ma, scores[c.ma]);
+    }
+  });
+  score = _roundScoreMG(score);
+  max = _roundScoreMG(max);
+  return {
+    score,
+    max,
+    filled,
+    count: criteria.length,
+    pct: max ? Math.round(score / max * 100) : 0
+  };
+}
+function _unitRowFromCriteriaMG(unit, label, criteria){
+  const s = _criteriaStatsMG(criteria);
+  return {unit, label, questions:_questionListMG(criteria), max:s.max, score:s.score, pct:s.pct};
+}
+function _metricRowFromCriteriaMG(base, criteria){
+  const s = _criteriaStatsMG(criteria);
+  return Object.assign({}, base, {
+    questions:_questionListMG(criteria),
+    max:s.max,
+    score:s.score,
+    pct:s.pct,
+    count:s.count
+  });
+}
+function _syncAnalyticsFromAtomicMG(){
+  if(!_hasAtomicScoresMG()) return false;
+  const all = __ATOMIC_CRITERIA_L3;
+  const bySkills = skills => all.filter(c=>skills.includes(c.skill));
+  const unitDefs = [
+    ['A','Chú ý & Quan sát',['attention','observation']],
+    ['B','Ghi nhớ & Trình tự',['memory','analysis']],
+    ['C','Phân loại & Tổng hợp',['understanding','application','synthesis']],
+    ['D','Số, Đếm & Không gian',['number','geometry','measurement','data']],
+    ['E','Quy luật & Sáng tạo',['pattern','fluency','flexibility','originality','precision']]
+  ];
+  ANALYTICS_MG.units = unitDefs.map(([unit,label,skills]) => _unitRowFromCriteriaMG(unit, label, bySkills(skills)));
+  const total = _criteriaStatsMG(all);
+  ANALYTICS_MG.unitTotal = {max:total.max, score:total.score, pct:total.pct};
+
+  const high = all.filter(c=>c.difficulty === 'Khó' || c.bloom === 'Sáng tạo');
+  const concrete = all.filter(c=>!high.includes(c) && (c.difficulty === 'Dễ' || c.bloom === 'Nhận biết'));
+  const guided = all.filter(c=>!high.includes(c) && !concrete.includes(c));
+  ANALYTICS_MG.abstract = [
+    _metricRowFromCriteriaMG({level:'Trực quan cụ thể', label:'Nhận diện và thao tác trực tiếp'}, concrete),
+    _metricRowFromCriteriaMG({level:'Có suy luận/gợi ý', label:'Hiểu, áp dụng theo mẫu'}, guided),
+    _metricRowFromCriteriaMG({level:'Tự tạo/khái quát cao', label:'Bài khó, tổng hợp và sáng tạo'}, high)
+  ].filter(r=>r.max > 0);
+
+  const visual = all.filter(c=>c.support === 4 || c.support === 0);
+  const guidedChannel = all.filter(c=>c.support != null && c.support > 0 && c.support < 4);
+  ANALYTICS_MG.channel = [
+    _metricRowFromCriteriaMG({label:'Tự xử lý qua quan sát/trực quan'}, visual),
+    _metricRowFromCriteriaMG({label:'Cần nghe lại, gợi ý hoặc hướng dẫn'}, guidedChannel)
+  ].filter(r=>r.max > 0);
+
+  const bloomOrder = ['Nhận biết','Hiểu','Ứng dụng','Phân tích','Sáng tạo'];
+  ANALYTICS_MG.bloom = bloomOrder
+    .map(label => _metricRowFromCriteriaMG({label}, all.filter(c=>c.bloom === label)))
+    .filter(r=>r.max > 0);
+  return true;
 }
 function _setPctRowsMG(rows, pcts){
   rows.forEach((r,i)=>{
@@ -3110,6 +3081,7 @@ function _setChartA11yMG(svgId, title){
   svg.setAttribute('aria-label', title);
 }
 function renderAnalyticsMG(){
+  _syncAnalyticsFromAtomicMG();
   renderUnitAnalyticsMG();
   renderSupportAnalyticsMG();
   renderBloomAnalyticsMG();
@@ -3285,7 +3257,18 @@ function recomputeAllMG(){
   });
   // Update radar (lớn + mini) + donut
   if(typeof RADAR_DATA!=='undefined' && typeof renderRadar==='function'){
-    RADAR_DATA.child = [...abilities].map(ab=>__GRADE_PCT[_abilityGrade(ab)] || 50);
+    // FIX: Đồng bộ hóa phần trăm trên biểu đồ Radar lớn với động cơ Atomic chính xác
+    if(typeof aggregateAtomicMG === 'function' && Object.keys(__atomicScoresMG || {}).length > 0){
+      const agg = aggregateAtomicMG();
+      RADAR_DATA.child = [
+        agg.fields.basic?.pct ?? 50,
+        agg.fields.math?.pct ?? 50,
+        agg.fields.logic?.pct ?? 50,
+        agg.fields.creative?.pct ?? 50
+      ];
+    } else {
+      RADAR_DATA.child = [...abilities].map(ab=>__GRADE_PCT[_abilityGrade(ab)] || 50);
+    }
     renderRadar();
     if(typeof renderMiniRadars==='function') renderMiniRadars();
   }
@@ -3736,7 +3719,7 @@ function _showToastMG(msg, color){
 }
 
 /* ─── Autosave localStorage cho mẫu giáo ─── */
-const SAVE_KEY_MG = 'wk-baocao-mg-v1';
+const SAVE_KEY_MG = 'wk-baocao-mg-l3-v1';
 let saveTimerMG = null;
 let __wkRestoringMG = false;
 function _gradeFromSpanMG(span){
@@ -3755,6 +3738,10 @@ function captureStateMG(){
   document.querySelectorAll('.page [contenteditable="true"]').forEach(el=>{
     data.editables.push(el.innerHTML);
   });
+  data.atomicScores = Object.assign({}, __atomicScoresMG || {});
+  if(window.__deductionsMG){
+    data.deductions = Object.assign({}, window.__deductionsMG);
+  }
   data.analytics = JSON.parse(JSON.stringify(ANALYTICS_MG));
   return data;
 }
@@ -3762,6 +3749,13 @@ function restoreStateMG(data){
   if(!data || data.v !== 1) return false;
   __wkRestoringMG = true;
   try{
+    if(data.atomicScores && typeof data.atomicScores === 'object'){
+      __atomicScoresMG = Object.assign({}, data.atomicScores);
+    }
+    if(data.deductions && typeof data.deductions === 'object'){
+      window.__pendingDeductionsMG = Object.assign({}, data.deductions);
+      if(window.__deductionsMG) Object.assign(window.__deductionsMG, data.deductions);
+    }
     document.querySelectorAll('.page [data-field]').forEach(el=>{
       if(data.fields && data.fields[el.dataset.field] != null) el.value = data.fields[el.dataset.field];
     });
@@ -3789,7 +3783,11 @@ function restoreStateMG(data){
     }
     const sex = document.querySelector('[data-field="sex"]')?.value;
     if(sex && typeof updateAvatar === 'function') updateAvatar(sex);
-    if(typeof recomputeAllMG === 'function') recomputeAllMG();
+    if(Object.keys(__atomicScoresMG || {}).length && typeof applyAtomicToReportMG === 'function'){
+      applyAtomicToReportMG();
+    } else if(typeof recomputeAllMG === 'function') {
+      recomputeAllMG();
+    }
     return true;
   } finally {
     __wkRestoringMG = false;
@@ -3823,6 +3821,20 @@ function saveNowMG(){
 }
 function loadSavedMG(){
   try{
+    // Migration logic từ key dùng chung cũ 'wk-baocao-mg-v1'
+    if (!localStorage.getItem(SAVE_KEY_MG) && localStorage.getItem('wk-baocao-mg-v1')) {
+      try {
+        const legacyData = localStorage.getItem('wk-baocao-mg-v1');
+        localStorage.setItem(SAVE_KEY_MG, legacyData);
+        localStorage.setItem('wk-baocao-mg-v1-migrated-l3', '1');
+        if (localStorage.getItem('wk-baocao-mg-v1-migrated-l4') === '1') {
+          localStorage.removeItem('wk-baocao-mg-v1');
+        }
+        console.log('[loadSavedMG] Migrated legacy Level 3 data successfully');
+      } catch (e) {
+        console.warn('[loadSavedMG] Migration error:', e);
+      }
+    }
     const raw = localStorage.getItem(SAVE_KEY_MG);
     if(!raw) return false;
     const ok = restoreStateMG(JSON.parse(raw));
@@ -4208,6 +4220,7 @@ async function importExcelMG(ev){
   if(!f){ return; }
   // Silent flow — snapshot rollback đã bảo vệ khi import fail
   if(!_beginLoadMG()){ if(ev?.target) ev.target.value=''; return; }
+  const importSnapshot = typeof captureStateMG === 'function' ? captureStateMG() : null;
   const name = f.name.toLowerCase();
   const isCSV = name.endsWith('.csv') || f.type==='text/csv';
   try{
@@ -4293,20 +4306,28 @@ async function importExcelMG(ev){
       var rows = parseCSV_MG(text);
     }
 
-    const snapshot = typeof captureStateMG === 'function' ? captureStateMG() : null;
+    const snapshot = importSnapshot;
     _cleanSlateMG();
-    const {infoFilled, gradesFilled} = _applyParsedRowsMG(rows);
-    const analyticsFilled = _applyAnalyticsRowsMG(rows);
-    recomputeAllMG();
-    if(gradesFilled === 0 && infoFilled === 0 && analyticsFilled === 0){
+    try {
+      const {infoFilled, gradesFilled} = _applyParsedRowsMG(rows);
+      const analyticsFilled = _applyAnalyticsRowsMG(rows);
+      recomputeAllMG();
+      if(gradesFilled === 0 && infoFilled === 0 && analyticsFilled === 0){
+        if(snapshot && typeof restoreStateMG === 'function') restoreStateMG(snapshot);
+        _showToastMG('Không nhận diện được dữ liệu. File hỗ trợ: ATOMIC L3 (61 tiêu chí) hoặc format 16 năng lực.', '#d83c2d');
+      } else {
+        fillCommentsMG(true);
+        scheduleSaveMG();
+        _showToastMG(`Đã nhập: ${infoFilled} thông tin, ${gradesFilled}/16 năng lực, ${analyticsFilled} dòng phân tích`, '#5fb74f');
+      }
+    } catch (innerErr) {
       if(snapshot && typeof restoreStateMG === 'function') restoreStateMG(snapshot);
-      _showToastMG('Không nhận diện được dữ liệu. File hỗ trợ: ATOMIC L3 (61 tiêu chí) hoặc format 16 năng lực.', '#d83c2d');
-    } else {
-      fillCommentsMG(true);
-      scheduleSaveMG();
-      _showToastMG(`Đã nhập: ${infoFilled} thông tin, ${gradesFilled}/16 năng lực, ${analyticsFilled} dòng phân tích`, '#5fb74f');
+      throw innerErr;
     }
   }catch(err){
+    if(importSnapshot && typeof restoreStateMG === 'function'){
+      try{ restoreStateMG(importSnapshot); }catch(_){}
+    }
     console.error('[importExcelMG]', err);
     _showToastMG('Lỗi đọc file: ' + (err.message || err), '#d83c2d');
   } finally {
@@ -4428,6 +4449,11 @@ const __DEFAULT_S7_NHA_HTML_MG = (function(){
    Idempotent: gọi nhiều lần vẫn cho cùng kết quả. Ngăn residue khi chuyển data.
    ─────────────────────────────────────────────────────────────────────────── */
 function _cleanSlateMG(){
+  __atomicScoresMG = {};
+  if(window.__deductionsMG){
+    Object.keys(window.__deductionsMG).forEach(k => window.__deductionsMG[k] = 0);
+    try{ localStorage.removeItem(SAVE_KEY_MG + '-deductions'); }catch(_){}
+  }
   // 1) Reset info fields về rỗng (trừ gender select — giữ nguyên)
   document.querySelectorAll('.info-field input.val[data-field]').forEach(inp=>{
     if(inp.dataset.field === 'sex') return;  // skip gender, dùng reset bằng select bên dưới
@@ -4612,6 +4638,9 @@ function _pickAtomicLevel_MG(ma, level){
 }
 
 function _updateAtomicProgress_MG(){
+  document.querySelectorAll('[data-atomic-total-label]').forEach(el=>{
+    el.textContent = __ATOMIC_CRITERIA_L3.length;
+  });
   const agg = aggregateAtomicMG();
   const filled = Object.keys(__atomicScoresMG).length;
   const total = __ATOMIC_CRITERIA_L3.length;
@@ -4842,7 +4871,7 @@ function _renderBatchListMG(){
     html += '  <span class="status-ico ' + status + '">' + ico + '</span>';
     html += '  <span class="item-info">';
     html += '    <span class="item-name">' + (b.name || '—') + '</span>';
-    html += '    <span class="item-meta">' + Object.keys(b.scores).length + '/63 tiêu chí</span>';
+    html += '    <span class="item-meta">' + Object.keys(b.scores).length + '/' + __ATOMIC_CRITERIA_L3.length + ' tiêu chí</span>';
     html += '  </span>';
     html += '</div>';
   });
@@ -5213,453 +5242,6 @@ window.__showClassAnalyticsMG = function(){
   html += '</div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
 };
-
-</script>
-<!-- INTEL_JS_INJECTED -->
-<script>
-/* INTELLIGENCE LAYER */
-/* ═══════════════════════════════════════════════════════════════
-   INTELLIGENCE LAYER — Skill Profile + Insights + Action Plan
-   Biến report từ "list metrics" → "story + insight + action"
-   ═══════════════════════════════════════════════════════════════ */
-
-// ─── 1. SKILL PROFILE TYPING — 8 archetypes ───
-const __PROFILES_MG = {
-  PRODIGY: {
-    key: 'PRODIGY', emoji: '🌟', color: '#d4af37',
-    name: 'Thần đồng đa năng',
-    headline: 'Bé phát triển vượt trội ở cả 4 nhóm năng lực — hiếm gặp ở lứa tuổi.',
-    strengths: 'Tư duy logic, sáng tạo, toán học và năng lực cơ bản đều ở mức cao.',
-    growth: 'Tiếp tục thử thách bé với bài toán mở để tránh nhàm chán. Quan tâm đến phát triển kỹ năng xã hội cân bằng với học thuật.',
-  },
-  LOGICIAN: {
-    key: 'LOGICIAN', emoji: '🧠', color: '#4a7fc4',
-    name: 'Nhà tư duy logic',
-    headline: 'Bé có khả năng suy luận, phân tích vấn đề và tổng hợp thông tin nổi bật.',
-    strengths: 'Hiểu mối quan hệ nguyên nhân-kết quả, phân loại, lập luận chặt chẽ.',
-    growth: 'Khuyến khích thêm hoạt động sáng tạo (vẽ, kể chuyện) để cân bằng não trái-phải.',
-  },
-  ARTIST: {
-    key: 'ARTIST', emoji: '🎨', color: '#c4577a',
-    name: 'Tâm hồn sáng tạo',
-    headline: 'Bé giàu ý tưởng, linh hoạt và độc đáo — phù hợp các lĩnh vực nghệ thuật, thiết kế.',
-    strengths: 'Tư duy trôi chảy, linh hoạt, có nhiều ý tưởng mới lạ.',
-    growth: 'Cần luyện thêm tính tỉ mỉ, kiên nhẫn hoàn thiện chi tiết — tránh "vẽ vời" dở dang.',
-  },
-  MATHEMATICIAN: {
-    key: 'MATHEMATICIAN', emoji: '📐', color: '#5fa860',
-    name: 'Đầu óc toán học',
-    headline: 'Bé nắm vững các khái niệm số, hình học, đo lường và kiểu mẫu.',
-    strengths: 'Số học, hình học không gian, nhận diện quy luật.',
-    growth: 'Đầu tư thêm phần ngôn ngữ, kể chuyện để cân bằng tư duy phân tích vs cảm xúc.',
-  },
-  OBSERVER: {
-    key: 'OBSERVER', emoji: '🔍', color: '#d68a3c',
-    name: 'Người quan sát tinh tế',
-    headline: 'Bé tập trung tốt, quan sát chi tiết và ghi nhớ chắc chắn.',
-    strengths: 'Chú ý, quan sát và ghi nhớ — nền tảng tốt cho học tập kiên trì.',
-    growth: 'Cần luyện thêm phần ÁP DỤNG kiến thức (chuyển từ quan sát → hành động).',
-  },
-  ALLROUNDER: {
-    key: 'ALLROUNDER', emoji: '⚡', color: '#7e57c2',
-    name: 'Học sinh toàn diện',
-    headline: 'Bé phát triển đều ở 4 nhóm năng lực, không có điểm yếu rõ rệt.',
-    strengths: 'Cân bằng — linh hoạt thích ứng với nhiều loại bài học.',
-    growth: 'Có thể chọn 1 nhóm bé yêu thích nhất để đầu tư sâu hơn, tạo điểm vượt trội.',
-  },
-  LATE_BLOOMER: {
-    key: 'LATE_BLOOMER', emoji: '🌱', color: '#8a7560',
-    name: 'Bé cần thêm thời gian',
-    headline: 'Bé đang trong giai đoạn phát triển — cần đồng hành, kiên nhẫn và khuyến khích.',
-    strengths: 'Mỗi bé có tốc độ riêng — đây là điểm xuất phát, không phải mức độ tối đa.',
-    growth: 'Tập trung 1-2 hoạt động đơn giản 10p/ngày, ưu tiên niềm vui hơn kết quả.',
-  },
-  BALANCED: {
-    key: 'BALANCED', emoji: '🌈', color: '#3e98a4',
-    name: 'Phát triển hài hòa',
-    headline: 'Bé có nét nổi bật riêng kết hợp với những nhóm năng lực đang phát triển.',
-    strengths: 'Hồ sơ năng lực đa dạng — mỗi bé là 1 cá thể độc đáo.',
-    growth: 'Tiếp tục theo dõi để hỗ trợ đúng điểm mạnh và điểm cần luyện thêm.',
-  },
-};
-
-function __classifyProfileMG(){
-  if(typeof aggregateAtomicMG !== 'function') return __PROFILES_MG.BALANCED;
-  const agg = aggregateAtomicMG();
-  if(!agg.fields || Object.keys(agg.fields).length === 0) return __PROFILES_MG.BALANCED;
-  const cb = agg.fields.basic?.pct || 0;
-  const to = agg.fields.math?.pct || 0;
-  const lg = agg.fields.logic?.pct || 0;
-  const st = agg.fields.creative?.pct || 0;
-  const avg = (cb + to + lg + st) / 4;
-  const arr = [cb, to, lg, st];
-  const max = Math.max(...arr);
-  const min = Math.min(...arr);
-  const variance = max - min;
-
-  // Rules ordered by specificity (most specific first)
-  if(min > 75) return __PROFILES_MG.PRODIGY;
-  if(avg < 45) return __PROFILES_MG.LATE_BLOOMER;
-  if(variance < 12 && avg > 55) return __PROFILES_MG.ALLROUNDER;
-  if(st > 65 && st === max) return __PROFILES_MG.ARTIST;
-  if(lg > 65 && lg === max) return __PROFILES_MG.LOGICIAN;
-  if(to > 65 && to === max) return __PROFILES_MG.MATHEMATICIAN;
-  if(cb > 65 && cb === max) return __PROFILES_MG.OBSERVER;
-  return __PROFILES_MG.BALANCED;
-}
-
-// ─── 2. INSIGHT ENGINE — pattern-based rule firing ───
-function __generateInsightsMG(){
-  if(typeof aggregateAtomicMG !== 'function') return [];
-  const agg = aggregateAtomicMG();
-  const insights = [];
-  const sk = agg.skillSum || {};
-  const fields = agg.fields || {};
-  const support = agg.supportSum || {};
-  const bloom = agg.bloomSum || {};
-
-  const pct = key => sk[key]?.pct ?? null;
-  const fld = key => fields[key]?.pct ?? null;
-
-  // ─── Cross-field patterns ───
-  if(fld('basic') >= 60 && fld('logic') < 50){
-    insights.push({
-      icon:'🔍', tone:'observation',
-      title:'Quan sát tốt nhưng kết nối còn yếu',
-      desc:'Bé nhận biết thông tin xung quanh khá tốt nhưng chưa kết nối thành lập luận. Khuyến khích đặt câu hỏi "vì sao?" sau mỗi quan sát, kể lại quá trình bé suy nghĩ.'
-    });
-  }
-  if(fld('math') >= 60 && fld('creative') < 45){
-    insights.push({
-      icon:'📐', tone:'balance',
-      title:'Toán mạnh, sáng tạo cần khơi gợi',
-      desc:'Bé nắm tốt khái niệm số/hình nhưng thiếu hoạt động mở. Kết hợp toán với câu chuyện (vd: "có 3 con thỏ, mỗi con thích..."), khuyến khích vẽ tự do sau giờ học.'
-    });
-  }
-  if(fld('creative') >= 60 && pct('precision') !== null && pct('precision') < 45){
-    insights.push({
-      icon:'🎨', tone:'refine',
-      title:'Ý tưởng phong phú, cần luyện chi tiết',
-      desc:'Bé có nhiều ý tưởng nhưng chưa rèn được tính tỉ mỉ, hoàn thiện. Hoạt động xếp lego/origami nhiều bước, vẽ chi tiết, tô màu trong khung sẽ giúp ích.'
-    });
-  }
-  if(fld('logic') >= 60 && fld('basic') < 50){
-    insights.push({
-      icon:'🧠', tone:'foundation',
-      title:'Suy luận sắc bén, nền tảng cần củng cố',
-      desc:'Bé tư duy nhanh nhưng có thể "đốt cháy giai đoạn". Luyện thêm bài tập tập trung (puzzle 10p), ghi nhớ chuỗi đơn giản trước khi bài khó.'
-    });
-  }
-
-  // ─── Single skill spotlights ───
-  if(pct('memory') !== null && pct('memory') < 40 && pct('attention') > 55){
-    insights.push({
-      icon:'⏳', tone:'memory',
-      title:'Tập trung OK nhưng nhớ chưa lâu',
-      desc:'Bé chú ý được tại thời điểm học nhưng chưa chuyển vào trí nhớ dài hạn. Cách giúp: hỏi lại bé sau 1 tiếng / hôm sau về việc vừa học, dùng flashcard.'
-    });
-  }
-  if(pct('pattern') > 65 && pct('application') !== null && pct('application') < 45){
-    insights.push({
-      icon:'🔁', tone:'application',
-      title:'Nhận ra quy luật nhưng chưa áp dụng',
-      desc:'Bé thấy được pattern nhưng chưa dùng để giải bài mới. Cùng bé tạo "tủ rule": tự nghĩ luật rồi áp dụng (vd: "tất cả con vật có cánh đều biết bay → tìm phản ví dụ").'
-    });
-  }
-  if(pct('analysis') !== null && pct('analysis') < 40 && pct('synthesis') !== null && pct('synthesis') < 40){
-    insights.push({
-      icon:'🧩', tone:'logic-build',
-      title:'Logic phức tạp đang xây dựng',
-      desc:'Phân tích + tổng hợp đều ở mức cần luyện — bình thường với lứa mẫu giáo. Câu chuyện có 3-4 yếu tố để bé sắp xếp lại theo logic.'
-    });
-  }
-
-  // ─── Autonomy patterns ───
-  if(support[4] && support[4].pct >= 60 && support[1] && support[1].pct < 30){
-    insights.push({
-      icon:'🦋', tone:'autonomy',
-      title:'Tự lập tốt nhưng gặp khó khi cần hỗ trợ',
-      desc:'Bé giỏi khi tự làm nhưng khi câu khó cần hướng dẫn thì lúng túng. Tập "yêu cầu giúp đỡ" — bé học cách hỏi rõ ràng cũng là kỹ năng quan trọng.'
-    });
-  }
-  if(support[1] && support[1].pct >= 60 && support[4] && support[4].pct < 40){
-    insights.push({
-      icon:'🤝', tone:'guidance',
-      title:'Tốt với hướng dẫn, cần nuôi tự tin',
-      desc:'Bé hoàn thành tốt khi có người dắt nhưng e ngại tự làm. Khuyến khích thử trước 3 phút trước khi gọi giúp đỡ — xây tự tin từng bước.'
-    });
-  }
-
-  // ─── Bloom patterns ───
-  const bloomAvg = (b) => b && b.pct != null ? b.pct : null;
-  const bnhan = bloomAvg(bloom['Nhận biết']);
-  const bhieu = bloomAvg(bloom['Hiểu']);
-  const bung = bloomAvg(bloom['Ứng dụng']);
-  const bphan = bloomAvg(bloom['Phân tích']);
-  if(bnhan != null && bphan != null && bnhan > 65 && bphan < 40){
-    insights.push({
-      icon:'📚', tone:'depth',
-      title:'Biết nhiều, hiểu sâu cần thời gian',
-      desc:'Bé nhận biết tốt nhưng chưa phân tích sâu — phù hợp tuổi. Đừng vội ép, thay vào đó hỏi "con thấy giống/khác gì?" sau mỗi câu chuyện.'
-    });
-  }
-  if(bung != null && bphan != null && bung > 60 && bphan > 60){
-    insights.push({
-      icon:'🚀', tone:'advanced',
-      title:'Đã sẵn sàng cho bài học sâu hơn',
-      desc:'Cả ứng dụng và phân tích đều cao — bé có thể tiếp cận bài tập mở hơn (sách bài tập lớp lớn hơn, dự án mini 1 tuần).'
-    });
-  }
-
-  // ─── Difficulty patterns ───
-  const diff = agg.difficultySum || {};
-  if(diff['Khó']?.pct >= 60){
-    insights.push({
-      icon:'💎', tone:'challenge',
-      title:'Sẵn sàng với thử thách khó',
-      desc:'Bé làm tốt câu khó (>60%) — không nên chỉ cho bé câu dễ. Giới thiệu bài stem, câu đố nhiều bước phù hợp tuổi.'
-    });
-  }
-  if(diff['Dễ']?.pct < 50 && diff['Trung bình']?.pct < 40){
-    insights.push({
-      icon:'🌱', tone:'foundation-rebuild',
-      title:'Cần củng cố nền tảng cơ bản',
-      desc:'Câu dễ và trung bình đang ở mức cần luyện thêm. Quay lại các hoạt động đơn giản: đếm 1-10, hình tròn-vuông-tam giác, nhớ 2-3 đồ vật.'
-    });
-  }
-
-  return insights.slice(0, 4);  // Tối đa 4 insights để không overwhelm
-}
-
-// ─── 3. ACTION PLAN 4-WEEK GENERATOR ───
-const __ACTION_PLANS_MG = {
-  attention: {
-    title:'Luyện tập trung',
-    weeks:[
-      'Cùng bé tô màu / xếp hình KHÔNG ngắt 10 phút mỗi ngày',
-      'Đọc sách 5 phút, dừng giữa hỏi "vừa rồi mẹ kể gì?"',
-      'Trò chơi "Tìm 5 điểm khác nhau" giữa 2 bức tranh',
-      'Câu đố "nghe và nhớ chuỗi 4-5 yếu tố", phản hồi đúng/sai',
-    ],
-  },
-  observation: {
-    title:'Luyện quan sát',
-    weeks:[
-      'Đi siêu thị, chỉ giúp mẹ 3 món màu đỏ / hình tròn',
-      'Quan sát 1 đồ vật 30 giây, che lại — kể lại đặc điểm',
-      'So sánh 2 con vật: ai có gì khác nhau?',
-      'Vẽ lại 1 đồ vật từ trí nhớ sau khi đã quan sát kỹ',
-    ],
-  },
-  memory: {
-    title:'Luyện ghi nhớ',
-    weeks:[
-      'Nghe và lặp lại chuỗi 3 số / 3 từ',
-      'Kể lại câu chuyện vừa nghe theo trình tự',
-      'Trò chơi memory pair cards (8 cặp)',
-      'Hôm sau hỏi bé về phim/sách hôm trước — nhớ chi tiết',
-    ],
-  },
-  understanding: {
-    title:'Luyện hiểu biết',
-    weeks:[
-      'Đọc truyện ngắn, hỏi "nhân vật cảm thấy thế nào?"',
-      'Xem hoạt hình xong: "vì sao bạn nhỏ buồn?"',
-      'Giải thích lý do hành động (vd: tại sao mặc áo ấm)',
-      'Thử trả lời câu hỏi mở "nếu...thì..."',
-    ],
-  },
-  application: {
-    title:'Luyện ứng dụng',
-    weeks:[
-      'Cho bé chỉ dẫn 2 bước: "lấy bút, ngồi ghế"',
-      'Tự mặc áo, cài cúc, đi giày — kỹ năng tự lập',
-      'Áp dụng quy luật đã học vào trò chơi mới',
-      'Giải bài toán mở: cho 3 đồ, bé nghĩ cách dùng',
-    ],
-  },
-  analysis: {
-    title:'Luyện phân tích',
-    weeks:[
-      'So sánh 2 con vật: cao-thấp, nặng-nhẹ, dài-ngắn',
-      'Phân loại đồ chơi theo nhóm (cứng/mềm, to/nhỏ)',
-      'Sắp xếp 4 tranh theo thứ tự sự việc',
-      'Tìm điểm chung/khác giữa 3 đối tượng',
-    ],
-  },
-  synthesis: {
-    title:'Luyện tổng hợp',
-    weeks:[
-      'Cho 3 đồ chơi bất kỳ, bé kể chuyện có cả 3',
-      'Cùng làm bánh: chọn 2-3 nguyên liệu yêu thích',
-      'Vẽ 1 bức tranh có 4 yếu tố theo gợi ý',
-      'Sáng tạo câu chuyện kết thúc từ đầu chuyện mẹ kể',
-    ],
-  },
-  number: {
-    title:'Luyện số học',
-    weeks:[
-      'Đếm trong sinh hoạt: bao nhiêu cái ghế, người',
-      'Phép cộng đơn giản trong 5 (dùng đồ vật)',
-      'Phép cộng trong 10 (lá, viên kẹo)',
-      'So sánh nhiều-ít, lớn-nhỏ với số cụ thể',
-    ],
-  },
-  geometry: {
-    title:'Luyện hình học',
-    weeks:[
-      'Chỉ ra hình tròn / vuông / tam giác xung quanh',
-      'Xếp hình lego/wooden block theo mẫu',
-      'Vẽ lại hình 3D đơn giản (ngôi nhà, ô tô)',
-      'Ghép hình puzzle 12-20 mảnh',
-    ],
-  },
-  measurement: {
-    title:'Luyện đo lường',
-    weeks:[
-      'Đo bằng gang tay: bàn dài mấy gang? ghế?',
-      'So sánh độ dài 3 đối tượng',
-      'Xếp thứ tự cao-thấp 5 con thú nhồi bông',
-      'Đánh dấu chiều cao bé mỗi tháng trên tường',
-    ],
-  },
-  pattern: {
-    title:'Luyện kiểu mẫu',
-    weeks:[
-      'Tô màu theo trình tự đỏ-xanh-đỏ-xanh',
-      'Xếp đồ chơi theo quy luật ABAB',
-      'Tự tạo pattern mới (vd: AABB, ABCABC)',
-      'Tìm số tiếp theo trong dãy 2-4-6-?-10',
-    ],
-  },
-  data: {
-    title:'Luyện dữ liệu',
-    weeks:[
-      'Sắp xếp đồ chơi theo nhóm (xe, búp bê, gấu)',
-      'Dọn tủ lạnh: rau riêng, trái cây riêng',
-      'Đếm + biểu đồ đơn giản: nhà mình có mấy người, ăn mấy món',
-      'Khảo sát mini: hỏi 3 người thích màu gì → so sánh',
-    ],
-  },
-  fluency: {
-    title:'Luyện trôi chảy ý tưởng',
-    weeks:[
-      'Hỏi "kể 5 cách dùng cái ly?" — nhiều ý',
-      'Nhìn vết bẩn / mây / vệt sơn — tưởng tượng giống gì',
-      'Brainstorm: nếu là siêu nhân, bé sẽ làm gì? (5 idea)',
-      'Trò chơi "Yes, and..." — phát triển ý từ câu trước',
-    ],
-  },
-  flexibility: {
-    title:'Luyện linh hoạt',
-    weeks:[
-      'Cho bé 1 hình, vẽ thêm thành 5 thứ khác nhau',
-      'Đổi luật trò chơi giữa chừng — bé thích nghi',
-      'Kể chuyện ngược (từ kết thúc → đầu)',
-      'Tìm 3 cách giải khác nhau cho cùng 1 vấn đề',
-    ],
-  },
-  originality: {
-    title:'Luyện độc đáo',
-    weeks:[
-      'Vẽ 1 con vật chưa từng có thật trong đời',
-      'Đặt tên độc đáo cho gấu bông, đồ vật',
-      'Sáng tác bài hát ngắn 2 câu',
-      'Thiết kế ngôi nhà cho mèo cổ tích',
-    ],
-  },
-  precision: {
-    title:'Luyện chính xác chi tiết',
-    weeks:[
-      'Tô màu trong khung không lem',
-      'Vẽ đường thẳng nối 2 điểm chính xác',
-      'Origami 3-5 bước, hoàn thiện gọn gàng',
-      'Sao chép một bức tranh đơn giản, càng giống càng tốt',
-    ],
-  },
-};
-
-function __generateActionPlanMG(weakSkills){
-  // weakSkills = mảng key skill yếu nhất (top 2)
-  const plans = [];
-  for(const sk of weakSkills.slice(0, 2)){
-    const plan = __ACTION_PLANS_MG[sk];
-    if(plan) plans.push({skill: sk, ...plan});
-  }
-  return plans;
-}
-
-// ─── 4. RENDER INTELLIGENCE PANEL ───
-function renderIntelligencePanelMG(){
-  const target = document.getElementById('mg-intelligence-panel');
-  if(!target) return;
-  const profile = __classifyProfileMG();
-  const insights = __generateInsightsMG();
-  // Find 2 weakest skills (filter ra skills có data)
-  const agg = (typeof aggregateAtomicMG === 'function') ? aggregateAtomicMG() : {skillSum:{}};
-  const skLabels = (typeof __ATOMIC_SKILL_LABELS_MG !== 'undefined') ? __ATOMIC_SKILL_LABELS_MG : {};
-  const skArr = Object.entries(agg.skillSum || {})
-    .filter(([k, s]) => s && s.max > 0)
-    .map(([k, s]) => ({key:k, pct:s.pct, label: skLabels[k] || k}))
-    .sort((a, b) => a.pct - b.pct);
-  const weakest = skArr.slice(0, 2);
-  const plans = __generateActionPlanMG(weakest.map(s => s.key));
-
-  // Build HTML
-  let html = '<div class="intel-panel-inner">';
-
-  // Profile card
-  html += `<div class="intel-profile" style="border-left:5px solid ${profile.color}">`;
-  html += `<div class="intel-profile-header">`;
-  html += `<span class="intel-profile-emoji">${profile.emoji}</span>`;
-  html += `<div><div class="intel-profile-label">PROFILE NĂNG LỰC</div>`;
-  html += `<h3 style="color:${profile.color}">${_escHtmlMG(profile.name)}</h3></div>`;
-  html += `</div>`;
-  html += `<p class="intel-headline">${_escHtmlMG(profile.headline)}</p>`;
-  html += `<div class="intel-grid-2col">`;
-  html += `<div><b>✅ Điểm mạnh:</b><br>${_escHtmlMG(profile.strengths)}</div>`;
-  html += `<div><b>🌱 Hướng phát triển:</b><br>${_escHtmlMG(profile.growth)}</div>`;
-  html += `</div>`;
-  html += `</div>`;
-
-  // Insights
-  if(insights.length > 0){
-    html += '<div class="intel-section"><h4>💡 Insight chi tiết</h4>';
-    insights.forEach(ins => {
-      html += `<div class="intel-insight">`;
-      html += `<span class="intel-insight-icon">${ins.icon}</span>`;
-      html += `<div><b>${_escHtmlMG(ins.title)}</b><br><span class="intel-insight-desc">${_escHtmlMG(ins.desc)}</span></div>`;
-      html += `</div>`;
-    });
-    html += '</div>';
-  }
-
-  // [REMOVED] Action plan 4 weeks — user yêu cầu bỏ section này
-  // Giữ logic generateActionPlan để có thể restore nếu cần sau
-
-  html += '</div>';
-  target.innerHTML = html;
-}
-
-// Hook vào recompute pipeline
-(function hookIntelligence(){
-  const wait = setInterval(() => {
-    if(typeof recomputeAllMG === 'function' && !window.__intelHooked){
-      window.__intelHooked = true;
-      const orig = window.recomputeAllMG;
-      window.recomputeAllMG = function(){
-        orig.apply(this, arguments);
-        if(typeof renderIntelligencePanelMG === 'function'){
-          try{ renderIntelligencePanelMG(); } catch(e){ console.warn('intel render fail:', e); }
-        }
-      };
-      clearInterval(wait);
-      // Initial render
-      setTimeout(() => { try{ renderIntelligencePanelMG(); }catch(e){} }, 300);
-    }
-  }, 100);
-  setTimeout(() => clearInterval(wait), 5000);
-})();
 
 </script>
 <!-- INPUT_ALIGN_INJECTED -->
@@ -6066,6 +5648,7 @@ window.__downloadXlsxTemplate = function(level){
    ═══════════════════════════════════════════════════════════════ */
 
 // ─── 1. DEDUCTION STATE ───
+const DEDUCTION_SAVE_KEY_MG = SAVE_KEY_MG + '-deductions';
 window.__deductionsMG = {
   markedWrong:    0,  // Đúng nhưng đánh dấu lựa chọn sai
   markedBoth:     0,  // Đúng nhưng đánh dấu cả đúng-sai
@@ -6091,21 +5674,25 @@ window.__totalDeductionMG = function(){
 window.__setDeductionMG = function(key, value){
   __deductionsMG[key] = Math.max(0, +value || 0);
   // Save state
-  try{ localStorage.setItem('mg-deductions', JSON.stringify(__deductionsMG)); }catch(_){}
+  try{ localStorage.setItem(DEDUCTION_SAVE_KEY_MG, JSON.stringify(__deductionsMG)); }catch(_){}
   // Trigger recompute
   if(typeof recomputeAllMG === 'function') recomputeAllMG();
+  if(typeof scheduleSaveMG === 'function') scheduleSaveMG();
   if(typeof renderDeductionPanelMG === 'function') renderDeductionPanelMG();
 };
 
 // Restore from localStorage
 (function restoreDeductions(){
   try{
-    const saved = localStorage.getItem('mg-deductions');
+    const saved = window.__pendingDeductionsMG
+      ? JSON.stringify(window.__pendingDeductionsMG)
+      : localStorage.getItem(DEDUCTION_SAVE_KEY_MG);
     if(saved){
       const obj = JSON.parse(saved);
       Object.keys(__deductionsMG).forEach(k => {
         if(typeof obj[k] === 'number') __deductionsMG[k] = obj[k];
       });
+      delete window.__pendingDeductionsMG;
     }
   }catch(_){}
 })();

@@ -4,8 +4,9 @@
     {
       "name": "ctrc-static",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "4178"],
-      "port": 4178
+      "runtimeArgs": ["-c", "import os,http.server;P=int(os.environ.get('PORT','4191'));\nclass H(http.server.SimpleHTTPRequestHandler):\n protocol_version='HTTP/1.1'\n def log_message(self,*a):pass\nhttp.server.ThreadingHTTPServer(('127.0.0.1',P),H).serve_forever()"],
+      "port": 4191,
+      "autoPort": true
     }
   ]
 }

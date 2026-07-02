@@ -4,3 +4,17 @@ _gen_pdf.py
 .DS_Store
 Thumbs.db
 node_modules/
+
+# Student data — NEVER commit to this PUBLIC repo (Nghị định 13/2023/NĐ-CP)
+uploads/
+**/uploads/
+_restore.xlsx
+*_DGDK_*.xlsx
+
+# Debug / scratch artifacts
+_check*.png
+pasted-*.png
+*.napkin
+
+# Local-only secrets note (keep keys here, out of git)
+SECRETS.local.md
