@@ -476,8 +476,8 @@ body{background:
 <div id="modal-root"></div>
 
 <script src="config.js?v=30"></script>
-<script src="db.js?v=29"></script>
-<script src="engine.js?v=29"></script>
+<script src="db.js?v=30"></script>
+<script src="engine.js?v=30"></script>
 <script src="lessons.js?v=29"></script>
 <script src="objectives.js?v=29"></script>
 <script>
@@ -765,6 +765,8 @@ async function boot(){
   try { mode = await DB.init(); }
   catch(e){ console.error(e); toast('Lỗi kết nối backend, chạy tạm demo: '+e.message,'var(--primary-2)'); }
   CENTER = await DB.getCenter();
+  // tiêu chí tùy chỉnh của trung tâm (lưu ở centers.criteria — đồng bộ mọi máy)
+  if (CENTER && CENTER.criteria) { try { ENG.setCriteria(CENTER.criteria); } catch(_){} }
   $('#login-center').textContent = CENTER ? CENTER.name : 'WonderKids';
   $('#tb-center').textContent = CENTER ? CENTER.name : 'WonderKids';
   $('#mode-note').textContent = mode==='supabase' ? '🟢 Kết nối Supabase' : '⚡ Demo (localStorage)';
@@ -2543,14 +2545,77 @@ async function viewConfig(){
         ${themes.map(t=>`<tr><td>${esc(t.week_start)}</td><td>${esc(t.title)}</td></tr>`).join('')||'<tr><td colspan=2 style="color:var(--mute)">Chưa có.</td></tr>'}</tbody></table>
     </div>
     <div class="card">
-      <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">5 tiêu chí đánh giá mỗi buổi</b>
-      <div class="hint" style="margin:6px 0 10px">Mỗi buổi, GV chọn 1 tiêu chí là <b>điểm mạnh</b> và 1 tiêu chí <b>cần cải thiện</b>. Sửa câu mô tả trong <code>rules/bao-cao-per-buoi.md</code>.</div>
-      ${ENG.CRITERIA.map(c=>`<div style="padding:8px 0;border-top:1px solid var(--line)">
-        <b style="font:700 13px/1.3 var(--font)">${c.emoji} ${esc(c.label)}</b>
-        <div class="hint" style="margin-top:2px">${esc(c.desc)}</div></div>`).join('')}
+      <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">🎯 5 tiêu chí đánh giá mỗi buổi — tùy chỉnh được</b>
+        <span class="row" style="gap:8px">
+          <button class="btn sm" onclick="CTRC.critReset()">↺ Về mặc định</button>
+          <button class="btn primary sm" onclick="CTRC.critSave()">💾 Lưu & áp dụng</button>
+        </span>
+      </div>
+      <div class="hint" style="margin:6px 0 4px">Sửa tên, mô tả, <b>các câu tick sẵn</b> (mỗi dòng 1 câu) và gợi ý ở nhà — bấm <b>Lưu</b> là áp dụng ngay cho <b>mọi máy</b> (form chấm của GV đổi theo). ${CENTER&&CENTER.criteria?'<b style="color:var(--green)">Đang dùng bản tùy chỉnh.</b>':'Đang dùng bản gốc WonderKids.'}</div>
+      <div id="crit-editor">
+      ${ENG.CRITERIA.map((c,i)=>`
+        <div style="padding:12px 0;border-top:1.5px dashed var(--line)">
+          <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="input" id="crit-emoji-${i}" value="${esc(c.emoji)}" maxlength="4" style="width:56px;text-align:center;font-size:17px" title="Emoji">
+            <input class="input" id="crit-label-${i}" value="${esc(c.label)}" maxlength="24" placeholder="Tên tiêu chí" style="flex:1;min-width:130px;font-weight:800">
+            <code style="font-size:10px;color:var(--mute);background:var(--pill);padding:4px 8px;border-radius:8px" title="Mã hệ thống — cố định để không lệch dữ liệu đã chấm">${esc(c.key)}</code>
+          </div>
+          <input class="input" id="crit-desc-${i}" value="${esc(c.desc)}" placeholder="Mô tả ngắn (hiện khi rê chuột vào chip)" style="width:100%;margin-top:8px;font-size:12.5px">
+          <div class="row" style="gap:10px;margin-top:8px;align-items:flex-start;flex-wrap:wrap">
+            <div style="flex:1;min-width:240px">
+              <label style="font:700 10.5px/1 var(--font);color:#46901f;letter-spacing:.04em">✅ CÂU ĐIỂM MẠNH — mỗi dòng 1 câu</label>
+              <textarea class="input" id="crit-pos-${i}" style="width:100%;min-height:96px;margin-top:4px;font-size:12.5px;line-height:1.55">${esc(c.pos.join('\n'))}</textarea>
+            </div>
+            <div style="flex:1;min-width:240px">
+              <label style="font:700 10.5px/1 var(--font);color:#c0691a;letter-spacing:.04em">📌 CÂU CẦN CẢI THIỆN — mỗi dòng 1 câu</label>
+              <textarea class="input" id="crit-neg-${i}" style="width:100%;min-height:96px;margin-top:4px;font-size:12.5px;line-height:1.55">${esc(c.neg.join('\n'))}</textarea>
+            </div>
+          </div>
+          <input class="input" id="crit-tip-${i}" value="${esc(c.tip)}" placeholder="💡 Gợi ý bố mẹ làm ở nhà (dùng cho báo cáo tuần)" style="width:100%;margin-top:8px;font-size:12.5px">
+        </div>`).join('')}
+      </div>
     </div>`;
   AICFG = AI.get();
   renderAICard('#ai-card-wrap');
+}
+
+/* ── TÙY CHỈNH 5 TIÊU CHÍ (lưu centers.criteria — đồng bộ mọi máy) ── */
+function _readCritEditor(){
+  return ENG.CRITERIA.map((c,i)=>{
+    const g=id=>{ const el=$('#'+id+'-'+i); return el?el.value:''; };
+    const lines=v=>v.split('\n').map(s=>s.trim()).filter(Boolean);
+    return { key:c.key, emoji:g('crit-emoji').trim()||c.emoji, label:g('crit-label').trim(),
+      desc:g('crit-desc').trim(), pos:lines(g('crit-pos')), neg:lines(g('crit-neg')), tip:g('crit-tip').trim() };
+  });
+}
+async function critSave(){
+  const list=_readCritEditor();
+  for(const c of list){
+    if(!c.label){ toast('Có tiêu chí đang thiếu TÊN','var(--primary-2)'); return; }
+    if(!c.pos.length || !c.neg.length){ toast(`"${c.label}": cần ít nhất 1 câu điểm mạnh + 1 câu cần cải thiện`,'var(--primary-2)'); return; }
+    const v=ENG.checkVoice(c.pos.concat(c.neg,[c.desc,c.tip]).join(' '));
+    if(!v.ok){ toast(`"${c.label}" chứa từ nên tránh với phụ huynh: ${v.banned.join(', ')}`,'var(--primary-2)'); return; }
+  }
+  try{
+    await DB.updateCenter(CENTER.id, { criteria:list });
+    CENTER.criteria=list; ENG.setCriteria(list);
+    await DB.audit(CENTER.id, STAFF, 'criteria_update', 'center', CENTER.id, {});
+    toast('✓ Đã lưu 5 tiêu chí — áp dụng cho mọi máy');
+    viewConfig();
+  }catch(e){
+    const msg=String(e.message||e);
+    toast(/criteria/.test(msg)?'Thiếu cột criteria trên Supabase — chạy ctrc/schema-patch-v3.sql (3 dòng) rồi lưu lại':'Lỗi lưu: '+msg,'var(--primary-2)');
+  }
+}
+async function critReset(){
+  if(!confirm('Trả 5 tiêu chí về bản gốc WonderKids? (Bản tùy chỉnh hiện tại sẽ mất)')) return;
+  try{
+    await DB.updateCenter(CENTER.id, { criteria:null });
+    CENTER.criteria=null; ENG.setCriteria(ENG.defaultCriteria());
+    await DB.audit(CENTER.id, STAFF, 'criteria_reset', 'center', CENTER.id, {});
+    toast('↺ Đã trả về bản gốc'); viewConfig();
+  }catch(e){ toast('Lỗi: '+(e.message||e),'var(--primary-2)'); }
 }
 
 /* Mở cấu hình AI dạng popup — cho MỌI vai trò (nút ⚙ AI trên thanh trên) */
@@ -2734,6 +2799,7 @@ window.CTRC = {
   gvFilter, quickAttendance, saveQuickAttendance, quickApprove,
   editLessonContext, prefillLessonFromLib, saveLessonContext, clearLessonContext,
   objCount, objSave, objSaveAll, objReset,
+  critSave, critReset,
   addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, genAICustom, approve, returnToGV, confirmReturn, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme,

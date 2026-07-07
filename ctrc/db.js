@@ -257,6 +257,10 @@
       if (CFG.centerId) return list.find((c) => c.id === CFG.centerId) || list[0];
       return list[0];
     },
+    async updateCenter(id, patch) {
+      const rows = await adapter.update('centers', { id }, patch);
+      return rows && rows[0];
+    },
     async listStaff(centerId) {
       return adapter.select('staff', { center_id: centerId });
     },

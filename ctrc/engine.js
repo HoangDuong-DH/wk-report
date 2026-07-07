@@ -50,6 +50,33 @@
   // tương thích chỗ cũ còn lặp qua DIMS
   const DIMS = CRITERIA.map((c) => ({ key: c.key, label: c.label }));
 
+  /* ── TIÊU CHÍ TÙY CHỈNH ──
+     Bản gốc giữ ở DEFAULT_CRITERIA. setCriteria(list) thay nội dung TẠI CHỖ
+     (mutate in-place) để mọi nơi đang giữ tham chiếu ENG.CRITERIA/DIMS thấy ngay.
+     Key hệ thống (tap_trung...) giữ nguyên để không lệch dữ liệu đã chấm. */
+  const DEFAULT_CRITERIA = JSON.parse(JSON.stringify(CRITERIA));
+  function _rebuildCritMaps() {
+    Object.keys(CRIT_BY_KEY).forEach((k) => delete CRIT_BY_KEY[k]);
+    CRITERIA.forEach((c) => (CRIT_BY_KEY[c.key] = c));
+    Object.keys(TIP_BY_CRIT).forEach((k) => delete TIP_BY_CRIT[k]);
+    CRITERIA.forEach((c) => (TIP_BY_CRIT[c.key] = c.tip));
+    DIMS.length = 0; CRITERIA.forEach((c) => DIMS.push({ key: c.key, label: c.label }));
+  }
+  function setCriteria(list) {
+    if (!Array.isArray(list) || !list.length) return false;
+    const ok = list.every((c) => c && c.key && c.label &&
+      Array.isArray(c.pos) && c.pos.length && Array.isArray(c.neg) && c.neg.length);
+    if (!ok) return false;
+    CRITERIA.length = 0;
+    list.forEach((c) => CRITERIA.push({
+      key: String(c.key), label: String(c.label), emoji: c.emoji || '✨',
+      desc: c.desc || '', pos: c.pos.map(String), neg: c.neg.map(String), tip: c.tip || '',
+    }));
+    _rebuildCritMaps();
+    return true;
+  }
+  function defaultCriteria() { return JSON.parse(JSON.stringify(DEFAULT_CRITERIA)); }
+
   const BANNED = ['kém', 'yếu', 'tệ', 'dốt', 'lười', 'chậm chạp', 'ngu', 'hư'];
 
   const OPENERS = [
@@ -266,5 +293,6 @@
   window.CTRC_ENGINE = {
     CRITERIA, DIMS, critLabel, generate, checkVoice, composeZalo, inferProfile,
     fmtDate, seedOf, suggestFromObservation, computeInsights, weeklyDigest, weeklyNarrative, lessonSummary,
+    setCriteria, defaultCriteria,
   };
 })();
