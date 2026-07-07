@@ -104,9 +104,11 @@ create table if not exists session_records (
   session_id    uuid not null references sessions(id) on delete cascade,
   student_id    uuid not null references students(id) on delete cascade,
   attendance    text default 'present' check (attendance in ('present','absent')),
-  scores_5d     jsonb default '{}'::jsonb,                -- {focus,logic,reflex,interaction,creativity} 1..5
-  strengths     jsonb default '[]'::jsonb,                -- [idx,...] 1-3 điểm mạnh đã tick
-  observation   text default '',                          -- QUAN SÁT CỤ THỂ — "vàng" của hệ thống
+  strength      jsonb,                                    -- MÔ HÌNH 5 TIÊU CHÍ: {crit,sentence,detail} điểm mạnh
+  improve       jsonb,                                    -- {crit,sentence,detail} cần cải thiện
+  scores_5d     jsonb default '{}'::jsonb,                -- (legacy) 1..5
+  strengths     jsonb default '[]'::jsonb,                -- (legacy) [idx,...]
+  observation   text default '',                          -- (legacy fallback) quan sát cụ thể
   effort        text default '',
   mood          text default 'normal' check (mood in ('happy','normal','sad','tired')),
   created_by    uuid references staff(id),
@@ -121,13 +123,17 @@ create table if not exists session_messages (
   record_id     uuid not null references session_records(id) on delete cascade,
   student_id    uuid not null references students(id) on delete cascade,
   status        text default 'waiting_cs'
-                  check (status in ('waiting_gv','ai_writing','waiting_cs','cs_editing','approved','sent','error')),
+                  check (status in ('waiting_gv','ai_writing','waiting_cs','cs_editing','approved','sent','returned','error')),
   source        text default 'engine' check (source in ('engine','ai','manual')),
   diem_manh     text default '',
   co_gang       text default '',
   goi_y         text default '',
   ai_draft      jsonb,                                    -- bản nháp tham khảo {diem_manh,co_gang,goi_y}
-  featured_strength int,                                  -- idx điểm mạnh được nêu (anti-lặp)
+  lesson_snapshot jsonb,                                  -- ảnh chụp bài học tuần (📖 phụ huynh thấy)
+  featured_strength text,                                 -- key tiêu chí điểm mạnh đã nêu (anti-lặp)
+  return_reason text default '',                          -- CSKH trả lại GV: lý do
+  returned_by   uuid references staff(id),
+  returned_at   timestamptz,
   error_msg     text,
   version       int default 1,                            -- optimistic locking
   lock_owner    uuid references staff(id),                -- ai đang mở sửa
@@ -148,6 +154,30 @@ create table if not exists parent_tokens (
   token         text not null unique,
   expires_at    timestamptz not null,
   created_at    timestamptz default now()
+);
+
+-- Báo cáo TUẦN (gom 2 buổi → 1 tuần, token 'w_...' phụ huynh đọc trực tiếp)
+create table if not exists weekly_reports (
+  id              uuid primary key default gen_random_uuid(),
+  center_id       uuid references centers(id) on delete cascade,
+  class_id        uuid references classes(id) on delete set null,
+  student_id      uuid references students(id) on delete cascade,
+  token           text unique,
+  expires_at      timestamptz,
+  status          text default 'sent',
+  sent_date       date,
+  range_from      date,
+  range_to        date,
+  book            text,
+  week            text,
+  lesson_key      text,
+  lesson_snapshot jsonb,
+  summary         jsonb,                                   -- {hocGi,tongHop,coGang}
+  class_comment   text default '',
+  child_comment   text default '',
+  created_by      uuid references staff(id),
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
 );
 
 -- Nhật ký truy vết (SO_TAY mục 8)
@@ -172,6 +202,8 @@ create index if not exists idx_messages_status    on session_messages(status);
 create index if not exists idx_messages_student   on session_messages(student_id);
 create index if not exists idx_tokens_token       on parent_tokens(token);
 create index if not exists idx_audit_center       on audit_logs(center_id, created_at desc);
+create index if not exists idx_weekly_token       on weekly_reports(token);
+create index if not exists idx_weekly_center      on weekly_reports(center_id, created_at desc);
 
 -- ──────────────────────────────────────────────────────────────────────────
 --  3. RPC token-gated cho PHỤ HUYNH (đọc 1 tin qua token, KHÔNG lộ bảng students)
@@ -211,6 +243,7 @@ begin
     'student_name', v_stu.name,
     'date',         v_ses.date,
     'theme',        coalesce(v_theme.title,''),
+    'lesson_content', coalesce(v_msg.lesson_snapshot->>'content',''),
     'diem_manh',    v_msg.diem_manh,
     'co_gang',      v_msg.co_gang,
     'goi_y',        v_msg.goi_y,
@@ -239,7 +272,7 @@ declare t text;
 begin
   foreach t in array array['centers','staff','classes','students','weekly_themes',
     'strength_templates','child_profiles','sessions','session_records',
-    'session_messages','parent_tokens','audit_logs']
+    'session_messages','parent_tokens','audit_logs','weekly_reports']
   loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists app_internal on %I', t);
