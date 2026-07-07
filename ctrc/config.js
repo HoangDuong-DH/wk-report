@@ -8,8 +8,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.CTRC_CONFIG = {
   // ── Supabase (để trống = demo localStorage) ──
-  supabaseUrl:  '',          // vd 'https://abcd.supabase.co'
-  supabaseAnonKey: '',       // anon public key
+  supabaseUrl:  'https://ciqgahajvnweuaopfghl.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpcWdhaGFqdm53ZXVhb3BmZ2hsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MDA5OTYsImV4cCI6MjA5ODk3Njk5Nn0.UhLezB8v8tecUeL14bn3B-NhPW0yqut8cc11hbSg47Y',  // anon public key — công khai theo thiết kế, RLS bảo vệ
 
   // ── Edge Function sinh AI (tùy chọn) ──
   edgeFnUrl: '',             // vd 'https://abcd.supabase.co/functions/v1/generate'
