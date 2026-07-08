@@ -12,11 +12,11 @@
 <style>
 :root{
   --font:'Be Vietnam Pro',system-ui,sans-serif;
-  --font-d:'Baloo 2','Be Vietnam Pro',system-ui,sans-serif;
-  --primary:#f3811f; --primary-2:#e94e1b; --yellow:#f5b223;
-  --green:#5fb53f; --blue:#4a8cc4; --ink:#3a2e22; --ink-soft:#6b5a48; --mute:#a4886a;
-  --cream:#fff7ec; --cream-2:#fdeede; --card:#fffdf9; --line:#f0e0cc; --line-soft:#f6ebda;
-  --pill:#fff1dd; --shadow:0 4px 18px rgba(233,78,27,.08);
+  --font-d:'Be Vietnam Pro',system-ui,sans-serif;
+  --primary:#df6b2d; --primary-2:#bd4f24; --yellow:#c99a2c;
+  --green:#3f9855; --blue:#3f7fa6; --ink:#302c27; --ink-soft:#615b52; --mute:#8b8074;
+  --cream:#f6f3ed; --cream-2:#eee7dc; --card:#fffdf8; --line:#ded6ca; --line-soft:#eee7dc;
+  --pill:#f2ebe1; --shadow:0 1px 2px rgba(42,32,22,.05),0 10px 24px rgba(42,32,22,.04);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
@@ -32,14 +32,14 @@ input,select,textarea{font-family:inherit}
 .home-link:hover{border-color:var(--primary);color:var(--primary-2)}
 .brand{display:flex;align-items:center;gap:10px;font:800 17px/1 var(--font-d);color:var(--primary-2);text-decoration:none}
 .demo-banner a{color:#8a5a00;font-weight:800;text-decoration:underline;cursor:pointer}
-.brand .logo{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffc24a,var(--primary) 65%,var(--primary-2));
+.brand .logo{width:34px;height:34px;border-radius:50%;background:var(--primary);
   display:flex;align-items:center;justify-content:center;color:#fff;font:800 13px/1 var(--font-d)}
 .brand .sub{font:600 10px/1 var(--font);color:var(--mute);letter-spacing:.05em}
 .nav{display:flex;gap:4px;margin-left:8px;flex-wrap:wrap}
 .nav button{padding:7px 13px;border:1px solid transparent;background:transparent;border-radius:9px;
   font:700 12.5px/1 var(--font);color:var(--ink-soft)}
 .nav button:hover{background:var(--pill);color:var(--primary-2)}
-.nav button.active{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
+.nav button.active{background:var(--ink);color:#fff}
 .spacer{flex:1}
 .topbar-gear{border:1px solid var(--line);background:#fff;color:var(--ink-soft);font:700 12px/1 var(--font);
   padding:7px 11px;border-radius:9px;margin-right:8px;white-space:nowrap}
@@ -69,7 +69,7 @@ input,select,textarea{font-family:inherit}
 .am-item.cur{background:var(--cream-2)}
 .am-item .am-nm{flex:1;font:700 13px/1.2 var(--font);color:var(--ink)}
 .am-item .am-nm small{display:block;font:500 10.5px/1.3 var(--font);color:var(--mute);margin-top:2px}
-.demo-banner{background:linear-gradient(90deg,#fff3cd,#ffe9b8);color:#8a6d1a;text-align:center;
+.demo-banner{background:#fff4d8;color:#8a6d1a;text-align:center;
   font:600 11.5px/1.4 var(--font);padding:6px 12px;border-bottom:1px solid #f0d98a}
 
 /* ── Layout ── */
@@ -82,11 +82,11 @@ input,select,textarea{font-family:inherit}
 .field input,.field select,.input{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:500 13px/1.2 var(--font);color:var(--ink)}
 .input:focus,.field input:focus,.field select:focus{outline:2px solid var(--primary);border-color:var(--primary)}
 
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px;box-shadow:var(--shadow)}
 .grid{display:grid;gap:12px}
 .btn{padding:10px 16px;border-radius:11px;border:1px solid var(--line);background:#fff;font:700 13px/1 var(--font);color:var(--ink-soft)}
 .btn:hover{border-color:var(--primary);color:var(--primary-2)}
-.btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none}
+.btn.primary{background:var(--primary-2);color:#fff;border:none}
 .btn.primary:hover{box-shadow:0 6px 16px rgba(233,78,27,.3);transform:translateY(-1px)}
 .btn.green{background:var(--green);color:#fff;border:none}
 .btn.warn{background:#fff3e8;color:var(--primary-2);border:1.5px solid var(--primary-2)}
@@ -115,7 +115,7 @@ input,select,textarea{font-family:inherit}
 .dim .dl{font:700 13px/1 var(--font);flex:1}
 .scale{display:flex;gap:5px}
 .scale button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;font:700 13px/1 var(--font);color:var(--ink-soft)}
-.scale button.on{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none}
+.scale button.on{background:var(--primary-2);color:#fff;border:none}
 .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
 .chip{padding:7px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font:600 12px/1.2 var(--font);color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:transform .1s ease, background .12s, border-color .12s}
 .chip:active{transform:scale(.94)}
@@ -162,7 +162,7 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
   z-index:9999;transition:.25s;max-width:90vw;text-align:center;box-shadow:0 8px 24px rgba(58,30,10,.18)}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .modal-bg{position:fixed;inset:0;background:rgba(40,25,12,.45);backdrop-filter:blur(3px);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
-.modal{background:var(--card);border-radius:18px;padding:22px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(58,30,10,.24);max-height:88vh;overflow:auto}
+.modal{background:var(--card);border-radius:10px;padding:22px;max-width:520px;width:100%;box-shadow:0 18px 48px rgba(42,32,22,.2);max-height:88vh;overflow:auto}
 .modal h3{font:800 17px/1.2 var(--font-d);color:var(--primary-2);margin:0 0 12px}
 .modal.wide{max-width:760px}
 
@@ -224,7 +224,7 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 #qa-list{max-height:48vh;overflow:auto;margin:0 -4px}
 /* dashboard */
 .kpi.click{cursor:pointer;transition:transform .1s, box-shadow .1s}
-.kpi.click:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(58,30,10,.09)}
+.kpi.click:hover{box-shadow:0 2px 4px rgba(42,32,22,.06)}
 .funnel{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#f0e8d8}
 .funnel div{transition:width .4s}
 .funnel-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:9px;font:600 11px/1.3 var(--font);color:var(--ink-soft)}
@@ -272,12 +272,12 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .wk-out{border-bottom:1px dashed var(--line);padding-top:4px}
 .wk-out:last-child{border-bottom:none}
 /* thẻ báo cáo tuần (hiển thị + xuất ảnh) */
-.wk-card-print{background:#fffaf0;border:1.5px solid var(--line);border-radius:16px;padding:18px 20px;max-width:480px;font-family:var(--font)}
+.wk-card-print{background:#fffaf0;border:1.5px solid var(--line);border-radius:8px;padding:18px 20px;max-width:480px;font-family:var(--font)}
 .wcp-head{font:700 11px/1.3 var(--font);color:var(--primary-2);text-align:center;letter-spacing:.02em}
 .wcp-title{font:800 18px/1.2 var(--font-d);color:var(--primary-2);text-align:center;margin-top:8px}
 .wcp-kid{font:800 16px/1.2 var(--font-d);color:var(--ink);text-align:center;margin-top:6px}
 .wcp-meta{font:600 11.5px/1.3 var(--font);color:var(--mute);text-align:center;margin-bottom:12px}
-.wcp-sec{border-radius:12px;padding:11px 13px;margin-bottom:9px;font:500 13px/1.6 var(--font);color:var(--ink)}
+.wcp-sec{border-radius:8px;padding:11px 13px;margin-bottom:9px;font:500 13px/1.6 var(--font);color:var(--ink)}
 .wcp-sec .wcp-t{font:800 12px/1.3 var(--font-d);margin-bottom:4px}
 .wcp-sec.b{background:#eaf3fb;border:1px solid #cfe} .wcp-sec.b .wcp-t{color:#2f6ea0}
 .wcp-sec.g{background:#f1fae8;border:1px solid #cfe9ad} .wcp-sec.g .wcp-t{color:#4a901f}
@@ -285,10 +285,9 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
 .wcp-close{text-align:center;font:600 12px/1.6 var(--font);color:var(--ink-soft);font-style:italic;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
 
 /* ── login ── */
-.login-wrap{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;
-  background:radial-gradient(circle at 30% 20%,#fff3e0,var(--cream))}
-.login-card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:30px;max-width:420px;width:100%;box-shadow:0 16px 48px rgba(233,78,27,.12);text-align:center}
-.login-card .big-logo{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;background:radial-gradient(circle at 35% 35%,#ffc24a,var(--primary) 65%,var(--primary-2));
+.login-wrap{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;background:#f4f1eb}
+.login-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:30px;max-width:420px;width:100%;box-shadow:0 12px 32px rgba(42,32,22,.08);text-align:center}
+.login-card .big-logo{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;background:var(--primary);
   display:flex;align-items:center;justify-content:center;color:#fff;font:800 22px/1 var(--font-d)}
 .login-card h1{font:800 22px/1.2 var(--font-d);color:var(--primary-2);margin:0 0 4px}
 .login-card p{font:500 12.5px/1.5 var(--font);color:var(--ink-soft);margin:0 0 20px}
@@ -343,95 +342,95 @@ table.tb td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
   .kpi .n{font-size:22px}
 }
 
-/* ═════════ POLISH PASS (audit theo taste-skill, 07/07) — CHỈ nâng trải nghiệm, KHÔNG đổi logic/output ═════════ */
+/* ═════════ OPERATIONAL UI REFINEMENT — giảm AI slop, không đổi logic/output ═════════ */
 html{scroll-behavior:smooth}
-*{-webkit-tap-highlight-color:transparent}                         /* hết chớp xám khi chạm trên điện thoại */
-button,a,select,input,label,[onclick]{touch-action:manipulation}   /* bỏ trễ double-tap-zoom ~300ms trên mobile */
-body{font-variant-numeric:tabular-nums}                            /* số thẳng cột: tiến độ, badge, thống kê */
-h2,h3,.h-title{text-wrap:balance}                                  /* tiêu đề không rớt 1 chữ mồ côi */
-:focus-visible{outline:2.5px solid var(--primary);outline-offset:2px;border-radius:6px} /* điều hướng bàn phím thấy rõ vị trí */
+*{-webkit-tap-highlight-color:transparent}
+button,a,select,input,label,[onclick]{touch-action:manipulation}
+body{font-variant-numeric:tabular-nums}
+h2,h3,.h-title{text-wrap:balance}
+:focus-visible{outline:2.5px solid rgba(223,107,45,.55);outline-offset:2px;border-radius:6px}
 button:focus:not(:focus-visible){outline:none}
-button,.btn{transition:transform .16s ease,box-shadow .22s ease,background-color .22s ease,border-color .22s ease,color .22s ease}
-button:active,.btn:active{transform:scale(.97)}                    /* nhấn là "lún" — nút có phản hồi vật lý */
-#view>*{animation:viewIn .26s cubic-bezier(.22,.9,.35,1) backwards}/* vào tab: nội dung trượt lên so le nhẹ */
-#view>*:nth-child(2){animation-delay:.045s}
-#view>*:nth-child(3){animation-delay:.09s}
-#view>*:nth-child(4){animation-delay:.135s}
-#view>*:nth-child(5){animation-delay:.18s}
-@keyframes viewIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){                            /* tôn trọng cài đặt "giảm chuyển động" của máy */
+button,.btn{transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease}
+button:active,.btn:active{transform:translateY(1px)}
+@media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
   html{scroll-behavior:auto}
 }
 
-/* ═════════ FRONT-END V2 (07/07) — nâng cấp THỊ GIÁC rõ rệt, không đổi logic ═════════ */
-/* Nền có chiều sâu — hết cảm giác "tờ giấy phẳng" */
-body{background:
-  radial-gradient(900px 480px at 88% -120px, #ffe7c2 0%, transparent 60%),
-  radial-gradient(720px 420px at -8% 28%, #fff2df 0%, transparent 55%),
-  linear-gradient(180deg,#fdf3e4 0%,#f5e9d4 100%)}
+body{background:#f6f3ed}
+.wrap{max-width:1120px;padding-top:22px}
+.topbar{background:rgba(255,253,248,.96);backdrop-filter:blur(8px);border-bottom:1px solid #e4ddd2;box-shadow:0 1px 0 rgba(42,32,22,.03)}
+.brand{color:var(--ink);letter-spacing:0}
+.brand .logo,.login-card .big-logo{background:#df6b2d;box-shadow:none}
+.brand .sub{letter-spacing:0;text-transform:none;color:var(--mute)}
+.nav{gap:3px}
+.nav button{border-radius:7px;color:#514c45;font-weight:700}
+.nav button:hover{background:#f1ebe2;color:var(--ink)}
+.nav button.active,.bottomnav button.active{background:#2f2b26;color:#fff;border-color:#2f2b26;box-shadow:none}
+.home-link,.topbar-gear,.userchip{background:#fffdf8;border-color:#e4ddd2;border-radius:8px;box-shadow:none}
+.userchip .role{border-radius:5px}
+.userchip .role.gv{background:#3f9855}.userchip .role.cskh{background:#3f7fa6}.userchip .role.manager{background:#bd4f24}
 
-/* LOGIN = màn chào có hồn */
-.login-wrap{background:
-  radial-gradient(620px 380px at 18% 10%, rgba(243,129,31,.13), transparent 60%),
-  radial-gradient(540px 360px at 86% 88%, rgba(245,178,35,.16), transparent 60%),
-  linear-gradient(180deg,#fff7ea,#f6ebd7)}
-.login-card{border:0;border-radius:26px;padding:36px 30px;
-  box-shadow:0 24px 70px rgba(190,90,20,.16),0 3px 12px rgba(190,90,20,.07)}
-.login-card .big-logo{width:78px;height:78px;font-size:27px;
-  box-shadow:0 10px 26px rgba(233,78,27,.35),inset 0 -3px 8px rgba(0,0,0,.12)}
-.login-card h1{font-size:27px;background:linear-gradient(120deg,var(--primary-2),var(--primary) 55%,#d9880f);
-  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-.staff-pick button{border-radius:16px;padding:14px 16px;border:1.5px solid #f2e2cb;
-  background:linear-gradient(180deg,#fff,#fffaf2);box-shadow:0 2px 8px rgba(190,90,20,.05)}
-.staff-pick button:hover{transform:translateY(-2px);border-color:var(--primary);box-shadow:0 10px 24px rgba(233,78,27,.15)}
+.h-title{font-size:20px;color:var(--ink);letter-spacing:0;margin-bottom:5px}
+.h-sub{color:#665f55}
+.card,.kpi{background:#fffdf8;border:1px solid #e2dbd0;border-radius:8px;box-shadow:var(--shadow)}
+.card{padding:16px 18px}
+.kpi{padding:14px 16px}
+.kpi .n{font:800 24px/1 var(--font);color:var(--ink)}
+.kpi .l{color:#6d655b}
+.kpi.click:hover,.stu-row:hover{transform:none;border-color:#cfc5b7;box-shadow:0 2px 4px rgba(42,32,22,.06)}
 
-/* TOPBAR nổi mềm + brand có khối */
-.topbar{box-shadow:0 6px 24px rgba(190,90,20,.09);border-bottom:1px solid #f3e3cd}
-.brand .logo{box-shadow:0 4px 12px rgba(233,78,27,.3)}
+.btn,.field input,.field select,.input,.chip,.ctx-dim,.ctx-mood,.phone-chip,.lp,.ref-draft,.zalo-meter{border-radius:8px}
+.btn{background:#fffdf8;border-color:#dcd3c6;color:#4f4942;box-shadow:none}
+.btn:hover{border-color:#bdb2a3;color:var(--ink);background:#fff}
+.btn.primary{background:#bd4f24;color:#fff;border:1px solid #bd4f24;box-shadow:none}
+.btn.primary:hover{background:#a9451f;border-color:#a9451f;box-shadow:none}
+.btn.green{background:#3f9855;border:1px solid #3f9855;color:#fff;box-shadow:none}
+.btn.warn{background:#fffdf8;color:#bd4f24;border:1px solid #d9b7a7}
 
-/* NAV active = viên thuốc gradient (thấy ngay đang ở tab nào) */
-.nav button.active,.bottomnav button.active{
-  background:linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;
-  box-shadow:0 4px 14px rgba(233,78,27,.32)}
+.login-wrap{background:#f4f1eb}
+.login-card{border:1px solid #e0d8cc;border-radius:12px;padding:30px;box-shadow:0 12px 32px rgba(42,32,22,.08)}
+.login-card .big-logo{width:68px;height:68px;font-size:24px}
+.login-card h1{font-size:25px;color:var(--ink);-webkit-text-fill-color:currentColor;background:none}
+.staff-pick button{border-radius:8px;padding:13px 15px;border:1px solid #ddd4c7;background:#fffdf8;box-shadow:none}
+.staff-pick button:hover{transform:none;border-color:#bdb2a3;background:#fff}
 
-/* CARD & KPI nổi khỏi nền */
-.card{border:1px solid #f4e6d1;border-radius:18px;box-shadow:0 8px 26px rgba(190,90,20,.07)}
-.kpi{border:1px solid #f4e6d1;border-radius:16px;box-shadow:0 6px 18px rgba(190,90,20,.06)}
+.stu-row{border-radius:8px;border:1px solid #e2dbd0;box-shadow:none;position:relative;overflow:hidden;padding-left:18px}
+.stu-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:#d8d0c4}
+.stu-row:has(.b-wait)::before{background:#c9822c}
+.stu-row:has(.b-ok)::before,.stu-row:has(.b-sent)::before{background:#3f9855}
+.stu-row:has(.b-err)::before{background:#bd4f24}
+.stu-row:has(.b-cs)::before,.stu-row:has(.b-edit)::before{background:#3f7fa6}
+.stu-row:has(.b-absent)::before{background:#988e82}
+.stu-row .av{box-shadow:none;background:#f0ebe3}
+.badge{padding:5px 9px;letter-spacing:0;box-shadow:none;border-radius:6px}
+.b-wait{background:#f7ead7;color:#9a5d18}.b-cs{background:#e7f0f6;color:#2f6f95}
+.b-ok{background:#e8f4e8;color:#307a42}.b-sent{background:#e3f1e7;color:#2f7650}
+.b-absent{background:#ece7e0;color:#71675d}.b-err{background:#f7e4dc;color:#a94220}.b-edit{background:#f4e9d5;color:#816219}
 
-/* NÚT CHÍNH: gradient + glow — hành động chính không lẫn vào đâu */
-.btn.primary{background:linear-gradient(120deg,var(--primary),var(--primary-2));border:0;
-  box-shadow:0 6px 18px rgba(233,78,27,.28)}
-.btn.primary:hover{box-shadow:0 10px 26px rgba(233,78,27,.38);transform:translateY(-1px)}
-.btn.green{background:linear-gradient(120deg,#63bd41,#3f9a22);border:0;box-shadow:0 6px 16px rgba(95,181,63,.26)}
+table.tb{border-collapse:separate;border-spacing:0}
+table.tb th{background:#f6f1e9;color:#756c61;border-bottom:1px solid #ded6ca}
+table.tb td{background:#fffdf8}
+table.tb tbody tr:hover td{background:#faf7f1}
+.funnel{height:10px;border-radius:5px;background:#ebe4d9}
+.funnel-legend{color:#5f584f}
 
-/* DANH SÁCH BÉ / HÀNG ĐỢI: thẻ nổi + VẠCH TRẠNG THÁI màu bên trái */
-.stu-row{border-radius:16px;border:1px solid #f4e6d1;box-shadow:0 3px 12px rgba(190,90,20,.05);
-  position:relative;overflow:hidden;padding-left:18px}
-.stu-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4.5px;background:#e8d9c2}
-.stu-row:has(.b-wait)::before{background:linear-gradient(180deg,#f5b223,var(--primary))}
-.stu-row:has(.b-ok)::before,.stu-row:has(.b-sent)::before{background:linear-gradient(180deg,#7ed957,var(--green))}
-.stu-row:has(.b-err)::before{background:linear-gradient(180deg,#f08a63,#d84315)}
-.stu-row:has(.b-cs)::before,.stu-row:has(.b-edit)::before{background:linear-gradient(180deg,#7db7e8,#3e7fb4)}
-.stu-row:has(.b-absent)::before{background:#cbb9a3}
-.stu-row:hover{transform:translateY(-1px);border-color:#f0cfa4;box-shadow:0 10px 24px rgba(190,90,20,.13)}
-.stu-row .av{box-shadow:0 0 0 3px #fff,0 2px 8px rgba(190,90,20,.18)}
-.badge{padding:6px 11px;letter-spacing:.02em;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
-
-/* MODAL: viền brand trên đầu (bottom-sheet mobile giữ nguyên bo góc riêng) */
-.modal{border-top:4px solid var(--primary)}
+.modal{border-top:3px solid #bd4f24;border-radius:10px;box-shadow:0 18px 48px rgba(42,32,22,.2)}
+.modal-actions{box-shadow:0 -1px 0 rgba(42,32,22,.04)}
+.copy-block,.copy-card{border-radius:8px;background:#10241d}
+.lesson-card{border-radius:8px;background:#edf5f8}
+.ln.sec-strength,.ln.sec-improve{border-radius:0 8px 8px 0}
 @media (min-width:641px){
-  .modal{border-radius:22px}
-  .h-title{font-size:21px;letter-spacing:-.01em}
+  .modal{border-radius:10px}
 }
 
 .tab-help-wrap{position:sticky;top:62px;z-index:45;display:flex;justify-content:flex-end;margin:-4px 0 10px;pointer-events:none}
 .tab-help{position:relative;pointer-events:auto}
-.tab-help-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid #f0d9bd;background:#fffdf8;color:var(--primary-2);border-radius:99px;padding:8px 12px;font:900 12px/1 var(--font);box-shadow:0 5px 16px rgba(190,90,20,.08)}
-.tab-help-btn .q{width:19px;height:19px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;font:900 12px/1 var(--font)}
-.tab-help-pop{position:absolute;right:0;top:calc(100% + 8px);width:min(390px,calc(100vw - 32px));max-height:72vh;overflow:auto;background:#fffdf9;border:1px solid var(--line);border-top:4px solid var(--primary);border-radius:16px;padding:14px 15px;box-shadow:0 18px 45px rgba(70,38,10,.2);opacity:0;visibility:hidden;transform:translateY(-5px);transition:.16s ease;text-align:left}
+.tab-help-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid #dcd3c6;background:#fffdf8;color:#4f4942;border-radius:8px;padding:8px 11px;font:800 12px/1 var(--font);box-shadow:none}
+.tab-help-btn .q{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#2f2b26;color:#fff;font:900 12px/1 var(--font)}
+.tab-help-pop{position:absolute;right:0;top:calc(100% + 8px);width:min(390px,calc(100vw - 32px));max-height:72vh;overflow:auto;background:#fffdf8;border:1px solid #ded6ca;border-top:3px solid #bd4f24;border-radius:8px;padding:14px 15px;box-shadow:0 18px 45px rgba(42,32,22,.16);opacity:0;visibility:hidden;transform:translateY(-5px);transition:.16s ease;text-align:left}
 .tab-help:hover .tab-help-pop,.tab-help:focus-within .tab-help-pop,.tab-help.open .tab-help-pop{opacity:1;visibility:visible;transform:none}
-.tab-help-pop h3{margin:0;font:900 15px/1.25 var(--font-d);color:var(--primary-2)}
+.tab-help-pop h3{margin:0;font:900 15px/1.25 var(--font);color:var(--ink)}
 .tab-help-pop p{margin:5px 0 9px;font:500 12.5px/1.55 var(--font);color:var(--ink-soft)}
 .tab-help-pop ul{margin:0;padding-left:17px;font:500 12.5px/1.55 var(--font);color:var(--ink-soft)}
 .tab-help-pop li{margin:6px 0}.tab-help-pop b{color:var(--ink)}
@@ -1222,7 +1221,7 @@ function renderRoster(){
     const done = total>0 && handled===total;
     pb.innerHTML = `<div style="display:flex;justify-content:space-between;font:600 12px/1 var(--font);margin-bottom:6px">
         <span>Tiến độ chấm lớp này</span><span>${done?'<b style="color:var(--green)">🎉 Xong cả lớp!</b>':`<b style="color:var(--primary-2)">${handled}/${total}</b> · còn ${total-handled} bé`}</span></div>
-      <div style="height:9px;background:#f0e8d8;border-radius:5px;overflow:hidden"><div class="${done?'pb-done':''}" style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--green),#7ed957);transition:width .4s"></div></div>`;
+      <div style="height:9px;background:#ebe4d9;border-radius:5px;overflow:hidden"><div class="${done?'pb-done':''}" style="height:100%;width:${pct}%;background:var(--green);transition:width .4s"></div></div>`;
     // chúc mừng 1 lần khi vừa chấm xong cả lớp
     if(done && GV._lastHandled!=null && GV._lastHandled<total) toast('🎉 Tuyệt vời! Đã chấm xong cả lớp','var(--green)');
     GV._lastHandled = handled;
