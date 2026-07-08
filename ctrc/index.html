@@ -425,33 +425,6 @@ body{background:
   .h-title{font-size:21px;letter-spacing:-.01em}
 }
 
-/* NON-TECH WIZARD: hướng dẫn thao tác ngay trong app */
-.guide-hero{display:grid;gap:12px;margin-bottom:12px}
-.guide-roles{display:flex;gap:8px;flex-wrap:wrap}
-.guide-roles button{border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 12px;font:800 12.5px/1 var(--font);color:var(--ink-soft)}
-.guide-roles button.on{background:linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border-color:transparent;box-shadow:0 5px 14px rgba(233,78,27,.22)}
-.guide-meter{height:10px;border-radius:99px;background:#f3e3cf;overflow:hidden}
-.guide-meter span{display:block;height:100%;background:linear-gradient(90deg,var(--green),#95d66f);width:0;transition:width .25s ease}
-.guide-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,.9fr);gap:12px;align-items:start}
-.guide-main,.guide-side{display:grid;gap:10px}
-.guide-step,.guide-box{background:#fffdf9;border:1px solid var(--line);border-radius:14px;padding:13px 14px;box-shadow:0 4px 14px rgba(190,90,20,.05)}
-.guide-step.done{border-color:#cfe8bb;background:#f8fff2}
-.guide-step-head{display:flex;gap:10px;align-items:flex-start}
-.guide-no{width:30px;height:30px;border-radius:50%;background:var(--pill);color:var(--primary-2);display:flex;align-items:center;justify-content:center;font:900 13px/1 var(--font)}
-.guide-step.done .guide-no{background:#e9f7df;color:#46901f}
-.guide-step h3,.guide-box h3{margin:0;font:800 14px/1.25 var(--font-d);color:var(--ink)}
-.guide-step p,.guide-box p{margin:5px 0 0;font:500 12.5px/1.55 var(--font);color:var(--ink-soft)}
-.guide-meta{display:grid;gap:6px;margin:9px 0 0}
-.guide-meta div{border-left:3px solid #f0dac0;padding:3px 0 3px 8px;font:500 12.2px/1.5 var(--font);color:var(--ink-soft)}
-.guide-meta b{color:var(--ink)}
-.guide-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
-.guide-check{display:inline-flex;gap:6px;align-items:center;font:700 12px/1.2 var(--font);color:var(--ink-soft);cursor:pointer}
-.guide-check input{width:16px;height:16px;accent-color:var(--green)}
-.guide-list{margin:7px 0 0;padding-left:17px;font:500 12.4px/1.55 var(--font);color:var(--ink-soft)}
-.guide-list li{margin:4px 0}
-.guide-flow{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
-.guide-flow span{background:#fff7ec;border:1px solid var(--line);border-radius:99px;padding:6px 9px;font:800 11px/1 var(--font);color:var(--ink-soft)}
-@media(max-width:820px){.guide-layout{grid-template-columns:1fr}}
 .tab-help-wrap{position:sticky;top:62px;z-index:45;display:flex;justify-content:flex-end;margin:-4px 0 10px;pointer-events:none}
 .tab-help{position:relative;pointer-events:auto}
 .tab-help-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid #f0d9bd;background:#fffdf8;color:var(--primary-2);border-radius:99px;padding:8px 12px;font:900 12px/1 var(--font);box-shadow:0 5px 16px rgba(190,90,20,.08)}
@@ -965,9 +938,9 @@ async function switchAccount(id){
 
 /* ── nav theo vai trò ── */
 const NAV_TABS = {
-  gv:[['cham','✍️ Chấm buổi'],['weekly','📅 Báo cáo tuần'],['guide','❔ Hướng dẫn']],
-  cskh:[['queue','📋 Hàng đợi'],['guide','❔ Hướng dẫn']],
-  manager:[['overview','Tổng quan'],['guide','❔ Hướng dẫn'],['insights','✨ AI Insights'],['weekly','📅 Báo cáo tuần'],['objectives','🎯 Mục tiêu tuần'],['lessons','📚 Thư viện'],['students','Lớp & Bé'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
+  gv:[['cham','✍️ Chấm buổi'],['weekly','📅 Báo cáo tuần']],
+  cskh:[['queue','📋 Hàng đợi']],
+  manager:[['overview','Tổng quan'],['insights','✨ AI Insights'],['weekly','📅 Báo cáo tuần'],['objectives','🎯 Mục tiêu tuần'],['lessons','📚 Thư viện'],['students','Lớp & Bé'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
 };
 function buildNav(){
   const tabs = NAV_TABS[STAFF.role] || [];
@@ -984,7 +957,7 @@ function buildNav(){
 function go(tab){
   TAB = tab;
   document.querySelectorAll('#nav button, #bottomnav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  const renderer = ({cham:viewCham, weekly:viewWeekly, objectives:viewObjectives, lessons:viewLessonLib, queue:viewQueue, overview:viewOverview, insights:viewInsights, students:viewStudents, profiles:viewProfiles, config:viewConfig, audit:viewAudit, guide:viewGuide}[tab]||(()=>{}));
+  const renderer = ({cham:viewCham, weekly:viewWeekly, objectives:viewObjectives, lessons:viewLessonLib, queue:viewQueue, overview:viewOverview, insights:viewInsights, students:viewStudents, profiles:viewProfiles, config:viewConfig, audit:viewAudit}[tab]||(()=>{}));
   const out = renderer();
   Promise.resolve(out).finally(renderTabHelp);
 }
