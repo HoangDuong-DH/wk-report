@@ -823,6 +823,7 @@ async function boot(){
   CENTER = await DB.getCenter();
   // tiêu chí tùy chỉnh của trung tâm (lưu ở centers.criteria — đồng bộ mọi máy)
   if (CENTER && CENTER.criteria) { try { ENG.setCriteria(CENTER.criteria); } catch(_){} }
+  if (CENTER) await LIB.load(CENTER.id);
   $('#login-center').textContent = CENTER ? CENTER.name : 'WonderKids';
   $('#tb-center').textContent = CENTER ? CENTER.name : 'WonderKids';
   $('#mode-note').textContent = mode==='supabase' ? '🟢 Kết nối Supabase' : '⚡ Demo (localStorage)';
@@ -1399,13 +1400,40 @@ async function maybeDraftProfile(stu){
    BÁO CÁO TUẦN (nội dung bài học từ thư viện + nhận xét)
    ═══════════════════════════════════════════════════════════ */
 let WK = { classId:'', program:'', book:'', week:1, from:'', to:'', childComments:{}, digests:{}, made:[] };
-/* ── Thư viện giáo án: seed (lessons.js) + imported (localStorage) ── */
+/* ── Thư viện giáo án: seed (lessons.js) + DB cloud + local fallback ── */
 const LIB = {
-  KEY:'ctrc:lessons:v1',
+  KEY:'ctrc:lessons:v1', db:{}, loaded:false,
   imported(){ try{ return JSON.parse(localStorage.getItem(this.KEY))||{}; }catch(_){ return {}; } },
-  all(){ return Object.assign({}, window.CTRC_LESSONS||{}, this.imported()); },
-  save(map){ const cur=this.imported(); Object.assign(cur, map); try{ localStorage.setItem(this.KEY, JSON.stringify(cur)); }catch(e){ toast('Lưu thư viện lỗi (đầy?)','var(--primary-2)'); } },
-  remove(key){ const cur=this.imported(); delete cur[key]; localStorage.setItem(this.KEY, JSON.stringify(cur)); },
+  async load(centerId){
+    this.db={};
+    try{
+      const rows = await DB.listLessons(centerId);
+      rows.forEach(r=>{
+        const sk = r.skeleton || {};
+        this.db[r.key] = Object.assign({}, sk, {
+          key:r.key, code:r.code, week:+r.week, title:r.title||sk.title||'',
+          source:r.source||sk.source||'db', manager_summary:r.manager_summary||sk.manager_summary||'',
+          parent_content:r.parent_content||sk.parent_content||'', raw_text:r.raw_text||sk.raw_text||'',
+          saved_to_db:true,
+        });
+      });
+      this.loaded=true;
+    }catch(e){ console.warn('lesson library db load failed', e); this.loaded=false; }
+  },
+  all(){ return Object.assign({}, window.CTRC_LESSONS||{}, this.imported(), this.db); },
+  async save(map){
+    const list=Object.entries(map).map(([key,l])=>Object.assign({key},l));
+    if(CENTER && DB.upsertLessons){
+      await DB.upsertLessons(CENTER.id, list, STAFF&&STAFF.id);
+      await this.load(CENTER.id);
+    } else {
+      const cur=this.imported(); Object.assign(cur, map); localStorage.setItem(this.KEY, JSON.stringify(cur));
+    }
+  },
+  async remove(key){
+    if(CENTER && DB.deleteLesson){ await DB.deleteLesson(CENTER.id, key); await this.load(CENTER.id); }
+    const cur=this.imported(); if(cur[key]){ delete cur[key]; localStorage.setItem(this.KEY, JSON.stringify(cur)); }
+  },
 };
 function LESSONS(){ return LIB.all(); }
 function lessonKey(book, week){ return (book||'').trim() + '-w' + week; }
@@ -1417,6 +1445,34 @@ function codeWeekFromName(fname){
   const m=base.match(/(\d+)\s*(\+|plus)?[^0-9]*w\s*([1-4])/i);
   if(!m) return null;
   return { code:m[1]+(m[2]?'+':''), week:+m[3] };
+}
+function codeFromName(fname){
+  const base=(fname||'').replace(/\.docx$/i,'');
+  const ms=Array.from(base.matchAll(/(\d+)\s*(\+|plus)?/ig));
+  if(!ms.length) return '';
+  const m=ms[ms.length-1];
+  return m[1]+(m[2]?'+':'');
+}
+function lessonWeeksFromDocText(text, code, forcedWeek){
+  if(forcedWeek) return [{ key:code+'-w'+forcedWeek, lesson:parseLessonText(text, code, forcedWeek) }];
+  const raw=(text||'').replace(/\r/g,'');
+  const parts=[]; const re=/\b(?:L\s*)?\d+\s*(?:\+)?\s*[-–]?\s*BU[ỔO]I\s*(\d+)/ig;
+  let m, last=null;
+  while((m=re.exec(raw))){
+    if(last) parts.push({buoi:last.buoi, text:raw.slice(last.idx, m.index)});
+    last={buoi:+m[1], idx:m.index};
+  }
+  if(last) parts.push({buoi:last.buoi, text:raw.slice(last.idx)});
+  if(!parts.length) return [{ key:code+'-w1', lesson:parseLessonText(text, code, 1) }];
+  const byWeek={};
+  parts.forEach(p=>{ const w=Math.max(1, Math.ceil((p.buoi||1)/2)); (byWeek[w]=byWeek[w]||[]).push(p.text); });
+  return Object.keys(byWeek).sort((a,b)=>+a-+b).map(w=>{
+    const lesson=parseLessonText(byWeek[w].join('\n'), code, +w);
+    lesson.sessions=byWeek[w].length;
+    lesson.session_range='Buổi '+((+w-1)*2+1)+'-'+(+w*2);
+    lesson.title=lesson.title || `Giáo án ${code} · Tuần ${w}`;
+    return { key:code+'-w'+w, lesson };
+  });
 }
 function _normType(t){ const l=(t||'').toLowerCase(); const M={'cơ bản':'Tư duy cơ bản','toán':'Tư duy toán học','logic':'Tư duy logic','sáng tạo':'Tư duy sáng tạo','vận động':'Vận động'}; for(const k in M){ if(l.includes(k)) return M[k]; } return (t||'').trim(); }
 /* parse text giáo án 1 tuần (port parse_lessons.py) */
@@ -1443,7 +1499,7 @@ function parseLessonText(text, code, week){
       continue;
     }
   }
-  return { code, week, title, knowledge:knowledge.join('\n'), skill, pages, body, source:'imported' };
+  return { code, week, title, knowledge:knowledge.join('\n'), skill, pages, body, raw_text:body.join('\n'), source:'imported' };
 }
 function _sundayStr(mondayStr){ const d=new Date(mondayStr); d.setDate(d.getDate()+6); return d.toISOString().slice(0,10); }
 
@@ -1504,10 +1560,11 @@ function objReset(w){ OBJ.reset(OBJV.book, w); toast('Đã khôi phục bản g�
 /* ═══════════════ THƯ VIỆN GIÁO ÁN (import + AI làm giàu) ═══════════════ */
 let LIBV = { staged:null };
 async function viewLessonLib(){
-  const lessons=LESSONS(); const codes=bookCodes(); const imp=LIB.imported();
+  if(CENTER) await LIB.load(CENTER.id);
+  const lessons=LESSONS(); const codes=bookCodes(); const imp=LIB.imported(); const customCount=Object.keys(Object.assign({}, imp, LIB.db)).length;
   view.innerHTML = `
     <h2 class="h-title">📚 Thư viện giáo án</h2>
-    <p class="h-sub">${Object.keys(lessons).length} mục (${Object.keys(imp).length} tự nhập). Import docx giáo án (nhiều tuần một lúc) → engine tách cấu trúc + AI tóm tắt cho quản lý & soạn nội dung cho phụ huynh.</p>
+    <p class="h-sub">${Object.keys(lessons).length} mục (${customCount} nhập thêm). Import docx giáo án → lưu vào DB web, tách skeleton mục tiêu/hoạt động, AI tóm tắt cho quản lý & soạn nội dung cho phụ huynh.</p>
     <div class="card" style="margin-bottom:12px">
       <div class="ed-head" style="margin-bottom:8px"><span>⬆ Import giáo án (.docx — chọn nhiều file)</span></div>
       <input type="file" id="lib-files" accept=".docx" multiple style="font:500 12px/1 var(--font)">
@@ -1515,7 +1572,7 @@ async function viewLessonLib(){
         <label style="font:600 12px/1 var(--font);display:flex;gap:6px;align-items:center"><input type="checkbox" id="lib-ai" ${AI.usable()?'checked':'disabled'}> ✨ AI làm giàu${AI.usable()?'':' (bấm ⚙ AI để bật)'}</label>
         <button class="btn primary sm" onclick="CTRC.importLessons()">Nạp file</button>
       </div>
-      <div class="hint" style="margin-top:6px">Tên file cần có mã + tuần (vd <b>207w1.docx</b>, <b>210+-w1.docx</b>). Engine luôn tách cấu trúc; AI chỉ thêm tóm tắt khi bật.</div>
+      <div class="hint" style="margin-top:6px">Chấp nhận 2 kiểu: <b>305w1.docx</b> = 1 tuần; hoặc <b>L3 - 305.docx</b> = nhiều buổi, hệ thống tự gom 2 buổi/tuần. Dữ liệu lưu cloud theo cuốn/tuần để mọi máy dùng chung.</div>
       <div id="lib-stage"></div>
     </div>
     <div class="card">
@@ -1528,10 +1585,14 @@ function renderLibList(){
   const box=$('#lib-list'); if(!box)return;
   const lessons=LESSONS(); const imp=LIB.imported(); const codes=bookCodes();
   box.innerHTML = codes.map(code=>{
-    const weeks=[1,2,3,4].map(w=>{ const k=code+'-w'+w; const l=lessons[k]; if(!l) return '';
+    const available=Object.values(lessons).filter(l=>String(l.code)===String(code)).map(l=>+l.week).filter(Boolean);
+    const maxW=Math.max(4, available.length?Math.max.apply(null, available):4);
+    const weeks=Array.from({length:maxW},(_,i)=>i+1).map(w=>{ const k=code+'-w'+w; const l=lessons[k]; if(!l) return `<tr class="muted"><td style="white-space:nowrap">Tuần ${w}</td><td colspan="3" style="color:var(--mute)">Chưa có giáo án</td></tr>`;
       const hasAI=!!l.parent_content;
+      const where=l.saved_to_db?'DB':(imp[k]?'local':'seed');
+      const skeleton=[l.sessions?`${l.sessions} buổi`:'', (l.pages||[]).length?`${l.pages.length} hoạt động`:'', l.skill?'kỹ năng':''].filter(Boolean).join(' · ') || 'skeleton';
       return `<tr><td style="white-space:nowrap">Tuần ${w}</td><td>${esc((l.title||'').slice(0,48))}</td>
-        <td>${hasAI?'<span class="badge b-ok">AI</span>':'<span class="badge b-wait">cấu trúc</span>'}${imp[k]?' <span class="badge b-cs">nhập</span>':''}</td>
+        <td>${hasAI?'<span class="badge b-ok">AI phụ huynh</span>':'<span class="badge b-wait">cấu trúc</span>'} <span class="badge b-cs">${esc(where)}</span><small style="display:block;color:var(--mute);margin-top:3px">${esc(skeleton)}</small></td>
         <td style="text-align:right"><button class="btn sm" onclick="CTRC.viewLesson('${k}')">Xem</button></td></tr>`;
     }).join('');
     return `<div style="margin-bottom:10px"><b style="font:800 12.5px/1 var(--font-d);color:var(--primary-2)">Cuốn ${esc(code)}</b>
@@ -1547,10 +1608,10 @@ async function importLessons(){
   catch(e){ stage.innerHTML='<p class="voice-warn">Không tải được thư viện đọc docx (cần mạng).</p>'; return; }
   const staged={}; const errs=[];
   for(const f of files){
-    const cw=codeWeekFromName(f.name);
-    if(!cw){ errs.push(f.name+' (tên thiếu mã/tuần)'); continue; }
+    const cw=codeWeekFromName(f.name), code=(cw&&cw.code)||codeFromName(f.name);
+    if(!code){ errs.push(f.name+' (tên thiếu mã cuốn/bài)'); continue; }
     try{ const buf=await f.arrayBuffer(); const res=await window.mammoth.extractRawText({arrayBuffer:buf});
-      staged[cw.code+'-w'+cw.week]=parseLessonText(res.value, cw.code, cw.week);
+      lessonWeeksFromDocText(res.value, code, cw&&cw.week).forEach(({key,lesson})=>{ staged[key]=lesson; });
     }catch(e){ errs.push(f.name+' ('+(e.message||'lỗi')+')'); }
   }
   if(useAI){
@@ -1566,8 +1627,8 @@ function renderStage(staged, errs){
   stage.innerHTML = `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
     <div class="ed-head" style="margin-bottom:6px"><span>Xem trước ${keys.length} tuần — duyệt rồi lưu</span></div>
     ${errs.length?`<p class="voice-warn">Bỏ qua: ${errs.map(esc).join('; ')}</p>`:''}
-    <table class="tb"><thead><tr><th>Mã-Tuần</th><th>Tiêu đề</th><th>Tóm tắt QL (AI)</th></tr></thead><tbody>
-    ${keys.map(k=>{const l=staged[k];return `<tr><td>${esc(k)}</td><td>${esc((l.title||'').slice(0,38))}</td><td style="color:var(--mute)">${esc((l.manager_summary||'— (engine, chưa AI)').slice(0,72))}</td></tr>`;}).join('')}
+    <table class="tb"><thead><tr><th>Mã-Tuần</th><th>Skeleton</th><th>Tóm tắt QL / PH</th></tr></thead><tbody>
+    ${keys.map(k=>{const l=staged[k];const sk=[l.session_range||'', l.skill?'kỹ năng':'', (l.pages||[]).length?`${l.pages.length} hoạt động`:''].filter(Boolean).join(' · ');return `<tr><td>${esc(k)}</td><td><b>${esc((l.title||'').slice(0,38))}</b><small style="display:block;color:var(--mute)">${esc(sk||'đã tách cấu trúc')}</small></td><td style="color:var(--mute)">${esc((l.parent_content||l.manager_summary||'— (engine, chưa AI)').slice(0,96))}</td></tr>`;}).join('')}
     </tbody></table>
     <div class="row" style="justify-content:flex-end;margin-top:10px">
       <button class="btn ghost sm" onclick="CTRC.cancelStage()">Huỷ</button>
@@ -1577,9 +1638,9 @@ function renderStage(staged, errs){
 function cancelStage(){ LIBV.staged=null; const s=$('#lib-stage'); if(s)s.innerHTML=''; const i=$('#lib-files'); if(i)i.value=''; }
 async function saveStage(){
   if(!LIBV.staged) return;
-  LIB.save(LIBV.staged);
+  await LIB.save(LIBV.staged);
   await DB.audit(CENTER.id, STAFF, 'import_lessons','library',null,{count:Object.keys(LIBV.staged).length});
-  toast('✓ Đã lưu '+Object.keys(LIBV.staged).length+' tuần'); cancelStage(); viewLessonLib();
+  toast('✓ Đã lưu '+Object.keys(LIBV.staged).length+' tuần vào thư viện DB'); cancelStage(); viewLessonLib();
 }
 async function enrichLesson(rec){
   const skill = AI._rules.giaoan || '';
@@ -1600,11 +1661,11 @@ function viewLesson(key){
     ${l.parent_content?`<div style="background:#eef7ff;border-radius:10px;padding:10px 12px;margin-bottom:10px;font:500 12.5px/1.6 var(--font)"><b style="color:#2f6ea0">👨‍👩‍👧 Nội dung cho phụ huynh:</b><br>${esc(l.parent_content)}</div>`:''}
     <div>${renderLessonHTML(l)}</div>
     <div class="row" style="justify-content:space-between;margin-top:12px">
-      ${LIB.imported()[key]?`<button class="btn sm" onclick="CTRC.delLesson('${key}')">🗑 Xoá khỏi thư viện</button>`:'<span></span>'}
+      ${(LIB.imported()[key]||LIB.db[key])?`<button class="btn sm" onclick="CTRC.delLesson('${key}')">🗑 Xoá khỏi thư viện</button>`:'<span></span>'}
       <button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button>
     </div>`);
 }
-function delLesson(key){ if(!confirm('Xoá '+key+' khỏi thư viện (chỉ mục tự nhập)?'))return; LIB.remove(key); toast('✓ Đã xoá'); closeModal(); viewLessonLib(); }
+async function delLesson(key){ if(!confirm('Xoá '+key+' khỏi thư viện nhập thêm?'))return; await LIB.remove(key); toast('✓ Đã xoá'); closeModal(); viewLessonLib(); }
 
 function renderLessonHTML(les){
   if(!les) return '<p class="hint" style="margin:0">Chưa có nội dung cho mã + tuần này trong thư viện. Kiểm tra mã cuốn (vd 207) và tuần, hoặc bổ sung docx rồi chạy lại parser.</p>';

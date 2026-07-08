@@ -62,6 +62,25 @@ create table if not exists weekly_themes (
   unique (center_id, week_start)
 );
 
+-- Thư viện giáo án import từ docx: lưu skeleton + bản AI cho quản lý/phụ huynh
+create table if not exists lesson_library (
+  id              uuid primary key default gen_random_uuid(),
+  center_id       uuid not null references centers(id) on delete cascade,
+  key             text not null,                            -- ví dụ: 305-w1
+  code            text not null,                            -- mã cuốn/bài: 305, 210+
+  week            int not null check (week between 1 and 8),
+  title           text default '',
+  source          text default 'imported',
+  raw_text        text default '',
+  skeleton        jsonb default '{}'::jsonb,                -- parse từ giáo án: objectives/pages/body...
+  manager_summary text default '',
+  parent_content  text default '',
+  imported_by     uuid references staff(id),
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now(),
+  unique (center_id, key)
+);
+
 -- 10 điểm mạnh mẫu (SO_TAY mục 6.3)
 create table if not exists strength_templates (
   id            uuid primary key default gen_random_uuid(),
@@ -206,6 +225,7 @@ create index if not exists idx_tokens_token       on parent_tokens(token);
 create index if not exists idx_audit_center       on audit_logs(center_id, created_at desc);
 create index if not exists idx_weekly_token       on weekly_reports(token);
 create index if not exists idx_weekly_center      on weekly_reports(center_id, created_at desc);
+create index if not exists idx_lessons_center     on lesson_library(center_id, code, week);
 
 -- ──────────────────────────────────────────────────────────────────────────
 --  3. RPC token-gated cho PHỤ HUYNH (đọc 1 tin qua token, KHÔNG lộ bảng students)
@@ -274,7 +294,7 @@ declare t text;
 begin
   foreach t in array array['centers','staff','classes','students','weekly_themes',
     'strength_templates','child_profiles','sessions','session_records',
-    'session_messages','parent_tokens','audit_logs','weekly_reports']
+    'session_messages','parent_tokens','audit_logs','weekly_reports','lesson_library']
   loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists app_internal on %I', t);

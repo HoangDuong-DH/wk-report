@@ -412,6 +412,37 @@
     async addTheme(t) { return adapter.insert('weekly_themes', Object.assign({ created_at: nowISO() }, t)); },
     async listStrengths(centerId) { return adapter.select('strength_templates', { center_id: centerId }, { order: 'idx' }); },
 
+    /* thư viện giáo án import từ docx */
+    async listLessons(centerId) {
+      return adapter.select('lesson_library', { center_id: centerId }, { order: 'code' });
+    },
+    async upsertLessons(centerId, lessons, staffId) {
+      const out = [];
+      for (const l of lessons) {
+        const skeleton = clone(l);
+        delete skeleton.manager_summary; delete skeleton.parent_content;
+        const row = {
+          center_id: centerId,
+          key: l.key || ((l.code || '').trim() + '-w' + l.week),
+          code: String(l.code || '').trim(),
+          week: +(l.week || 1),
+          title: l.title || '',
+          source: l.source || 'imported',
+          raw_text: Array.isArray(l.body) ? l.body.join('\n') : (l.raw_text || ''),
+          skeleton,
+          manager_summary: l.manager_summary || '',
+          parent_content: l.parent_content || '',
+          imported_by: staffId || null,
+          updated_at: nowISO(),
+        };
+        out.push(await adapter.upsert('lesson_library', row, ['center_id', 'key']));
+      }
+      return out;
+    },
+    async deleteLesson(centerId, key) {
+      return adapter.remove('lesson_library', { center_id: centerId, key });
+    },
+
     /* parent token */
     async createParentToken(messageId) {
       const days = CFG.tokenTtlDays || 30;
