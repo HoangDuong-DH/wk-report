@@ -15,6 +15,7 @@ create table if not exists centers (
   brand_color   text default '#f3811f',
   closing_line  text default 'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.',
   criteria      jsonb,                                    -- 5 tiêu chí tùy chỉnh (null = bản gốc engine.js)
+  report_config jsonb,                                    -- tone/format/content rules do Manager tùy chỉnh
   created_at    timestamptz default now()
 );
 

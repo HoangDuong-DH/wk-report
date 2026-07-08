@@ -5,7 +5,7 @@
 ## Mô hình đánh giá: 5 TIÊU CHÍ (tick, KHÔNG chấm điểm)
 Mỗi buổi GV tick **đúng 2** lựa chọn:
 - **1 tiêu chí = ĐIỂM MẠNH (bé làm được)** + 1 câu mô tả tích cực
-- **1 tiêu chí = CẦN CẢI THIỆN (bé làm chưa được)** + 1 câu mô tả — phải **khác** tiêu chí điểm mạnh
+- **1 tiêu chí = CẦN HỖ TRỢ / CẦN CẢI THIỆN** + 1 câu mô tả — phải **khác** tiêu chí điểm mạnh
 
 5 tiêu chí: 🎯 Tập trung · 🙋 Tham gia · 🧠 Tư duy · 🌱 Tự lập · 🤝 Hợp tác.
 > **Nguồn chuẩn** (mô tả tiêu chí + ngân hàng câu pos/neg): `ctrc/engine.js` mảng `CRITERIA`. Sửa câu mẫu tại đó. Bảng trên chỉ để tra nhanh.
@@ -27,7 +27,7 @@ Trả về **DUY NHẤT** JSON: `{"diem_manh":"...","co_gang":"..."}`
 ## Báo cáo phụ huynh nhìn thấy (3 phần)
 1. **📖 Nội dung học tuần này** — mục tiêu + hoạt động (cố định từ "Bài học tuần" của lớp, **KHÔNG do AI sinh**).
 2. **✅ Điểm bé làm được** — = `diem_manh`.
-3. **📌 Điểm bé làm chưa được** — = `co_gang`.
+3. **📌 Điểm bé cần hỗ trợ** — = `co_gang`.
 > Đã bỏ mục "Gợi ý ở nhà" ở per-buổi (theo vận hành).
 
 ## Quy tắc viết

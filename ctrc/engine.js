@@ -151,7 +151,7 @@
   }
 
   /* Ghép văn bản gửi Zalo — KHÔNG link (mặc định). Cấu trúc:
-     📖 Nội dung học tuần · ✅ Bé làm được · 📌 Bé làm chưa được */
+     📖 Nội dung học tuần · ✅ Bé làm được · 📌 Bé cần hỗ trợ */
   function composeZalo(student, dateStr, msg, link) {
     const les = msg.lesson_snapshot && msg.lesson_snapshot.content;
     return (
@@ -159,7 +159,7 @@
       `Bé ${student.name} · ${fmtDate(dateStr)}\n\n` +
       (les ? `📖 NỘI DUNG HỌC TUẦN NÀY\n${les}\n\n` : '') +
       `✅ ĐIỂM BÉ LÀM ĐƯỢC\n${msg.diem_manh}\n\n` +
-      `📌 ĐIỂM BÉ LÀM CHƯA ĐƯỢC\n${msg.co_gang}` +
+      `📌 ĐIỂM BÉ CẦN HỖ TRỢ\n${msg.co_gang}` +
       (link ? `\n\n🔗 Xem chi tiết: ${link}` : '')
     ).trim();
   }
@@ -260,16 +260,57 @@
   }
 
   /* tóm tắt "tuần này con học gì" — ưu tiên nội dung AI soạn cho phụ huynh */
+  const THINKING_SKILLS = [
+    { label: 'tư duy cơ bản', words: ['tư duy cơ bản', 'quan sát', 'so sánh', 'giống', 'khác', 'phân biệt', 'phân loại'] },
+    { label: 'tư duy logic', words: ['tư duy logic', 'suy luận', 'quy luật', 'logic', 'bắc cầu', 'tiêu chí', 'giống', 'khác', 'phân loại'] },
+    { label: 'tư duy toán học', words: ['tư duy toán học', 'toán', 'phép cộng', 'phép trừ', 'đếm', 'số', 'nhiều hơn', 'ít hơn'] },
+    { label: 'tư duy sáng tạo', words: ['tư duy sáng tạo', 'sáng tạo', 'tưởng tượng', 'ý tưởng', 'tạo ra đồ vật mới'] },
+  ];
+  const ACTIVITY_PATTERNS = [
+    { text: 'câu chuyện', words: ['câu chuyện', 'kể chuyện'] },
+    { text: 'quan sát', words: ['quan sát'] },
+    { text: 'so sánh và tìm điểm giống - khác', words: ['giống', 'khác', 'tương đồng', 'khác biệt'] },
+    { text: 'phân loại', words: ['phân loại'] },
+    { text: 'vẽ bằng hai tay', words: ['vẽ bằng 2 tay', 'vẽ bằng hai tay'] },
+    { text: 'ghép hình theo mẫu', words: ['ghép hình', 'lắp hình'] },
+    { text: 'thao tác học cụ', words: ['học cụ', 'numberblock', 'block', 'thẻ', 'phiếu bài tập'] },
+    { text: 'trò chơi và khám phá', words: ['trò chơi', 'khám phá'] },
+  ];
+  function hasAny(text, words) { text = (text || '').toLowerCase(); return words.some((w) => text.includes(w)); }
+  function joinNice(items) {
+    items = Array.from(new Set((items || []).filter(Boolean)));
+    if (items.length <= 1) return items.join('');
+    if (items.length === 2) return items[0] + ' và ' + items[1];
+    return items.slice(0, -1).join(', ') + ' và ' + items[items.length - 1];
+  }
+  function inferThinkingSkills(text) {
+    const found = THINKING_SKILLS.filter((s) => hasAny(text, s.words)).map((s) => s.label);
+    return found.length ? found.slice(0, 3) : ['tư duy cơ bản'];
+  }
+  function inferActivities(text) {
+    const found = ACTIVITY_PATTERNS.filter((a) => hasAny(text, a.words)).map((a) => a.text);
+    return found.length ? found.slice(0, 5) : ['các hoạt động trải nghiệm', 'thao tác học cụ'];
+  }
   function lessonSummary(les) {
     if (!les) return '';
     if (les.parent_content) return les.parent_content;
-    let s = les.title ? les.title.replace(/\.$/, '') + '. ' : '';
-    if (les.pages && les.pages.length) {
-      const types = Array.from(new Set(les.pages.map((p) => p.type).filter(Boolean)));
-      if (types.length) s += 'Các con rèn: ' + types.join(', ').toLowerCase() + '. ';
-    }
-    if (les.skill) s += les.skill;
-    return s.trim();
+    const raw = [
+      les.title || '',
+      les.objective || '',
+      Array.isArray(les.objectives) ? les.objectives.join(' ') : '',
+      les.knowledge || '',
+      les.skill || '',
+      (les.pages || []).map((p) => [p.type, p.desc].filter(Boolean).join(' ')).join(' '),
+      Array.isArray(les.body) ? les.body.join(' ') : '',
+    ].join(' ');
+    const title = (les.title || '').replace(/\.$/, '').trim();
+    const skills = joinNice(inferThinkingSkills(raw));
+    let actList = inferActivities(raw);
+    if (title.toLowerCase().includes('câu chuyện')) actList = actList.filter((a) => a !== 'câu chuyện');
+    const acts = joinNice(actList);
+    const titlePart = title ? ` thông qua ${title.toLowerCase().includes('câu chuyện') ? title : 'chủ đề "' + title + '"'}` : '';
+    return (`Tuần này, các con được rèn luyện ${skills}${titlePart} cùng các hoạt động như ${acts}. ` +
+      `Các hoạt động đa dạng, linh hoạt theo hướng học qua trải nghiệm, khám phá và học cụ giúp con phát triển khả năng tập trung, phối hợp và suy luận một cách hứng thú.`).trim();
   }
 
   /* Hồ sơ bé: suy từ tần suất tiêu chí mạnh/cần cải thiện */

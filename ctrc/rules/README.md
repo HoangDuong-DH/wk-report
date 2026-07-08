@@ -36,5 +36,5 @@
 5. An toàn dữ liệu: nội bộ, có audit, NĐ 13/2023.
 
 ## Lịch sử thay đổi (model)
-- **2026-06-09 · v2**: chuẩn hoá toàn bộ rule (metadata + hợp đồng đầu ra). Per-buổi = 3 phần hiển thị (📖 nội dung học · ✅ làm được · 📌 làm chưa được), AI trả `{diem_manh,co_gang}`. Tuần bỏ "Đồng hành ở nhà", AI trả `{tongHop,coGang}`. Mục tiêu tuần chuyển sang `objectives.js` (3 chương trình). Thêm "Trả lại GV chấm lại".
+- **2026-06-09 · v2**: chuẩn hoá toàn bộ rule (metadata + hợp đồng đầu ra). Per-buổi = 3 phần hiển thị (📖 nội dung học · ✅ làm được · 📌 cần hỗ trợ), AI trả `{diem_manh,co_gang}`. Tuần bỏ "Đồng hành ở nhà", AI trả `{tongHop,coGang}`. Mục tiêu tuần chuyển sang `objectives.js` (3 chương trình). Thêm "Trả lại GV chấm lại".
 - **v1**: mô hình 5 tiêu chí thay 5 chiều chấm điểm 1–5.

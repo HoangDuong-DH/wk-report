@@ -477,7 +477,7 @@ body{background:
 
 <script src="config.js?v=30"></script>
 <script src="db.js?v=30"></script>
-<script src="engine.js?v=30"></script>
+<script src="engine.js?v=31"></script>
 <script src="lessons.js?v=29"></script>
 <script src="objectives.js?v=29"></script>
 <script>
@@ -575,7 +575,53 @@ const AI_SYSTEM = [
   '- LUÔN hướng tới trước; TUYỆT ĐỐI tránh: kém, yếu, tệ, chậm, dốt, lười, hư.',
   '- KHÔNG so sánh bé này với bé khác. Tôn trọng tốc độ riêng.',
   '- Tiếng Việt tự nhiên, ấm áp; mỗi dòng 1-2 câu.',
+  '- Khi nói về bài học, luôn đặt trong khung 4 kỹ năng tư duy: cơ bản, logic, toán học, sáng tạo; chỉ nhắc kỹ năng thật sự có trong dữ liệu.',
+  '- Hoạt động học cần được diễn giải theo hướng trải nghiệm, khám phá, học cụ và hoạt động đa dạng; không bê ngôn ngữ nội bộ như slide/flashfile/trang sách.',
 ].join('\n');
+const REPORT_CFG_DEFAULT = {
+  tone:'warm_logic',
+  detail:'standard',
+  audience:'busy_parent',
+  childNoun:'con',
+  teacherNoun:'cô',
+  avoidWords:'kém, yếu, tệ, chậm, dốt, lười, hư, không biết, thua bạn',
+  mustInclude:'',
+  lessonFrame:'Luôn diễn giải nội dung học trong khung 4 kỹ năng tư duy: cơ bản, logic, toán học, sáng tạo. Chỉ nhắc kỹ năng thật sự có trong giáo án/dữ liệu.',
+  activityFrame:'Mô tả hoạt động theo hướng học qua trải nghiệm, khám phá, học cụ và hoạt động đa dạng; tránh ngôn ngữ nội bộ như slide, flashfile, số trang, file powerpoint.',
+  extra:''
+};
+const REPORT_TONE = {
+  warm_logic:'Ấm áp, rõ logic, cụ thể hành vi; phù hợp gửi phụ huynh đại trà.',
+  concise:'Ngắn gọn, trực tiếp, dễ copy Zalo; mỗi block ít câu nhưng đủ ý.',
+  premium:'Chuyên nghiệp, chỉn chu, nhấn mạnh giá trị giáo dục và tiến trình phát triển.',
+  encouraging:'Động viên nhiều hơn, mềm mại hơn, vẫn không né điểm cần hỗ trợ.'
+};
+const REPORT_DETAIL = {
+  short:'Ngắn: mỗi block 1-2 câu, ưu tiên dễ đọc trên Zalo.',
+  standard:'Chuẩn: mỗi block 2-3 câu, đủ nội dung và vẫn gọn.',
+  rich:'Chi tiết: mỗi block 3-4 câu khi dữ liệu đủ, nhấn mạnh hoạt động và logic học tập.'
+};
+const REPORT_AUDIENCE = {
+  busy_parent:'Phụ huynh bận: câu rõ, ít thuật ngữ, đọc nhanh hiểu ngay.',
+  education_minded:'Phụ huynh quan tâm giáo dục: giải thích rõ kỹ năng tư duy và giá trị hoạt động.',
+  first_time:'Phụ huynh mới: diễn giải mềm, tránh jargon, giúp họ hiểu trung tâm đang rèn gì.'
+};
+function reportCfg(raw){ return Object.assign({}, REPORT_CFG_DEFAULT, raw||{}); }
+function reportConfigPrompt(raw){
+  const c=reportCfg(raw);
+  return [
+    'CẤU HÌNH GIỌNG VĂN & CONTENT DO MANAGER CHỌN (ưu tiên cao, nhưng KHÔNG được trái dữ liệu GV/giáo án):',
+    `- Tone: ${REPORT_TONE[c.tone]||c.tone}`,
+    `- Độ dài: ${REPORT_DETAIL[c.detail]||c.detail}`,
+    `- Đối tượng đọc: ${REPORT_AUDIENCE[c.audience]||c.audience}`,
+    `- Cách gọi bé/phụ huynh: ưu tiên gọi bé là "${c.childNoun||'con'}", giáo viên/trung tâm là "${c.teacherNoun||'cô'}".`,
+    c.lessonFrame?`- Khung diễn giải bài học: ${c.lessonFrame}`:'',
+    c.activityFrame?`- Khung diễn giải hoạt động: ${c.activityFrame}`:'',
+    c.mustInclude?`- Ý/cụm từ nên có khi phù hợp: ${c.mustInclude}`:'',
+    c.avoidWords?`- Từ/cụm từ cần tránh thêm: ${c.avoidWords}`:'',
+    c.extra?`- Ghi chú riêng của manager: ${c.extra}`:'',
+  ].filter(Boolean).join('\n');
+}
 function _critLabel(k){ return (window.CTRC_ENGINE&&window.CTRC_ENGINE.critLabel(k))||k; }
 function buildAIPrompt(b){
   const stu=b.student||{}, rec=b.record||{}, theme=b.theme||{}, prof=b.profile||{}, center=b.center||{};
@@ -594,13 +640,14 @@ function buildAIPrompt(b){
     `HÔM NAY GV đánh giá theo 5 tiêu chí (Tập trung, Tham gia, Tư duy, Tự lập, Hợp tác).`,
     `Phần "chi tiết GV" là quan sát cụ thể — LÕI quan trọng nhất, hãy bám sát:`,
     `· BÉ LÀM ĐƯỢC: ${stLine}`,
-    `· BÉ LÀM CHƯA ĐƯỢC: ${imLine}`,
-    cur?`\nBẢN NHÁP HIỆN TẠI (chỉnh sửa dựa trên đây, giữ ý đúng):\n- Bé làm được: "${cur.diem_manh||''}"\n- Bé làm chưa được: "${cur.co_gang||''}"`:'',
+    `· BÉ CẦN HỖ TRỢ: ${imLine}`,
+    cur?`\nBẢN NHÁP HIỆN TẠI (chỉnh sửa dựa trên đây, giữ ý đúng):\n- Bé làm được: "${cur.diem_manh||''}"\n- Bé cần hỗ trợ: "${cur.co_gang||''}"`:'',
     note?`\nYÊU CẦU CHỈNH SỬA TỪ CSKH (BẮT BUỘC tuân theo): ${note}`:'',
+    reportConfigPrompt(center.report_config),
     '',
     `Viết báo cáo gửi phụ huynh bé ${stu.name} gồm ĐÚNG 2 dòng (mỗi dòng 1-2 câu, ấm áp, gắn với nội dung học tuần nếu hợp lý):`,
     `1. Điểm bé LÀM ĐƯỢC (bám tiêu chí + chi tiết GV, cụ thể hành vi)`,
-    `2. Điểm bé LÀM CHƯA ĐƯỢC (nhẹ nhàng, hướng tới trước)`,
+    `2. Điểm bé CẦN HỖ TRỢ (nhẹ nhàng, hướng tới trước)`,
     `Trả về DUY NHẤT JSON: {"diem_manh":"...","co_gang":"..."} — không thêm chữ nào khác.`,
   ].filter(Boolean).join('\n');
 }
@@ -613,7 +660,13 @@ function buildWeeklyPrompt(b){
     const st=r.strength||{}, im=r.improve||{};
     return `• Buổi ${i+1}: LÀM ĐƯỢC = ${_critLabel(st.crit)} ("${st.sentence||''}"${st.detail?'; chi tiết: '+st.detail:''}); CHƯA ĐƯỢC = ${_critLabel(im.crit)} ("${im.sentence||''}"${im.detail?'; chi tiết: '+im.detail:''})${r.mood?'; tâm trạng: '+((window.MOODS&&MOODS[r.mood])||r.mood):''}.`;
   }).join('\n');
-  const lesLine = (les&&(les.title||les.content))?`NỘI DUNG HỌC TUẦN: "${les.title||''}".${les.objective?' Mục tiêu: '+les.objective+'.':''}${les.activity?' Hoạt động: '+les.activity+'.':''}`:'';
+  const lesLine = (les&&(les.title||les.content||les.objective||les.activity))?[
+    `NỘI DUNG HỌC TUẦN (dùng làm bối cảnh, KHÔNG viết lại trong tongHop):`,
+    les.content?`- Bản phụ huynh đang dùng: "${les.content}"`:'',
+    les.title?`- Tên bài/chủ đề: ${les.title}`:'',
+    les.objective?`- Mục tiêu: ${les.objective}`:'',
+    les.activity?`- Hoạt động: ${les.activity}`:'',
+  ].filter(Boolean).join('\n'):'';
   return [
     `Trung tâm TƯ DUY ${center.name||'WonderKids'}. Soạn BÁO CÁO TUẦN gửi phụ huynh cho bé ${stu.name}, TỔNG HỢP từ ${recs.length} buổi trong tuần.`,
     lesLine,
@@ -621,9 +674,11 @@ function buildWeeklyPrompt(b){
     sessions||'(chưa có buổi nào)',
     b.childComment?`Lời nhắn riêng của cô: "${b.childComment}".`:'',
     '',
-    `Viết báo cáo ẤM ÁP, CỤ THỂ, ĐẦY ĐỦ — đúng kỳ vọng của phụ huynh khi cho con học trung tâm tư duy. Gồm 2 phần:`,
-    `1. tongHop: 3-4 câu tổng hợp cả tuần — con học/làm được gì (gắn nội dung học tuần + kỹ năng tư duy), nêu 1-2 khoảnh khắc cụ thể từ dữ liệu buổi. Không liệt kê khô khan.`,
-    `2. coGang: 2-3 câu nêu RÕ điểm con CẦN CẢI THIỆN (cụ thể, thẳng thắn nhưng tích cực), kèm cách trung tâm sẽ hỗ trợ con.`,
+    reportConfigPrompt(center.report_config),
+    '',
+    `Viết 2 phần nhận xét ẤM ÁP, CỤ THỂ, ĐẦY ĐỦ — bám dữ liệu GV, có thể nối với hoạt động/mục tiêu học để văn liền mạch:`,
+    `1. tongHop: 2-3 câu cho mục "ĐIỂM BÉ LÀM ĐƯỢC" — nêu rõ con thể hiện tốt ở đâu, hành vi cụ thể nào, liên hệ nhẹ với hoạt động/kỹ năng tư duy nếu phù hợp. KHÔNG lặp lại toàn bộ nội dung học tuần.`,
+    `2. coGang: 2-3 câu cho mục "ĐIỂM BÉ CẦN HỖ TRỢ" — nêu rõ điểm cần rèn thêm, tích cực và hướng tới trước, kèm cách cô/trung tâm sẽ đồng hành.`,
     `Quy tắc: KHÔNG dùng từ kém/yếu/tệ/chậm/dốt/lười/hư; KHÔNG so sánh với bé khác; tiếng Việt tự nhiên, hướng tới trước.`,
     `Trả về DUY NHẤT JSON: {"tongHop":"...","coGang":"..."} — không thêm chữ nào khác.`,
   ].filter(Boolean).join('\n');
@@ -1178,10 +1233,10 @@ function renderScore(){
         ${stSent?`<textarea class="input gold detail" id="sc-st-detail" oninput="CTRC.scoreDetailInput()" placeholder="⭐ Mô tả chi tiết bé làm được (tuỳ chọn) — VD: bé tự ghép đúng 5 mảnh, kiên nhẫn thử lại 3 lần">${esc((rec.strength&&rec.strength.detail)||rec.observation||'')}</textarea>`:''}
       </div>
       <div class="ln sec-improve" style="margin-top:12px">
-        <label>📌 Điểm bé làm chưa được — chọn 1 tiêu chí</label>
+        <label>📌 Điểm bé cần hỗ trợ — chọn 1 tiêu chí</label>
         <div class="chips">${critChips(imCrit, stCrit, 'pickImproveCrit', 'imp')}</div>
         ${imCrit?`<div class="hint" style="margin:7px 0 4px">Chọn câu mô tả:</div><div class="chips">${sentChips(imCrit,'neg',imSent,'pickImproveSentence','imp')}</div>`:''}
-        ${imSent?`<textarea class="input detail" id="sc-im-detail" oninput="CTRC.scoreDetailInput()" placeholder="Mô tả chi tiết bé làm chưa được (tuỳ chọn) — VD: con thường chơi một mình, ngại bắt chuyện">${esc((rec.improve&&rec.improve.detail)||'')}</textarea>`:''}
+        ${imSent?`<textarea class="input detail" id="sc-im-detail" oninput="CTRC.scoreDetailInput()" placeholder="Mô tả chi tiết bé cần hỗ trợ (tuỳ chọn) — VD: con thường chơi một mình, ngại bắt chuyện">${esc((rec.improve&&rec.improve.detail)||'')}</textarea>`:''}
       </div>
       <div class="field" style="margin:14px 0"><label>Tâm trạng</label>
         <select class="input" id="sc-mood">${Object.entries(MOODS).map(([k,v])=>`<option value="${k}" ${rec.mood===k?'selected':''}>${v}</option>`).join('')}</select></div>
@@ -1528,7 +1583,7 @@ async function saveStage(){
 async function enrichLesson(rec){
   const skill = AI._rules.giaoan || '';
   const sys = AI._sysFor('generic', 'Bạn đọc giáo án mầm non, trả JSON thuần.');
-  const prompt = (skill?skill+'\n\n':'')+`GIÁO ÁN (mã ${rec.code} tuần ${rec.week}):\n"""${(rec.body||[]).join('\n')}"""\n\nTrả về DUY NHẤT JSON: {"title":"...","manager_summary":"...","parent_content":"..."}.`;
+  const prompt = (skill?skill+'\n\n':'')+reportConfigPrompt(CENTER&&CENTER.report_config)+'\n\n'+`GIÁO ÁN (mã ${rec.code} tuần ${rec.week}):\n"""${(rec.body||[]).join('\n')}"""\n\nTrả về DUY NHẤT JSON: {"title":"...","manager_summary":"...","parent_content":"..."}.`;
   const text=await AI.complete(sys, prompt);
   const m=text.match(/\{[\s\S]*\}/); const out=m?JSON.parse(m[0]):{};
   const r={};
@@ -1676,7 +1731,7 @@ async function genWeekly(){
   if(genBtn){ genBtn.disabled=true; genBtn.textContent='⏳ Đang tạo…'; }
   try{
   const objText = OBJ.get(WK.book, WK.week);   // mục tiêu tuần từ thư viện mục tiêu (xlsx)
-  const lessonSnap = les ? {title:les.title, pages:les.pages, skill:les.skill, body:les.body, parent_content:les.parent_content||'', manager_summary:les.manager_summary||''} : (objText? {title:'', objective:objText} : null);
+  const lessonSnap = les ? {title:les.title, objective:objText||'', objectives:les.objectives||null, knowledge:les.knowledge||'', pages:les.pages, skill:les.skill, body:les.body, parent_content:les.parent_content||'', manager_summary:les.manager_summary||''} : (objText? {title:'', objective:objText} : null);
   // "tuần này con học" — ưu tiên giáo án docx; nếu không có thì dùng mục tiêu tuần
   const hocGi = les ? ENG.lessonSummary(lessonSnap) : _cleanObjective(objText);
   // ngữ cảnh bài học cho AI (mục tiêu + hoạt động)
@@ -1704,7 +1759,7 @@ async function genWeekly(){
       }catch(e){ /* fallback engine */ }
     }
     if(!nar) nar = ENG.weeklyNarrative(dg, s.name);
-    const summary = { hocGi, tongHop:nar.tongHop, coGang:nar.coGang, sessions:dg.sessions };
+    const summary = { hocGi:_personalizeLessonForChild(hocGi, s.name), tongHop:nar.tongHop, coGang:nar.coGang, sessions:dg.sessions };
     const w=await DB.createWeekly({
       center_id:CENTER.id, class_id:WK.classId, student_id:s.id,
       book:WK.book, week:WK.week, sent_date:WK.to, range_from:WK.from, range_to:WK.to,
@@ -1723,16 +1778,29 @@ async function genWeekly(){
   finally{ genWeekly._busy=false; if(genBtn){ genBtn.disabled=false; genBtn.textContent='📨 Tạo báo cáo cả lớp'; } }
 }
 function _dateLabel(from,to){ return ENG.fmtDate(from)+' – '+ENG.fmtDate(to); }
+function _reEsc(s){ return String(s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function _lcFirst(s){ return s ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
+function _personalizeLessonForChild(text, name){
+  let t=(text||'').trim(); const n=(name||'con').trim();
+  if(!t) return '';
+  t=t.replace(/^Tuần này,\s*các con\s+được/i, `Tuần này, ${n} được`);
+  t=t.replace(/^Tuần này,\s*các con\s+/i, `Tuần này, ${n} `);
+  t=t.replace(/^Các con\s+được/i, `${n} được`);
+  t=t.replace(/^Các con\s+/i, `${n} `);
+  t=t.replace(/^Con\s+/i, `${n} `);
+  const hasName = n && new RegExp(_reEsc(n), 'i').test(t);
+  if(!hasName && !/^Tuần này/i.test(t)) t = `Tuần này, ${n} được ${_lcFirst(t)}`;
+  return t;
+}
 /* văn bản gửi Zalo — KHÔNG link (gui-phu-huynh.md) */
 function composeWeekly(stu, w){
   const s=w.summary||{};
-  let t=`📅 BÁO CÁO TUẦN — bé ${stu.name}\n(${_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date)})\n`;
-  if(s.hocGi) t+=`\n📖 Tuần này con học: ${s.hocGi}\n`;
-  if(s.tongHop) t+=`\n🌟 Tổng hợp tuần của con: ${s.tongHop}\n`;
-  if(s.coGang) t+=`\n📌 Điểm con cần cải thiện: ${s.coGang}\n`;
+  let t=`🧸 BÁO CÁO TUẦN\nBé ${stu.name} · ${_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date)}\n`;
+  if(s.hocGi) t+=`\n📖 NỘI DUNG HỌC TUẦN NÀY\n${s.hocGi}\n`;
+  if(s.tongHop) t+=`\n✅ ĐIỂM BÉ LÀM ĐƯỢC\n${s.tongHop}\n`;
+  if(s.coGang) t+=`\n📌 ĐIỂM BÉ CẦN HỖ TRỢ\n${s.coGang}\n`;
   if(w.class_comment) t+=`\n💬 Lời nhắn của cô: ${w.class_comment}\n`;
   if(w.child_comment) t+=`👶 Riêng ${stu.name}: ${w.child_comment}\n`;
-  t+=`\n${(CENTER&&CENTER.closing_line)||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.'}`;
   return t.trim();
 }
 /* thẻ báo cáo (để hiển thị + xuất ảnh) */
@@ -1741,15 +1809,14 @@ function weeklyCardHTML(stu, w){
   const sec=(icon,title,body,cls)=> body?`<div class="wcp-sec ${cls}"><div class="wcp-t">${icon} ${title}</div><div>${esc(body)}</div></div>`:'';
   return `<div class="wk-card-print" id="wcp-${w.id}">
     <div class="wcp-head">${esc((CENTER&&CENTER.name)||'WonderKids')}${CENTER&&CENTER.tagline?` · ${esc(CENTER.tagline)}`:''}</div>
-    <div class="wcp-title">📅 Báo cáo tuần</div>
+    <div class="wcp-title">🧸 Báo cáo tuần</div>
     <div class="wcp-kid">${AV(stu.gender)} ${esc(stu.name)}</div>
     <div class="wcp-meta">${esc(_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date))}</div>
-    ${sec('📖','Tuần này con học', s.hocGi,'b')}
-    ${sec('🌟','Tổng hợp tuần của con', s.tongHop,'g')}
-    ${sec('📌','Điểm con cần cải thiện', s.coGang,'y')}
+    ${sec('📖','Nội dung học tuần này', s.hocGi,'b')}
+    ${sec('✅','Điểm bé làm được', s.tongHop,'g')}
+    ${sec('📌','Điểm bé cần hỗ trợ', s.coGang,'y')}
     ${sec('💬','Lời nhắn của cô', w.class_comment,'g')}
     ${w.child_comment?sec('👶','Riêng '+stu.name, w.child_comment,'y'):''}
-    <div class="wcp-close">${esc((CENTER&&CENTER.closing_line)||'Mỗi bé có tốc độ riêng — với sự đồng hành kiên nhẫn, bé sẽ ngày càng tự tin và phát triển toàn diện.')}</div>
   </div>`;
 }
 function renderWeeklyResult(made, skipped){
@@ -1761,9 +1828,9 @@ function renderWeeklyResult(made, skipped){
     ${made.map(({stu,w})=>{const s=w.summary||{};return `<div class="wk-out" id="wkout-${w.id}">
       <div class="ed-head" style="margin:2px 0 8px"><span>${AV(stu.gender)} <b>${esc(stu.name)}</b> · ${esc(_dateLabel(w.range_from||w.sent_date, w.range_to||w.sent_date))}${s.sessions?` · ${s.sessions} buổi`:''}</span>${phoneChip(stu)||'<span class="cc">có thể sửa ↓</span>'}</div>
       <div class="wk-edit" data-wid="${w.id}">
-        <label class="wk-lbl">📖 Tuần này con học</label><textarea class="input" data-f="hocGi" oninput="CTRC._wkGrow(this)">${esc(s.hocGi||'')}</textarea>
-        <label class="wk-lbl">🌟 Tổng hợp tuần của con</label><textarea class="input" data-f="tongHop" oninput="CTRC._wkGrow(this)">${esc(s.tongHop||'')}</textarea>
-        <label class="wk-lbl">📌 Điểm con cần cải thiện</label><textarea class="input" data-f="coGang" oninput="CTRC._wkGrow(this)">${esc(s.coGang||'')}</textarea>
+        <label class="wk-lbl">📖 Nội dung học tuần này</label><textarea class="input" data-f="hocGi" oninput="CTRC._wkGrow(this)">${esc(s.hocGi||'')}</textarea>
+        <label class="wk-lbl">✅ Điểm bé làm được</label><textarea class="input" data-f="tongHop" oninput="CTRC._wkGrow(this)">${esc(s.tongHop||'')}</textarea>
+        <label class="wk-lbl">📌 Điểm bé cần hỗ trợ</label><textarea class="input" data-f="coGang" oninput="CTRC._wkGrow(this)">${esc(s.coGang||'')}</textarea>
         <label class="wk-lbl">👶 Lời nhắn riêng cho ${esc(stu.name)} (tuỳ chọn)</label><textarea class="input" data-f="child_comment" oninput="CTRC._wkGrow(this)">${esc(w.child_comment||'')}</textarea>
       </div>
       <div class="row" style="gap:8px;margin:8px 0 18px">
@@ -1983,7 +2050,7 @@ function renderMsg(){
         <textarea class="input" id="m-dm" ${editAttr} oninput="CTRC.edInput(this)">${esc(m.diem_manh)}</textarea>
       </div>
       <div class="ed-line">
-        <div class="ed-head"><span>📌 Điểm bé làm chưa được</span><span class="cc" id="cc-cg"></span></div>
+        <div class="ed-head"><span>📌 Điểm bé cần hỗ trợ</span><span class="cc" id="cc-cg"></span></div>
         <textarea class="input" id="m-cg" ${editAttr} oninput="CTRC.edInput(this)">${esc(m.co_gang)}</textarea>
       </div>
       <div class="zalo-meter" id="zalo-meter"></div>
@@ -2521,7 +2588,7 @@ async function viewConfig(){
   const staff = await DB.listStaff(CENTER.id);
   view.innerHTML = `
     <h2 class="h-title">Cấu hình trung tâm</h2>
-    <p class="h-sub">Nhân sự · cấu hình AI · chủ đề tuần · 5 tiêu chí đánh giá.</p>
+    <p class="h-sub">Nhân sự · cấu hình AI · giọng văn báo cáo · chủ đề tuần · 5 tiêu chí đánh giá.</p>
     <div class="card" style="margin-bottom:14px">
       <div class="row" style="justify-content:space-between;align-items:center">
         <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">👥 Nhân sự (đổi tên / thêm / xoá)</b>
@@ -2534,6 +2601,7 @@ async function viewConfig(){
       <div class="hint" style="margin-top:6px">Đăng nhập = chọn tên. Đổi thành tên thật của giáo viên/CSKH/quản lý trung tâm bạn.</div>
     </div>
     <div id="ai-card-wrap"></div>
+    ${renderReportConfigEditor()}
     <div class="card" style="margin:14px 0">
       <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">Chủ đề tuần</b>
       <div class="row" style="margin:10px 0">
@@ -2578,6 +2646,91 @@ async function viewConfig(){
     </div>`;
   AICFG = AI.get();
   renderAICard('#ai-card-wrap');
+}
+
+function renderReportConfigEditor(){
+  const c=reportCfg(CENTER&&CENTER.report_config);
+  const opt=(map,val)=>Object.entries(map).map(([k,v])=>`<option value="${esc(k)}" ${val===k?'selected':''}>${esc(v)}</option>`).join('');
+  return `<div class="card" style="margin:14px 0">
+    <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">🗣️ Giọng văn & nội dung báo cáo</b>
+      <span class="row" style="gap:8px">
+        <button class="btn sm" onclick="CTRC.reportConfigReset()">↺ Về chuẩn</button>
+        <button class="btn primary sm" onclick="CTRC.reportConfigSave()">💾 Lưu giọng văn</button>
+      </span>
+    </div>
+    <div class="hint" style="margin:6px 0 12px">Manager chỉnh một lần → AI per-buổi, AI báo cáo tuần và AI đọc giáo án đều bám theo. Đây là lớp điều khiển câu chữ, không thay đổi dữ liệu GV chấm.</div>
+    <div class="row" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div class="field" style="flex:1;min-width:220px"><label>Tone chính</label><select class="input" id="rc-tone">${opt(REPORT_TONE,c.tone)}</select></div>
+      <div class="field" style="flex:1;min-width:220px"><label>Độ dài</label><select class="input" id="rc-detail">${opt(REPORT_DETAIL,c.detail)}</select></div>
+      <div class="field" style="flex:1;min-width:220px"><label>Kiểu phụ huynh đọc</label><select class="input" id="rc-audience">${opt(REPORT_AUDIENCE,c.audience)}</select></div>
+    </div>
+    <div class="row" style="gap:10px;margin-top:10px;align-items:flex-start;flex-wrap:wrap">
+      <div class="field" style="width:160px"><label>Gọi bé là</label><input class="input" id="rc-child" value="${esc(c.childNoun)}" placeholder="con / bé"></div>
+      <div class="field" style="width:160px"><label>Gọi giáo viên là</label><input class="input" id="rc-teacher" value="${esc(c.teacherNoun)}" placeholder="cô / thầy cô"></div>
+      <div class="field" style="flex:1;min-width:260px"><label>Từ/cụm từ cần tránh</label><input class="input" id="rc-avoid" value="${esc(c.avoidWords)}" placeholder="kém, yếu, chậm..."></div>
+    </div>
+    <div class="row" style="gap:10px;margin-top:10px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1;min-width:280px">
+        <label style="font:700 10.5px/1 var(--font);color:var(--primary-2);letter-spacing:.04em">📖 KHUNG DIỄN GIẢI BÀI HỌC</label>
+        <textarea class="input" id="rc-lesson" style="width:100%;min-height:84px;margin-top:4px;font-size:12.5px;line-height:1.55">${esc(c.lessonFrame)}</textarea>
+      </div>
+      <div style="flex:1;min-width:280px">
+        <label style="font:700 10.5px/1 var(--font);color:var(--primary-2);letter-spacing:.04em">🧩 KHUNG DIỄN GIẢI HOẠT ĐỘNG</label>
+        <textarea class="input" id="rc-activity" style="width:100%;min-height:84px;margin-top:4px;font-size:12.5px;line-height:1.55">${esc(c.activityFrame)}</textarea>
+      </div>
+    </div>
+    <div class="row" style="gap:10px;margin-top:10px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1;min-width:280px">
+        <label style="font:700 10.5px/1 var(--font);color:#46901f;letter-spacing:.04em">✅ Ý/CỤM TỪ NÊN CÓ KHI PHÙ HỢP</label>
+        <textarea class="input" id="rc-must" style="width:100%;min-height:74px;margin-top:4px;font-size:12.5px;line-height:1.55" placeholder="VD: học qua trải nghiệm; phát triển khả năng tập trung; tư duy logic...">${esc(c.mustInclude)}</textarea>
+      </div>
+      <div style="flex:1;min-width:280px">
+        <label style="font:700 10.5px/1 var(--font);color:#c0691a;letter-spacing:.04em">📝 GHI CHÚ RIÊNG CHO AI</label>
+        <textarea class="input" id="rc-extra" style="width:100%;min-height:74px;margin-top:4px;font-size:12.5px;line-height:1.55" placeholder="VD: không viết quá văn mẫu; ưu tiên câu phụ huynh đọc thấy giá trị giáo dục...">${esc(c.extra)}</textarea>
+      </div>
+    </div>
+    <div class="hint" style="margin-top:8px">Gợi ý: giữ khung 4 kỹ năng tư duy + hoạt động trải nghiệm làm mặc định. Chỉ thêm rule riêng khi manager muốn điều chỉnh theo thương hiệu/trung tâm.</div>
+  </div>`;
+}
+
+function _readReportConfigEditor(){
+  return {
+    tone:($('#rc-tone')||{}).value||REPORT_CFG_DEFAULT.tone,
+    detail:($('#rc-detail')||{}).value||REPORT_CFG_DEFAULT.detail,
+    audience:($('#rc-audience')||{}).value||REPORT_CFG_DEFAULT.audience,
+    childNoun:(($('#rc-child')||{}).value||'con').trim(),
+    teacherNoun:(($('#rc-teacher')||{}).value||'cô').trim(),
+    avoidWords:(($('#rc-avoid')||{}).value||'').trim(),
+    lessonFrame:(($('#rc-lesson')||{}).value||'').trim(),
+    activityFrame:(($('#rc-activity')||{}).value||'').trim(),
+    mustInclude:(($('#rc-must')||{}).value||'').trim(),
+    extra:(($('#rc-extra')||{}).value||'').trim(),
+  };
+}
+async function reportConfigSave(){
+  const cfg=_readReportConfigEditor();
+  if(!cfg.childNoun || !cfg.teacherNoun){ toast('Cách xưng hô không được trống','var(--primary-2)'); return; }
+  if(!cfg.lessonFrame || !cfg.activityFrame){ toast('Nên giữ khung bài học + hoạt động để AI viết ổn định','var(--primary-2)'); return; }
+  try{
+    await DB.updateCenter(CENTER.id, { report_config:cfg });
+    CENTER.report_config=cfg;
+    await DB.audit(CENTER.id, STAFF, 'report_config_update', 'center', CENTER.id, {tone:cfg.tone,detail:cfg.detail,audience:cfg.audience});
+    toast('✓ Đã lưu giọng văn báo cáo — áp dụng cho mọi máy');
+    viewConfig();
+  }catch(e){
+    const msg=String(e.message||e);
+    toast(/report_config/.test(msg)?'Thiếu cột report_config trên Supabase — chạy ctrc/schema-patch-v4.sql rồi lưu lại':'Lỗi lưu: '+msg,'var(--primary-2)');
+  }
+}
+async function reportConfigReset(){
+  if(!confirm('Đưa giọng văn báo cáo về chuẩn WonderKids?')) return;
+  try{
+    await DB.updateCenter(CENTER.id, { report_config:null });
+    CENTER.report_config=null;
+    await DB.audit(CENTER.id, STAFF, 'report_config_reset', 'center', CENTER.id, {});
+    toast('↺ Đã trả về chuẩn WonderKids'); viewConfig();
+  }catch(e){ toast('Lỗi: '+(e.message||e),'var(--primary-2)'); }
 }
 
 /* ── TÙY CHỈNH 5 TIÊU CHÍ (lưu centers.criteria — đồng bộ mọi máy) ── */
@@ -2802,7 +2955,7 @@ window.CTRC = {
   critSave, critReset,
   addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, genAICustom, approve, returnToGV, confirmReturn, copyBlock, copyLink, markSent, voiceCheck, edInput,
-  approveProfile, editProfile, saveEditProfile, addTheme,
+  approveProfile, editProfile, saveEditProfile, addTheme, reportConfigSave, reportConfigReset,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
   addStaff, editStaff, saveStaff, delStaff,
   genWeekly, copyWeekly, saveWeeklyImg, saveWeeklyEdit, wkThisWeek, _wkGrow, copyPhone,
