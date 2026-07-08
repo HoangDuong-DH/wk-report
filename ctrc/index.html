@@ -3327,12 +3327,6 @@ const TAB_HELP = {
     ['Hành động','Ví dụ đăng nhập, chấm điểm, duyệt tin, gửi phụ huynh.'],
     ['Chi tiết','Dữ liệu ngắn giúp truy vết khi cần kiểm tra lại.'],
   ]},
-  guide:{title:'Màn Hướng dẫn', plain:'Dùng để học cách vận hành app ngay trong hệ thống.', items:[
-    ['Chọn vai trò','Bấm GV, CSKH hoặc Manager để xem đúng phần việc.'],
-    ['Mở màn hình','Bấm nút trong từng bước để nhảy sang màn cần thao tác.'],
-    ['Tôi đã hiểu','Tick để lưu tiến độ học hướng dẫn trên máy đang dùng.'],
-    ['Khi bị vướng','Xem cột bên phải để biết lỗi thường gặp và cách xử lý.'],
-  ]},
 };
 function renderTabHelp(){
   const old=$('#tab-help-wrap'); if(old) old.remove();
@@ -3347,115 +3341,10 @@ function renderTabHelp(){
 }
 function toggleTabHelp(){ const el=$('#tab-help'); if(el) el.classList.toggle('open'); }
 
-/* ═══════════════ HƯỚNG DẪN NON-TECH TRONG APP ═══════════════ */
-let GUIDE = { role:'' };
-const GUIDE_DATA = {
-  gv:{
-    icon:'✍️', title:'Giáo viên', intro:'Mục tiêu của GV là ghi nhận đúng hành vi thật của bé. Không cần viết văn gửi phụ huynh; hệ thống và CSKH sẽ biên tập từ dữ liệu chấm.',
-    flow:['Chọn lớp/ngày','Chấm từng bé','Lưu record','CSKH duyệt','PH nhận tin'],
-    steps:[
-      {tab:'cham', title:'Chọn đúng lớp và ngày học', do:'Vào Chấm buổi, chọn lớp, chọn ngày bé học thật. Nếu lớp/ngày sai thì dữ liệu sẽ nằm nhầm buổi.', system:'Hệ thống tạo một buổi học theo cặp lớp + ngày. Mọi bé trong lớp sẽ được gắn vào buổi này.', check:'Tên lớp, ngày học và danh sách bé đúng trước khi mở từng bé.'},
-      {tab:'cham', title:'Gắn bài học tuần nếu lớp đang học theo giáo án', do:'Ở thanh bài học, chọn chương trình, cuốn và tuần rồi lấy từ thư viện nếu cần.', system:'Bài học chỉ là ngữ cảnh để nhận xét bám nội dung học; nó không thay thế phần GV chấm.', check:'Mục tiêu/hoạt động hiện đúng với buổi đang dạy.'},
-      {tab:'cham', title:'Chấm từng bé bằng 2 ý chính', do:'Mỗi bé chọn một điểm làm được và một điểm cần hỗ trợ. Ghi thêm chi tiết ngắn nếu có quan sát cụ thể.', system:'Hai lựa chọn này là nguồn chính cho phần Điểm bé làm được và Điểm bé cần hỗ trợ.', check:'Có đủ 1 điểm mạnh + 1 điểm cần hỗ trợ, không chọn đại cho đủ.'},
-      {tab:'cham', title:'Đánh dấu bé nghỉ hoặc chưa tham gia', do:'Nếu bé nghỉ, đánh dấu vắng. Nếu bé có mặt nhưng không tham gia đủ, ghi rõ trong phần chi tiết.', system:'Bé vắng sẽ không bị sinh nhận xét sai. Bé có dữ liệu thiếu sẽ được CSKH/Manager nhìn thấy.', check:'Không tạo nhận xét cho bé không học buổi đó.'},
-      {tab:'cham', title:'Lưu và chuyển cho CSKH', do:'Sau khi kiểm tra xong, bấm lưu để đẩy qua hàng đợi duyệt.', system:'CSKH sẽ thấy bản nháp từ dữ liệu GV chấm, có thể sửa câu chữ hoặc trả lại nếu thiếu thông tin.', check:'Sau khi lưu không còn bé chấm dở trong buổi.'},
-      {tab:'weekly', title:'Báo cáo tuần khi cần', do:'Chỉ tạo báo cáo tuần khi các buổi trong tuần đã được chấm tương đối đủ.', system:'Báo cáo tuần gom các record theo khoảng ngày. Bé không có buổi học sẽ bị bỏ qua để tránh báo cáo trắng.', check:'Màn báo cáo tuần hiển thị số bé có dữ liệu trước khi tạo.'},
-    ],
-    mechanics:['GV nhập dữ liệu hành vi, không phải viết nội dung marketing.','AI/engine chỉ biên tập từ phần đã chấm, không được tự đổi ý GV.','Nếu CSKH trả lại, mở lại đúng bé/buổi để bổ sung rồi lưu lại.'],
-    trouble:['Không thấy bé: kiểm tra lớp hoặc trạng thái bé trong Lớp & Bé.','Nhận xét quá chung: thêm chi tiết hành vi như con làm gì, lúc nào, cần cô nhắc gì.','Chấm nhầm ngày: báo manager/CSKH kiểm tra trước khi gửi PH.']
-  },
-  cskh:{
-    icon:'📋', title:'CSKH', intro:'CSKH là lớp kiểm duyệt cuối trước khi phụ huynh nhận tin. Việc chính là giữ nội dung đúng dữ liệu GV, mềm giọng và dễ đọc trên Zalo.',
-    flow:['Mở hàng đợi','Rà dữ liệu GV','Sửa câu chữ','Duyệt/copy','Đánh dấu đã gửi'],
-    steps:[
-      {tab:'queue', title:'Mở hàng đợi và ưu tiên tin chờ lâu', do:'Vào Hàng đợi, lọc lớp hoặc tên bé nếu cần. Ưu tiên tin chờ duyệt lâu để tránh trễ SLA.', system:'Tin được sắp theo trạng thái. Dashboard manager đọc từ chính trạng thái này.', check:'Không bỏ sót tin chờ duyệt hoặc tin bị trả lại.'},
-      {tab:'queue', title:'Đọc kỹ dữ liệu GV trước khi sửa', do:'Xem điểm mạnh, điểm cần hỗ trợ, ghi chú, tâm trạng và bài học liên quan.', system:'Bản nháp được sinh từ dữ liệu GV. CSKH sửa văn phong, không sửa ngược bản chất quan sát.', check:'Nội dung cuối vẫn khớp với tick của GV.'},
-      {tab:'queue', title:'Sửa thành câu phụ huynh dễ hiểu', do:'Rút câu dài, bỏ thuật ngữ, nói cụ thể hành vi. Nếu cần, dùng AI viết lại rồi tự duyệt lại.', system:'Cấu hình giọng văn của manager sẽ ảnh hưởng AI, nhưng CSKH vẫn là người chịu trách nhiệm bản cuối.', check:'Đọc nhanh trên Zalo vẫn hiểu bé làm được gì và cần hỗ trợ gì.'},
-      {tab:'queue', title:'Trả lại GV khi dữ liệu thiếu', do:'Nếu GV chọn sai, thiếu chi tiết hoặc mâu thuẫn, bấm trả lại và ghi lý do rõ.', system:'Trạng thái returned giúp GV biết cần bổ sung. Không nên tự bịa dữ liệu để gửi nhanh.', check:'Lý do trả lại đủ cụ thể để GV sửa trong một lần.'},
-      {tab:'queue', title:'Duyệt, copy và gửi Zalo thủ công', do:'Khi nội dung ổn, duyệt rồi copy nội dung gửi phụ huynh. Dán vào Zalo thật bằng tài khoản vận hành.', system:'App không tự gửi Zalo để tránh gửi nhầm. Con người luôn là bước xác nhận cuối.', check:'Tin đúng phụ huynh, đúng bé, đúng ngày trước khi gửi.'},
-      {tab:'queue', title:'Đánh dấu đã gửi', do:'Sau khi đã gửi Zalo thật, đánh dấu đã gửi trong hệ thống.', system:'Dashboard và nhật ký chỉ đúng khi trạng thái sent được cập nhật.', check:'Tin đã gửi không còn nằm trong hàng đợi chờ xử lý.'},
-    ],
-    mechanics:['Không có link phụ huynh trong nội dung nếu cấu hình đang tắt link.','Voice guard giúp tránh từ tiêu cực, nhưng vẫn cần CSKH đọc lại bằng mắt.','Optimistic lock giúp giảm rủi ro 2 CSKH sửa cùng lúc một tin.'],
-    trouble:['Tin nghe máy móc: sửa trực tiếp hoặc yêu cầu AI viết ngắn/ấm hơn.','Không đủ dữ liệu: trả lại GV, đừng đoán.','Đã gửi nhưng dashboard chưa tính: kiểm tra đã bấm đánh dấu đã gửi chưa.']
-  },
-  manager:{
-    icon:'📊', title:'Manager', intro:'Manager thiết lập nền vận hành: nhân sự, tiêu chí, giọng văn, giáo án và kiểm tra báo cáo tuần. Mục tiêu là để GV/CSKH thao tác ít nhưng dữ liệu ra ổn định.',
-    flow:['Cấu hình nền','Import giáo án','Theo dõi dữ liệu','Tạo báo cáo tuần','Kiểm tra dashboard'],
-    steps:[
-      {tab:'config', title:'Thiết lập nhân sự và quyền dùng', do:'Vào Cấu hình để đổi tên, thêm hoặc xoá nhân sự theo vai trò GV/CSKH/Manager.', system:'Vai trò quyết định người đó thấy màn nào. Đăng nhập hiện là chọn tên trong nội bộ.', check:'Mỗi người dùng có đúng vai trò, tên dễ nhận biết.'},
-      {tab:'config', title:'Chốt 5 tiêu chí và câu tick sẵn', do:'Sửa tên tiêu chí, câu điểm mạnh, câu cần hỗ trợ và gợi ý ở nhà nếu cần.', system:'Tiêu chí lưu ở center nên mọi máy dùng chung. Key hệ thống giữ cố định để không lệch dữ liệu cũ.', check:'GV đọc câu tick là hiểu ngay, không cần giải thích riêng.'},
-      {tab:'config', title:'Cấu hình giọng văn báo cáo', do:'Chỉnh tone, độ dài, kiểu phụ huynh đọc, từ cần tránh, khung diễn giải bài học/hoạt động.', system:'Cấu hình này điều khiển AI per-buổi, AI báo cáo tuần và AI đọc giáo án; không thay dữ liệu GV chấm.', check:'Output đọc giống giọng trung tâm, không quá văn mẫu.'},
-      {tab:'lessons', title:'Import giáo án DOCX vào thư viện', do:'Vào Thư viện, nạp file giáo án .docx. Với file nhiều buổi như L3 - 305.docx, import nguyên file.', system:'App dò BUỔI n, gom 2 buổi thành 1 tuần và lưu skeleton vào DB để mọi máy dùng chung.', check:'Sơ đồ file → buổi → tuần → tổng hợp hiển thị đúng.'},
-      {tab:'weekly', title:'Tạo báo cáo tuần đúng lịch thực học', do:'Chọn lớp, ngày, cuốn, tuần. Nếu lịch lệch, tick đúng Buổi thực học đưa vào báo cáo.', system:'Nội dung học và nhận xét bé sẽ dùng đúng session context đã chọn. Lựa chọn lệch lịch được nhớ theo lớp + tuần + khoảng ngày trên trình duyệt.', check:'Workflow báo đủ số bé có dữ liệu và số bé sẽ bị bỏ qua.'},
-      {tab:'overview', title:'Theo dõi dashboard sau vận hành', do:'Kiểm tra chờ duyệt, trả lại GV, đã gửi và báo cáo tuần theo lớp.', system:'Dashboard đọc từ trạng thái thật của tin và báo cáo. Nếu CSKH quên mark sent, số liệu sẽ lệch.', check:'Không còn backlog bất thường trước khi kết thúc ngày/tuần.'},
-    ],
-    mechanics:['Giáo án là context học tập; điểm mạnh/yếu vẫn theo GV chấm.','Báo cáo tuần không tạo cho bé không có dữ liệu trong khoảng ngày.','Hub local có thể ghi key vận hành, nhưng repo public tuyệt đối không commit secret/PII.'],
-    trouble:['Import DOCX sai tuần: kiểm tra file có marker BUỔI n rõ không.','Báo cáo tuần thiếu bé: kiểm tra bé đã được GV chấm trong khoảng ngày chưa.','Tone chưa đúng: lưu thêm preset trong Giọng văn & nội dung báo cáo.']
-  }
-};
-const GUIDE_GLOBAL_RULES = ['GV ghi nhận hành vi thật; CSKH sửa câu chữ; Manager chỉnh hệ thống.', 'AI là trợ lý biên tập, không phải người quyết định nội dung thật.', 'Không tạo/gửi báo cáo trắng cho bé không có dữ liệu.', 'Tin Zalo vẫn do người copy và gửi thủ công để tránh gửi nhầm.'];
-function guideDone(role){ try{ return JSON.parse(localStorage.getItem('ctrc:guide:'+role))||{}; }catch(_){ return {}; } }
-function guideSetDone(role, done){ localStorage.setItem('ctrc:guide:'+role, JSON.stringify(done||{})); }
-function guideRole(){ return GUIDE.role || (STAFF&&STAFF.role) || 'gv'; }
-function guideTabLabel(tab){
-  for(const tabs of Object.values(NAV_TABS)){ const m=(tabs||[]).find(x=>x[0]===tab); if(m) return m[1].replace(/^[^\wÀ-ỹ]+/,'').trim(); }
-  return tab;
-}
-function guideCanOpen(tab){ return !!tab && (NAV_TABS[STAFF.role]||[]).some(x=>x[0]===tab); }
-function guideSetRole(role){ GUIDE.role=role; viewGuide(); }
-function guideToggle(role, idx, checked){ const d=guideDone(role); if(checked) d[idx]=true; else delete d[idx]; guideSetDone(role,d); viewGuide(); }
-function guideReset(role){ if(confirm('Xoá tiến độ hướng dẫn của vai trò này?')){ guideSetDone(role,{}); viewGuide(); } }
-function guideJump(tab){
-  if(guideCanOpen(tab)) go(tab);
-  else toast('Màn này thuộc vai trò khác. Bấm đổi tài khoản ở góc trên để thao tác thử.','var(--primary-2)');
-}
-function viewGuide(){
-  const role=guideRole(), data=GUIDE_DATA[role] || GUIDE_DATA.gv, done=guideDone(role);
-  const total=data.steps.length, count=data.steps.filter((_,i)=>done[i]).length, pct=Math.round(count/Math.max(1,total)*100);
-  const roleBtns=Object.keys(GUIDE_DATA).map(r=>`<button class="${r===role?'on':''}" onclick="CTRC.guideSetRole('${r}')">${GUIDE_DATA[r].icon} ${esc(GUIDE_DATA[r].title)}</button>`).join('');
-  const stepHtml=data.steps.map((s,i)=>{
-    const isDone=!!done[i], can=guideCanOpen(s.tab), btn=s.tab?`<button class="btn sm ${can?'primary':''}" onclick="CTRC.guideJump('${s.tab}')">${can?'Mở':'Xem vai trò'} ${esc(guideTabLabel(s.tab))}</button>`:'';
-    return `<div class="guide-step ${isDone?'done':''}">
-      <div class="guide-step-head"><div class="guide-no">${i+1}</div><div style="flex:1">
-        <h3>${esc(s.title)}</h3>
-        <p>${esc(s.do)}</p>
-      </div></div>
-      <div class="guide-meta">
-        <div><b>Hệ thống hiểu như thế nào:</b> ${esc(s.system)}</div>
-        <div><b>Biết đã đúng khi:</b> ${esc(s.check)}</div>
-      </div>
-      <div class="guide-actions">
-        ${btn}
-        <label class="guide-check"><input type="checkbox" ${isDone?'checked':''} onchange="CTRC.guideToggle('${role}',${i},this.checked)"> Đã hiểu / đã làm được</label>
-      </div>
-    </div>`;
-  }).join('');
-  view.innerHTML=`<h2 class="h-title">❔ Hướng dẫn sử dụng cho người không rành kỹ thuật</h2>
-    <p class="h-sub">Chọn vai trò, đọc từng bước, rồi bấm nút mở đúng màn hình để làm thử. Ở mỗi tab còn có nút <b>? Giải thích màn này</b>; rê chuột hoặc bấm vào nút đó để hiểu từng mục trên màn hình.</p>
-    <div class="card guide-hero">
-      <div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start">
-        <div><b style="font:900 15px/1.2 var(--font-d);color:var(--primary-2)">${data.icon} Wizard cho ${esc(data.title)}</b><p class="hint" style="margin:5px 0 0;max-width:760px">${esc(data.intro)}</p></div>
-        <button class="btn sm" onclick="CTRC.guideReset('${role}')">↺ Xoá tiến độ</button>
-      </div>
-      <div class="guide-roles">${roleBtns}</div>
-      <div><div class="ed-head" style="margin-bottom:5px"><span>Tiến độ học cách dùng</span><span class="cc">${count}/${total} bước · ${pct}%</span></div><div class="guide-meter"><span style="width:${pct}%"></span></div></div>
-      <div class="guide-flow">${data.flow.map(x=>`<span>${esc(x)}</span>`).join('')}</div>
-    </div>
-    <div class="guide-layout">
-      <div class="guide-main">${stepHtml}</div>
-      <div class="guide-side">
-        <div class="guide-box"><h3>Luật vàng</h3><ul class="guide-list">${GUIDE_GLOBAL_RULES.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
-        <div class="guide-box"><h3>Cơ chế cần nhớ</h3><ul class="guide-list">${data.mechanics.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
-        <div class="guide-box"><h3>Khi bị vướng</h3><ul class="guide-list">${data.trouble.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
-      </div>
-    </div>`;
-}
-
 /* ── export API ── */
 window.CTRC = {
   login, logout, go, closeModal, helpSupabase,
   toggleTabHelp,
-  guideSetRole, guideToggle, guideReset, guideJump,
   toggleAccountMenu, closeAccountMenu, switchAccount,
   openScore, setAttendance, saveScore,
   pickStrengthCrit, pickStrengthSentence, pickImproveCrit, pickImproveSentence, scoreDetailInput,
