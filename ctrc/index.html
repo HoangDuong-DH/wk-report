@@ -452,6 +452,17 @@ body{background:
 .guide-flow{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 .guide-flow span{background:#fff7ec;border:1px solid var(--line);border-radius:99px;padding:6px 9px;font:800 11px/1 var(--font);color:var(--ink-soft)}
 @media(max-width:820px){.guide-layout{grid-template-columns:1fr}}
+.tab-help-wrap{position:sticky;top:62px;z-index:45;display:flex;justify-content:flex-end;margin:-4px 0 10px;pointer-events:none}
+.tab-help{position:relative;pointer-events:auto}
+.tab-help-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid #f0d9bd;background:#fffdf8;color:var(--primary-2);border-radius:99px;padding:8px 12px;font:900 12px/1 var(--font);box-shadow:0 5px 16px rgba(190,90,20,.08)}
+.tab-help-btn .q{width:19px;height:19px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;font:900 12px/1 var(--font)}
+.tab-help-pop{position:absolute;right:0;top:calc(100% + 8px);width:min(390px,calc(100vw - 32px));max-height:72vh;overflow:auto;background:#fffdf9;border:1px solid var(--line);border-top:4px solid var(--primary);border-radius:16px;padding:14px 15px;box-shadow:0 18px 45px rgba(70,38,10,.2);opacity:0;visibility:hidden;transform:translateY(-5px);transition:.16s ease;text-align:left}
+.tab-help:hover .tab-help-pop,.tab-help:focus-within .tab-help-pop,.tab-help.open .tab-help-pop{opacity:1;visibility:visible;transform:none}
+.tab-help-pop h3{margin:0;font:900 15px/1.25 var(--font-d);color:var(--primary-2)}
+.tab-help-pop p{margin:5px 0 9px;font:500 12.5px/1.55 var(--font);color:var(--ink-soft)}
+.tab-help-pop ul{margin:0;padding-left:17px;font:500 12.5px/1.55 var(--font);color:var(--ink-soft)}
+.tab-help-pop li{margin:6px 0}.tab-help-pop b{color:var(--ink)}
+@media(max-width:640px){.tab-help-wrap{top:auto;position:relative;margin:0 0 10px}.tab-help{width:100%}.tab-help-btn{width:100%;justify-content:center}.tab-help-pop{left:0;right:auto;width:100%;max-height:none}}
 </style>
 </head>
 <body>
@@ -973,7 +984,9 @@ function buildNav(){
 function go(tab){
   TAB = tab;
   document.querySelectorAll('#nav button, #bottomnav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  ({cham:viewCham, weekly:viewWeekly, objectives:viewObjectives, lessons:viewLessonLib, queue:viewQueue, overview:viewOverview, insights:viewInsights, students:viewStudents, profiles:viewProfiles, config:viewConfig, audit:viewAudit, guide:viewGuide}[tab]||(()=>{}))();
+  const renderer = ({cham:viewCham, weekly:viewWeekly, objectives:viewObjectives, lessons:viewLessonLib, queue:viewQueue, overview:viewOverview, insights:viewInsights, students:viewStudents, profiles:viewProfiles, config:viewConfig, audit:viewAudit, guide:viewGuide}[tab]||(()=>{}));
+  const out = renderer();
+  Promise.resolve(out).finally(renderTabHelp);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -3272,6 +3285,95 @@ async function viewAudit(){
     <tbody>${logs.map(l=>`<tr><td>${fmtTime(l.created_at)}</td><td>${esc(l.actor_name||'?')}</td><td>${A[l.action]||l.action}</td><td style="color:var(--mute)">${esc(JSON.stringify(l.meta||{}).slice(0,60))}</td></tr>`).join('')||'<tr><td colspan=4 style="color:var(--mute)">Chưa có log.</td></tr>'}</tbody></table></div>`;
 }
 
+/* ── NÚT ? GIẢI THÍCH TỪNG MÀN HÌNH (cho người non-tech) ── */
+const TAB_HELP = {
+  cham:{title:'Màn Chấm buổi', plain:'Dùng khi giáo viên ghi nhận một buổi học thật của từng bé.', items:[
+    ['Lớp và ngày','Chọn đúng lớp, đúng ngày học. Nếu sai, dữ liệu sẽ nằm nhầm buổi.'],
+    ['Bài học tuần','Gắn cuốn/tuần để nhận xét biết bé đang học nội dung gì.'],
+    ['Điểm làm được','Chọn điều bé làm tốt nhất trong buổi. Đây là nguồn cho phần khen.'],
+    ['Điểm cần hỗ trợ','Chọn điều bé còn cần cô đồng hành. Đây là nguồn cho phần góp ý mềm.'],
+    ['Lưu','Sau khi lưu, CSKH mới thấy bản nháp để duyệt và gửi phụ huynh.'],
+  ]},
+  weekly:{title:'Màn Báo cáo tuần', plain:'Dùng để gom nhiều buổi học thành một báo cáo tuần cho từng bé.', items:[
+    ['Khoảng ngày','Hệ thống chỉ lấy buổi học nằm trong khoảng ngày đang chọn.'],
+    ['Cuốn và tuần','Chọn đúng giáo án để phần Nội dung học tuần này viết đúng bài.'],
+    ['Buổi thực học','Nếu lịch học lệch, tick đúng buổi bé đã học; không cần tách file giáo án.'],
+    ['Dữ liệu bé','Bé chưa có buổi học sẽ bị bỏ qua để tránh tạo báo cáo trắng.'],
+    ['Tạo báo cáo','Sau khi tạo vẫn sửa từng block trước khi copy gửi phụ huynh.'],
+  ]},
+  queue:{title:'Màn Hàng đợi CSKH', plain:'Dùng để rà soát tin giáo viên đã chấm trước khi gửi Zalo.', items:[
+    ['Chờ duyệt','Tin mới từ giáo viên, cần đọc và sửa câu chữ nếu cần.'],
+    ['Trả lại GV','Dùng khi thiếu dữ liệu hoặc chấm mâu thuẫn; ghi lý do rõ.'],
+    ['Duyệt','Xác nhận nội dung đã đúng, mềm và có thể gửi.'],
+    ['Copy gửi PH','App chỉ copy nội dung; CSKH vẫn dán Zalo thủ công để tránh gửi nhầm.'],
+    ['Đánh dấu đã gửi','Bấm sau khi đã gửi thật để dashboard tính đúng.'],
+  ]},
+  overview:{title:'Màn Tổng quan', plain:'Dùng để manager nhìn nhanh hôm nay hệ thống đang tắc ở đâu.', items:[
+    ['Chờ duyệt','Số tin CSKH cần xử lý. Cao quá nghĩa là đang tồn hàng.'],
+    ['Trả lại GV','Số tin cần giáo viên bổ sung.'],
+    ['Đã gửi','Số tin đã được gửi phụ huynh và đã đánh dấu trong app.'],
+    ['Theo lớp','So sánh lớp nào đang có nhiều việc cần xử lý.'],
+  ]},
+  lessons:{title:'Màn Thư viện giáo án', plain:'Dùng để nạp giáo án DOCX vào hệ thống để báo cáo tuần viết đúng bài học.', items:[
+    ['Import DOCX','Chọn file giáo án. Với file nhiều buổi, cứ nạp nguyên file.'],
+    ['Sơ đồ import','Kiểm tra file được tách thành buổi, tuần và tổng hợp có đúng không.'],
+    ['Danh sách giáo án','Xem cuốn nào đã có tuần nào, tuần nào còn thiếu.'],
+    ['Xem chi tiết','Đọc lại mục tiêu và hoạt động trước khi dùng cho báo cáo.'],
+  ]},
+  objectives:{title:'Màn Mục tiêu tuần', plain:'Dùng để xem hoặc chỉnh mục tiêu học theo chương trình, cuốn và tuần.', items:[
+    ['Chương trình','Chọn đúng hệ học như UCREA, BLACKHOLE hoặc BRIGHT IG.'],
+    ['Cuốn và tuần','Mỗi cuốn có nhiều tuần; chọn đúng tuần lớp đang học.'],
+    ['Lưu chỉnh sửa','Dùng khi nội dung mục tiêu cần sửa cho dễ đọc hơn.'],
+    ['Lấy từ thư viện','Giáo viên có thể dùng mục tiêu này khi chấm buổi.'],
+  ]},
+  students:{title:'Màn Lớp & Bé', plain:'Dùng để quản lý danh sách lớp, học viên và số điện thoại phụ huynh.', items:[
+    ['Lớp','Tạo hoặc đổi tên lớp để giáo viên chọn đúng khi chấm.'],
+    ['Bé','Thêm, sửa hoặc xoá mềm học viên khỏi danh sách đang học.'],
+    ['Số điện thoại','Dùng để CSKH biết đúng phụ huynh khi gửi Zalo.'],
+    ['Import nhanh','Dán danh sách nhiều bé nếu cần nhập hàng loạt.'],
+  ]},
+  profiles:{title:'Màn Hồ sơ bé', plain:'Dùng để lưu hiểu biết dài hạn về bé sau khi đã có đủ vài buổi quan sát.', items:[
+    ['Đang quan sát','Bé chưa đủ dữ liệu, chưa nên kết luận mạnh.'],
+    ['Duyệt hồ sơ','Manager/CSKH xác nhận hồ sơ đủ tin cậy để dùng cá nhân hoá.'],
+    ['Chỉnh sửa','Sửa lại mô tả nếu thông tin chưa đúng thực tế.'],
+  ]},
+  config:{title:'Màn Cấu hình', plain:'Dùng để manager chỉnh nền vận hành cho cả trung tâm.', items:[
+    ['Nhân sự','Đổi tên, thêm người dùng và phân vai GV/CSKH/Manager.'],
+    ['5 tiêu chí','Sửa câu tick sẵn để giáo viên chấm dễ và đúng ngôn ngữ trung tâm.'],
+    ['Giọng văn báo cáo','Chỉnh tone, độ dài, từ cần tránh và cách diễn giải bài học.'],
+    ['AI','Chỉ cần dùng khi muốn AI viết lại; engine offline vẫn chạy khi chưa bật AI.'],
+  ]},
+  insights:{title:'Màn AI Insights', plain:'Dùng để manager xem gợi ý tổng quan khi có đủ dữ liệu.', items:[
+    ['Dữ liệu đầu vào','Lấy từ điểm chấm, hồ sơ bé và trạng thái báo cáo.'],
+    ['Gợi ý','Chỉ là tham khảo cho manager, không tự gửi cho phụ huynh.'],
+    ['Khi chưa có AI','Nếu chưa bật AI, màn này có thể chưa sinh phân tích sâu.'],
+  ]},
+  audit:{title:'Màn Nhật ký', plain:'Dùng để xem ai đã làm gì trong hệ thống.', items:[
+    ['Thời gian','Lúc thao tác được ghi nhận.'],
+    ['Người','Tài khoản thực hiện thao tác.'],
+    ['Hành động','Ví dụ đăng nhập, chấm điểm, duyệt tin, gửi phụ huynh.'],
+    ['Chi tiết','Dữ liệu ngắn giúp truy vết khi cần kiểm tra lại.'],
+  ]},
+  guide:{title:'Màn Hướng dẫn', plain:'Dùng để học cách vận hành app ngay trong hệ thống.', items:[
+    ['Chọn vai trò','Bấm GV, CSKH hoặc Manager để xem đúng phần việc.'],
+    ['Mở màn hình','Bấm nút trong từng bước để nhảy sang màn cần thao tác.'],
+    ['Tôi đã hiểu','Tick để lưu tiến độ học hướng dẫn trên máy đang dùng.'],
+    ['Khi bị vướng','Xem cột bên phải để biết lỗi thường gặp và cách xử lý.'],
+  ]},
+};
+function renderTabHelp(){
+  const old=$('#tab-help-wrap'); if(old) old.remove();
+  const h=TAB_HELP[TAB]; if(!h || !view || !STAFF) return;
+  const items=(h.items||[]).map(([k,v])=>`<li><b>${esc(k)}:</b> ${esc(v)}</li>`).join('');
+  view.insertAdjacentHTML('afterbegin', `<div class="tab-help-wrap" id="tab-help-wrap">
+    <div class="tab-help" id="tab-help">
+      <button class="tab-help-btn" type="button" onclick="CTRC.toggleTabHelp()" aria-label="Giải thích màn này"><span class="q">?</span> Giải thích màn này</button>
+      <div class="tab-help-pop" role="tooltip"><h3>${esc(h.title)}</h3><p>${esc(h.plain)}</p><ul>${items}</ul><p class="hint" style="margin-top:10px">Rê chuột vào nút này để xem nhanh; trên điện thoại thì bấm nút để mở/đóng.</p></div>
+    </div>
+  </div>`);
+}
+function toggleTabHelp(){ const el=$('#tab-help'); if(el) el.classList.toggle('open'); }
+
 /* ═══════════════ HƯỚNG DẪN NON-TECH TRONG APP ═══════════════ */
 let GUIDE = { role:'' };
 const GUIDE_DATA = {
@@ -3346,24 +3448,24 @@ function viewGuide(){
         <p>${esc(s.do)}</p>
       </div></div>
       <div class="guide-meta">
-        <div><b>Cơ chế:</b> ${esc(s.system)}</div>
-        <div><b>Dấu hiệu đúng:</b> ${esc(s.check)}</div>
+        <div><b>Hệ thống hiểu như thế nào:</b> ${esc(s.system)}</div>
+        <div><b>Biết đã đúng khi:</b> ${esc(s.check)}</div>
       </div>
       <div class="guide-actions">
         ${btn}
-        <label class="guide-check"><input type="checkbox" ${isDone?'checked':''} onchange="CTRC.guideToggle('${role}',${i},this.checked)"> Tôi đã hiểu bước này</label>
+        <label class="guide-check"><input type="checkbox" ${isDone?'checked':''} onchange="CTRC.guideToggle('${role}',${i},this.checked)"> Đã hiểu / đã làm được</label>
       </div>
     </div>`;
   }).join('');
   view.innerHTML=`<h2 class="h-title">❔ Hướng dẫn sử dụng cho người không rành kỹ thuật</h2>
-    <p class="h-sub">Chọn vai trò, đi từng bước và bấm mở đúng màn hình. Phần “Cơ chế” giải thích vì sao hệ thống xử lý như vậy để tránh thao tác nhầm.</p>
+    <p class="h-sub">Chọn vai trò, đọc từng bước, rồi bấm nút mở đúng màn hình để làm thử. Ở mỗi tab còn có nút <b>? Giải thích màn này</b>; rê chuột hoặc bấm vào nút đó để hiểu từng mục trên màn hình.</p>
     <div class="card guide-hero">
       <div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start">
         <div><b style="font:900 15px/1.2 var(--font-d);color:var(--primary-2)">${data.icon} Wizard cho ${esc(data.title)}</b><p class="hint" style="margin:5px 0 0;max-width:760px">${esc(data.intro)}</p></div>
         <button class="btn sm" onclick="CTRC.guideReset('${role}')">↺ Xoá tiến độ</button>
       </div>
       <div class="guide-roles">${roleBtns}</div>
-      <div><div class="ed-head" style="margin-bottom:5px"><span>Tiến độ đã hiểu</span><span class="cc">${count}/${total} bước · ${pct}%</span></div><div class="guide-meter"><span style="width:${pct}%"></span></div></div>
+      <div><div class="ed-head" style="margin-bottom:5px"><span>Tiến độ học cách dùng</span><span class="cc">${count}/${total} bước · ${pct}%</span></div><div class="guide-meter"><span style="width:${pct}%"></span></div></div>
       <div class="guide-flow">${data.flow.map(x=>`<span>${esc(x)}</span>`).join('')}</div>
     </div>
     <div class="guide-layout">
@@ -3379,6 +3481,7 @@ function viewGuide(){
 /* ── export API ── */
 window.CTRC = {
   login, logout, go, closeModal, helpSupabase,
+  toggleTabHelp,
   guideSetRole, guideToggle, guideReset, guideJump,
   toggleAccountMenu, closeAccountMenu, switchAccount,
   openScore, setAttendance, saveScore,
