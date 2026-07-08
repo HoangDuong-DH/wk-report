@@ -1022,21 +1022,30 @@ function defaultSessionNos(book, week){
   const nums=les&&les.session_numbers&&les.session_numbers.length?les.session_numbers:((les&&les.session_items)||[]).map(s=>s.no);
   return nums.map(Number).filter(Boolean);
 }
-function wkPickKey(){ return (WK.book||'')+'::w'+(WK.week||1); }
-function wkSelectedSessionNos(){ const saved=WK.sessionPick[wkPickKey()]; return saved&&saved.length?saved.slice():defaultSessionNos(WK.book, WK.week); }
+const WK_SESSION_PICK = {
+  KEY:'ctrc:weekly-session-pick:v1',
+  all(){ try{ return JSON.parse(localStorage.getItem(this.KEY))||{}; }catch(_){ return {}; } },
+  get(key){ const m=this.all(); return Array.isArray(m[key])?m[key].map(Number).filter(Boolean):null; },
+  set(key, arr){ const m=this.all(); m[key]=Array.from(new Set((arr||[]).map(Number).filter(Boolean))).sort((a,b)=>a-b); localStorage.setItem(this.KEY, JSON.stringify(m)); },
+  remove(key){ const m=this.all(); delete m[key]; localStorage.setItem(this.KEY, JSON.stringify(m)); },
+};
+function wkPickKey(){ return [WK.classId||'', WK.book||'', 'w'+(WK.week||1), WK.from||'', WK.to||''].join('::'); }
+function wkSavedSessionNos(){ const key=wkPickKey(); return WK.sessionPick[key] || WK_SESSION_PICK.get(key); }
+function wkSelectedSessionNos(){ const saved=wkSavedSessionNos(); return saved&&saved.length?saved.slice():defaultSessionNos(WK.book, WK.week); }
 function wkToggleSession(no, checked){
-  const key=wkPickKey(); let cur=(WK.sessionPick[key]||defaultSessionNos(WK.book, WK.week)).slice().map(Number).filter(Boolean);
+  const key=wkPickKey(); let cur=(wkSavedSessionNos()||defaultSessionNos(WK.book, WK.week)).slice().map(Number).filter(Boolean);
   no=+no;
   cur=checked?Array.from(new Set(cur.concat([no]))):cur.filter(x=>x!==no);
   if(!cur.length){ toast('Cần giữ ít nhất 1 buổi thực học','var(--primary-2)'); renderWeeklyLesson(); return; }
   WK.sessionPick[key]=cur.sort((a,b)=>a-b);
+  WK_SESSION_PICK.set(key, WK.sessionPick[key]);
   renderWeeklyLesson();
 }
-function wkResetSessions(){ delete WK.sessionPick[wkPickKey()]; renderWeeklyLesson(); }
+function wkResetSessions(){ const key=wkPickKey(); delete WK.sessionPick[key]; WK_SESSION_PICK.remove(key); renderWeeklyLesson(); }
 function weeklyLessonSelection(){
   const base=lessonByKey(lessonKey(WK.book, WK.week));
   const all=lessonSessionsOfBook(WK.book);
-  const pickKey=wkPickKey(); const custom=!!WK.sessionPick[pickKey];
+  const pickKey=wkPickKey(); const custom=!!wkSavedSessionNos();
   if(!custom || !all.length) return { lesson:base, key:lessonKey(WK.book, WK.week), custom:false, nos:defaultSessionNos(WK.book, WK.week) };
   const nos=wkSelectedSessionNos();
   const selected=all.filter(si=>nos.includes(+si.no));
@@ -1053,13 +1062,13 @@ function renderWeeklySessionPicker(){
   const all=lessonSessionsOfBook(WK.book); if(all.length<2) return '';
   const sel=wkSelectedSessionNos();
   const def=defaultSessionNos(WK.book, WK.week);
-  const custom=!!WK.sessionPick[wkPickKey()];
+  const custom=!!wkSavedSessionNos();
   return `<div class="lesson-card" style="margin-top:10px;background:#fffaf4;border-style:dashed">
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
       <b style="font:800 12.5px/1 var(--font-d);color:var(--primary-2)">Buổi thực học đưa vào báo cáo</b>
       <span class="badge ${custom?'b-cs':'b-wait'}">${custom?'tuỳ chỉnh':'tự động theo tuần'}</span>
     </div>
-    <div class="hint" style="margin:6px 0">Mặc định Tuần ${esc(WK.week)} lấy ${def.length?'Buổi '+def.join(' & '):'giáo án tuần đã chọn'}. Nếu lịch học lệch, tick đúng buổi thực tế; không cần tách file DOCX.</div>
+    <div class="hint" style="margin:6px 0">Mặc định Tuần ${esc(WK.week)} lấy ${def.length?'Buổi '+def.join(' & '):'giáo án tuần đã chọn'}. Nếu lịch học lệch, tick đúng buổi thực tế; lựa chọn được nhớ theo lớp + tuần + khoảng ngày, không cần tách file DOCX.</div>
     <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap">
       ${all.map(si=>`<label class="badge ${sel.includes(+si.no)?'b-ok':'b-wait'}" style="cursor:pointer;display:flex;gap:5px;align-items:center"><input type="checkbox" ${sel.includes(+si.no)?'checked':''} onchange="CTRC.wkToggleSession(${+si.no},this.checked)"> Buổi ${esc(si.no)}</label>`).join('')}
       <button class="btn sm" type="button" onclick="CTRC.wkResetSessions()">↺ Tự động</button>
