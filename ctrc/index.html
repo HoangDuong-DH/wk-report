@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CTRC — Báo cáo per-buổi · WonderKids</title>
 <meta name="description" content="Hệ thống báo cáo học tập per-buổi: GV chấm → AI viết → CSKH duyệt → phụ huynh xem.">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23ffc24a'/><stop offset='1' stop-color='%23e94e1b'/></linearGradient></defs><circle cx='32' cy='32' r='30' fill='url(%23g)'/><text x='32' y='42' font-family='Arial' font-size='22' font-weight='900' fill='%23fff' text-anchor='middle'>CT</text></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='8' y='8' width='48' height='48' rx='14' fill='%23bd4f24'/><text x='32' y='41' font-family='Arial' font-size='20' font-weight='900' fill='%23fff' text-anchor='middle'>CT</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --font:'Be Vietnam Pro',system-ui,sans-serif;
@@ -16,13 +16,15 @@
   --primary:#df6b2d; --primary-2:#bd4f24; --yellow:#c99a2c;
   --green:#3f9855; --blue:#3f7fa6; --ink:#302c27; --ink-soft:#615b52; --mute:#8b8074;
   --cream:#f6f3ed; --cream-2:#eee7dc; --card:#fffdf8; --line:#ded6ca; --line-soft:#eee7dc;
-  --pill:#f2ebe1; --shadow:0 1px 2px rgba(42,32,22,.05),0 10px 24px rgba(42,32,22,.04);
+  --pill:#f2ebe1; --shadow:0 1px 2px rgba(42,32,22,.05);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
 .hidden{display:none !important}
+.skip-link{position:fixed;left:12px;top:12px;z-index:10000;transform:translateY(-160%);background:#2f2b26;color:#fff;border-radius:8px;padding:9px 12px;font:800 12px/1 var(--font);text-decoration:none;box-shadow:0 8px 24px rgba(42,32,22,.18)}
+.skip-link:focus{transform:none}
 
 /* ── Top bar ── */
 .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;
@@ -438,6 +440,7 @@ table.tb tbody tr:hover td{background:#faf7f1}
 </style>
 </head>
 <body>
+<a class="skip-link" href="#view">Bỏ qua điều hướng</a>
 
 <!-- ══ LOGIN ══ -->
 <div id="login" class="login-wrap">
@@ -463,7 +466,7 @@ table.tb tbody tr:hover td{background:#faf7f1}
       <span class="logo">CT</span>
       <span>CTRC<br><span class="sub" id="tb-center">WonderKids</span></span>
     </a>
-    <div class="nav" id="nav"></div>
+    <nav class="nav" id="nav" aria-label="Điều hướng chính"></nav>
     <div class="spacer"></div>
     <button class="topbar-gear" onclick="CTRC.openAIConfig()" title="Cấu hình AI (model + API)">⚙ AI</button>
     <div class="userchip">
@@ -475,7 +478,7 @@ table.tb tbody tr:hover td{background:#faf7f1}
       <button class="uc-logout" title="Đăng xuất" onclick="CTRC.logout()">⎋</button>
     </div>
   </div>
-  <div class="wrap" id="view"></div>
+  <main class="wrap" id="view" tabindex="-1"></main>
 </div>
 
 <div id="account-menu" class="account-menu hidden">
@@ -937,9 +940,9 @@ async function switchAccount(id){
 
 /* ── nav theo vai trò ── */
 const NAV_TABS = {
-  gv:[['cham','✍️ Chấm buổi'],['weekly','📅 Báo cáo tuần']],
-  cskh:[['queue','📋 Hàng đợi']],
-  manager:[['overview','Tổng quan'],['insights','✨ AI Insights'],['weekly','📅 Báo cáo tuần'],['objectives','🎯 Mục tiêu tuần'],['lessons','📚 Thư viện'],['students','Lớp & Bé'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
+  gv:[['cham','Chấm buổi'],['weekly','Báo cáo tuần']],
+  cskh:[['queue','Hàng đợi']],
+  manager:[['overview','Tổng quan'],['insights','AI Insights'],['weekly','Báo cáo tuần'],['objectives','Mục tiêu tuần'],['lessons','Thư viện'],['students','Lớp & Bé'],['profiles','Hồ sơ bé'],['queue','Hàng đợi'],['config','Cấu hình'],['audit','Nhật ký']],
 };
 function buildNav(){
   const tabs = NAV_TABS[STAFF.role] || [];
@@ -948,7 +951,7 @@ function buildNav(){
   // ít tab (GV/CSKH) → thêm thanh điều hướng ĐÁY trên điện thoại (escape backdrop-filter của topbar)
   const bottom = tabs.length>=2 && tabs.length<=4;
   let bn=document.getElementById('bottomnav');
-  if(!bn){ bn=document.createElement('div'); bn.id='bottomnav'; bn.className='bottomnav'; document.body.appendChild(bn); }
+  if(!bn){ bn=document.createElement('nav'); bn.id='bottomnav'; bn.className='bottomnav'; bn.setAttribute('aria-label','Điều hướng dưới'); document.body.appendChild(bn); }
   bn.innerHTML = bottom ? html : '';
   document.body.classList.toggle('has-bottomnav', bottom);
   go(tabs[0][0]);
@@ -1632,7 +1635,7 @@ function viewObjectives(){
   let books=OBJ.booksOf(OBJV.program);
   if((!OBJV.book || books.indexOf(OBJV.book)<0) && books[0]) OBJV.book=books[0];
   view.innerHTML = `
-    <h2 class="h-title">🎯 Mục tiêu tuần</h2>
+    <h2 class="h-title">Mục tiêu tuần</h2>
     <p class="h-sub">Mục tiêu học theo tuần — trích từ <b>SÁCH HOẠT ĐỘNG</b> thực tế (UCREA L2/L3/L4 · BLACKHOLE · BRIGHT IG). <b>Sửa trực tiếp & lưu</b> — bản sửa dùng làm nội dung "Bài học tuần" khi cô chấm & báo cáo.</p>
     <div class="card" style="margin-bottom:12px">
       <div class="row" style="align-items:flex-end">
@@ -1684,7 +1687,7 @@ async function viewLessonLib(){
   if(CENTER) await LIB.load(CENTER.id);
   const lessons=LESSONS(); const codes=bookCodes(); const imp=LIB.imported(); const customCount=Object.keys(Object.assign({}, imp, LIB.db)).length;
   view.innerHTML = `
-    <h2 class="h-title">📚 Thư viện giáo án</h2>
+    <h2 class="h-title">Thư viện giáo án</h2>
     <p class="h-sub">${Object.keys(lessons).length} mục (${customCount} nhập thêm). Import docx giáo án → lưu vào DB web, tách skeleton mục tiêu/hoạt động, AI tóm tắt cho quản lý & soạn nội dung cho phụ huynh.</p>
     <div class="card" style="margin-bottom:12px">
       <div class="ed-head" style="margin-bottom:8px"><span>⬆ Import giáo án (.docx — chọn nhiều file)</span></div>
@@ -1855,7 +1858,7 @@ async function viewWeekly(){
   if(!WK.from){ WK.from=DB._mondayOf(new Date()); WK.to=_sundayStr(WK.from); }
   _wkSyncFromClass();
   view.innerHTML = `
-    <h2 class="h-title">📅 Báo cáo tuần</h2>
+    <h2 class="h-title">Báo cáo tuần</h2>
     <p class="h-sub">Cô chấm từng buổi → AI <b>tự gom các buổi trong tuần của từng bé</b> thành 1 báo cáo, bám <b>mục tiêu tuần</b>. Tạo cho <b>cả lớp</b> một lượt; <b>sửa lại được</b> trước khi gửi.</p>
     <div id="wk-flow" class="card" style="margin-bottom:12px;background:#fffaf4;border-color:#ead8be"></div>
     <div class="card" style="margin-bottom:12px">
@@ -1873,7 +1876,7 @@ async function viewWeekly(){
       <div class="hint" style="margin-top:6px">Mặc định lấy theo "Bài học tuần" cô đã gắn cho lớp ở màn Chấm — đổi tại đây nếu cần.</div>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div class="ed-head" style="margin-bottom:8px"><span>🎯 Mục tiêu tuần này (đưa vào báo cáo)</span><span class="cc" id="wk-key"></span></div>
+      <div class="ed-head" style="margin-bottom:8px"><span>Mục tiêu tuần này (đưa vào báo cáo)</span><span class="cc" id="wk-key"></span></div>
       <div id="wk-lesson"></div>
     </div>
     <div class="card" style="margin-bottom:12px">
@@ -1946,7 +1949,7 @@ function renderWeeklyLesson(){
   const les=pack.lesson;
   let h='';
   if(obj) h+=`<div class="lesson-card" style="white-space:pre-line">${esc(_cleanObjective(obj))}</div>`;
-  else h+='<p class="hint" style="margin:0">Cuốn/tuần này chưa có mục tiêu — bổ sung ở tab 🎯 Mục tiêu tuần.</p>';
+  else h+='<p class="hint" style="margin:0">Cuốn/tuần này chưa có mục tiêu — bổ sung ở tab Mục tiêu tuần.</p>';
   h+=renderWeeklySessionPicker();
   if(les){
     h+=`<div style="margin-top:10px">${renderLessonHTML(les)}</div>`;
@@ -2577,7 +2580,7 @@ async function markSent(){
    MANAGER — TỔNG QUAN / HỒ SƠ / CẤU HÌNH / NHẬT KÝ
    ═══════════════════════════════════════════════════════════ */
 async function viewOverview(){
-  view.innerHTML = `<h2 class="h-title">📊 Bảng điều khiển</h2><p class="h-sub">Đang tổng hợp số liệu trung tâm…</p>`+skeletonList(3);
+  view.innerHTML = `<h2 class="h-title">Bảng điều khiển</h2><p class="h-sub">Đang tổng hợp số liệu trung tâm…</p>`+skeletonList(3);
   const today = todayStr();
   const monday = DB._mondayOf(new Date()), sunday = _sundayStr(monday);
   const [students, classes, msgs, weeklies] = await Promise.all([
@@ -2609,7 +2612,7 @@ async function viewOverview(){
   }).join('')||'<tr><td colspan=4 style="color:var(--mute)">Chưa có lớp.</td></tr>';
 
   view.innerHTML = `
-    <h2 class="h-title">📊 Bảng điều khiển</h2>
+    <h2 class="h-title">Bảng điều khiển</h2>
     <p class="h-sub">${esc(CENTER.name)} · ${ENG.fmtDate(today)} · tuần ${ENG.fmtDate(monday)}–${ENG.fmtDate(sunday)}</p>
 
     <div class="kpis">
@@ -2630,8 +2633,8 @@ async function viewOverview(){
           <span><i style="background:#4a901f"></i>Đã gửi ${sent.length}</span>
         </div>
         <div class="row" style="gap:8px;margin-top:12px">
-          <button class="btn sm" onclick="CTRC.go('weekly')">📅 Báo cáo tuần</button>
-          <button class="btn sm" onclick="CTRC.go('insights')">✨ AI Insights</button>
+          <button class="btn sm" onclick="CTRC.go('weekly')">Báo cáo tuần</button>
+          <button class="btn sm" onclick="CTRC.go('insights')">AI Insights</button>
         </div>
       </div>
       <div class="card">
@@ -2660,7 +2663,7 @@ function fmtTime(iso){ if(!iso)return''; const d=new Date(iso); return d.toLocal
 /* ═══════════════ AI INSIGHTS (Manager) ═══════════════ */
 let INS = null;
 async function viewInsights(){
-  view.innerHTML = `<h2 class="h-title">✨ AI Insights</h2><p class="h-sub">Đang tổng hợp dữ liệu các buổi…</p>`;
+  view.innerHTML = `<h2 class="h-title">AI Insights</h2><p class="h-sub">Đang tổng hợp dữ liệu các buổi…</p>`;
   const students = await DB.listStudents(CENTER.id);
   const items = [];
   for(const s of students){ const recs = await DB._allSessionsOfStudent(s.id); items.push({student:s, records:recs}); }
@@ -2676,7 +2679,7 @@ async function viewInsights(){
   const nameTag = (it)=>`<div class="stu-row" style="cursor:default"><span class="av">${AV(it.gender)}</span>
     <span class="nm">${esc(it.name)}<small>${esc(it.reasons.join('; '))}</small></span></div>`;
   view.innerHTML = `
-    <h2 class="h-title">✨ AI Insights</h2>
+    <h2 class="h-title">AI Insights</h2>
     <p class="h-sub">Tự tổng hợp ${INS.totalRecords} lượt chấm của ${INS.totalStudents} bé. Lõi phân tích chạy offline; bấm "Phân tích sâu" để AI viết nhận định.</p>
     <div class="kpis" style="margin-bottom:16px">
       <div class="kpi"><div class="n">${INS.totalRecords}</div><div class="l">📋 Lượt chấm</div></div>
