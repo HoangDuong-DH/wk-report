@@ -675,8 +675,12 @@ function buildWeeklyPrompt(b){
     const st=r.strength||{}, im=r.improve||{};
     return `• Buổi ${i+1}: LÀM ĐƯỢC = ${_critLabel(st.crit)} ("${st.sentence||''}"${st.detail?'; chi tiết: '+st.detail:''}); CHƯA ĐƯỢC = ${_critLabel(im.crit)} ("${im.sentence||''}"${im.detail?'; chi tiết: '+im.detail:''})${r.mood?'; tâm trạng: '+((window.MOODS&&MOODS[r.mood])||r.mood):''}.`;
   }).join('\n');
-  const lesLine = (les&&(les.title||les.content||les.objective||les.activity))?[
-    `NỘI DUNG HỌC TUẦN (dùng làm bối cảnh, KHÔNG viết lại trong tongHop):`,
+  const selectedSessions = les ? (les.session_range || (Array.isArray(les.sessions)&&les.sessions.length ? 'Buổi '+les.sessions.join(' & ') : '')) : '';
+  const sessionItems = (les&&Array.isArray(les.session_items)) ? les.session_items.map(si=>['Buổi '+si.no, si.summary||si.title||si.skill].filter(Boolean).join(': ')).join('; ') : '';
+  const lesLine = (les&&(les.title||les.content||les.objective||les.activity||selectedSessions||sessionItems))?[
+    `NỘI DUNG HỌC TUẦN (dùng làm bối cảnh cho cả nhận xét, KHÔNG viết lại nguyên văn trong tongHop):`,
+    selectedSessions?`- Buổi thực học được chọn: ${selectedSessions}`:'',
+    sessionItems?`- Tóm tắt từng buổi được chọn: ${sessionItems}`:'',
     les.content?`- Bản phụ huynh đang dùng: "${les.content}"`:'',
     les.title?`- Tên bài/chủ đề: ${les.title}`:'',
     les.objective?`- Mục tiêu: ${les.objective}`:'',
@@ -691,7 +695,8 @@ function buildWeeklyPrompt(b){
     '',
     reportConfigPrompt(center.report_config),
     '',
-    `Viết 2 phần nhận xét ẤM ÁP, CỤ THỂ, ĐẦY ĐỦ — bám dữ liệu GV, có thể nối với hoạt động/mục tiêu học để văn liền mạch:`,
+    selectedSessions?`Khi liên hệ nhận xét với bài học, CHỈ dùng các buổi thực học đã chọn (${selectedSessions}); không kéo hoạt động của buổi khác.`:'',
+    `Viết 2 phần nhận xét ẤM ÁP, CỤ THỂ, ĐẦY ĐỦ — bám dữ liệu GV là chính, dùng nội dung/buổi học làm bối cảnh để nhận xét đúng bài:`,
     `1. tongHop: 2-3 câu cho mục "ĐIỂM BÉ LÀM ĐƯỢC" — nêu rõ con thể hiện tốt ở đâu, hành vi cụ thể nào, liên hệ nhẹ với hoạt động/kỹ năng tư duy nếu phù hợp. KHÔNG lặp lại toàn bộ nội dung học tuần.`,
     `2. coGang: 2-3 câu cho mục "ĐIỂM BÉ CẦN HỖ TRỢ" — nêu rõ điểm cần rèn thêm, tích cực và hướng tới trước, kèm cách cô/trung tâm sẽ đồng hành.`,
     `Quy tắc: KHÔNG dùng từ kém/yếu/tệ/chậm/dốt/lười/hư; KHÔNG so sánh với bé khác; tiếng Việt tự nhiên, hướng tới trước.`,
@@ -1916,6 +1921,22 @@ async function loadWeeklyChildren(){
 function _readWeeklyChildComments(){
   document.querySelectorAll('#wk-children .wk-cc').forEach(i=>{ WK.childComments[i.dataset.sid]=i.value.trim(); });
 }
+function _clipLessonBit(s, n=86){ s=String(s||'').replace(/\s+/g,' ').trim(); if(s.length<=n) return s; let t=s.slice(0,n); const sp=t.lastIndexOf(' '); if(sp>35) t=t.slice(0,sp); return t+'…'; }
+function _lessonNarrativeHint(snap){
+  if(!snap) return '';
+  const range=snap.session_range || ((snap.session_numbers||[]).length?'Buổi '+snap.session_numbers.join(' & '):'');
+  const acts=(snap.session_items||[]).map(si=>si.summary||si.title||si.skill).filter(Boolean).slice(0,2).map(x=>_clipLessonBit(x,70));
+  if(!acts.length && snap.pages&&snap.pages.length) snap.pages.slice(0,2).forEach(p=>acts.push(_clipLessonBit(p.desc||p.type||'',70)));
+  return [range, acts.length?('các hoạt động như '+acts.join('; ')):''].filter(Boolean).join(', ');
+}
+function _contextualizeFallbackNarrative(nar, snap){
+  const hint=_lessonNarrativeHint(snap);
+  if(!nar || !hint) return nar;
+  if(nar.tongHop && !/hoạt động|bài học|buổi/.test(nar.tongHop)) nar.tongHop += ' Các quan sát này được ghi nhận trong '+hint+'.';
+  else if(nar.tongHop) nar.tongHop += ' Ngữ cảnh bài học: '+hint+'.';
+  if(nar.coGang && !/hoạt động|bài học|buổi/.test(nar.coGang)) nar.coGang += ' Cô sẽ tiếp tục hỗ trợ con trong những hoạt động cùng mạch bài học này.';
+  return nar;
+}
 async function genWeekly(){
   if(genWeekly._busy) return;                                  // chống bấm đúp nhân đôi cả lớp
   const lessonPack=weeklyLessonSelection();
@@ -1940,6 +1961,8 @@ async function genWeekly(){
     objective: objText ? _cleanObjective(objText) : _join(les.objectives||les.knowledge||les.skill),
     activity: (les&&les.pages&&les.pages.length)? les.pages.map(p=>(p.range?p.range+': ':'')+(p.desc||p.type||'')).join('; '):'',
     sessions: les?(les.session_numbers||[]):[],
+    session_range: les?(les.session_range||''):'',
+    session_items: les?(les.session_items||[]).map(si=>({no:si.no,title:si.title||'',summary:si.summary||'',skill:si.skill||''})):[],
     content: hocGi
   } : null;
   const useAI = !!($('#wk-ai') && $('#wk-ai').checked) && AI.usable();
@@ -1958,7 +1981,7 @@ async function genWeekly(){
         if(out && out.tongHop) nar = { tongHop:out.tongHop, coGang:out.coGang||'' };
       }catch(e){ /* fallback engine */ }
     }
-    if(!nar) nar = ENG.weeklyNarrative(dg, s.name);
+    if(!nar) nar = _contextualizeFallbackNarrative(ENG.weeklyNarrative(dg, s.name), lessonSnap);
     const summary = { hocGi:_personalizeLessonForChild(hocGi, s.name), tongHop:nar.tongHop, coGang:nar.coGang, sessions:dg.sessions };
     const w=await DB.createWeekly({
       center_id:CENTER.id, class_id:WK.classId, student_id:s.id,

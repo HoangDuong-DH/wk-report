@@ -117,8 +117,14 @@ function buildWeeklyPrompt(body: any): string {
     const im = r.improve || {};
     return `• Buổi ${i + 1}: LÀM ĐƯỢC = ${label(st.crit)} ("${st.sentence || ""}"${st.detail ? "; chi tiết: " + st.detail : ""}); CẦN HỖ TRỢ = ${label(im.crit)} ("${im.sentence || ""}"${im.detail ? "; chi tiết: " + im.detail : ""})${r.mood ? "; tâm trạng: " + r.mood : ""}.`;
   }).join("\n");
+  const selectedSessions = les ? (les.session_range || (Array.isArray(les.sessions) && les.sessions.length ? "Buổi " + les.sessions.join(" & ") : "")) : "";
+  const sessionItems = Array.isArray(les.session_items)
+    ? les.session_items.map((si: any) => ["Buổi " + si.no, si.summary || si.title || si.skill].filter(Boolean).join(": ")).join("; ")
+    : "";
   const lessonLines = [
-    "NỘI DUNG HỌC TUẦN (dùng làm bối cảnh, KHÔNG viết lại trong tongHop):",
+    "NỘI DUNG HỌC TUẦN (dùng làm bối cảnh cho cả nhận xét, KHÔNG viết lại nguyên văn trong tongHop):",
+    selectedSessions ? `- Buổi thực học được chọn: ${selectedSessions}` : "",
+    sessionItems ? `- Tóm tắt từng buổi được chọn: ${sessionItems}` : "",
     les.content ? `- Bản phụ huynh đang dùng: "${les.content}"` : "",
     les.title ? `- Tên bài/chủ đề: ${les.title}` : "",
     les.objective ? `- Mục tiêu: ${les.objective}` : "",
@@ -133,7 +139,8 @@ function buildWeeklyPrompt(body: any): string {
     "",
     reportConfigPrompt(center.report_config),
     "",
-    "Viết 2 phần nhận xét ấm áp, cụ thể, bám dữ liệu GV, có thể nối với hoạt động/mục tiêu học để văn liền mạch:",
+    selectedSessions ? `Khi liên hệ nhận xét với bài học, CHỈ dùng các buổi thực học đã chọn (${selectedSessions}); không kéo hoạt động của buổi khác.` : "",
+    "Viết 2 phần nhận xét ấm áp, cụ thể, bám dữ liệu GV là chính, dùng nội dung/buổi học làm bối cảnh để nhận xét đúng bài:",
     "1. tongHop: 2-3 câu cho mục \"ĐIỂM BÉ LÀM ĐƯỢC\" — nêu rõ con thể hiện tốt ở đâu, hành vi cụ thể nào, liên hệ nhẹ với hoạt động/kỹ năng tư duy nếu phù hợp. KHÔNG lặp lại toàn bộ nội dung học tuần.",
     "2. coGang: 2-3 câu cho mục \"ĐIỂM BÉ CẦN HỖ TRỢ\" — nêu rõ điểm cần rèn thêm, tích cực và hướng tới trước, kèm cách cô/trung tâm sẽ đồng hành.",
     "Quy tắc: KHÔNG dùng từ kém/yếu/tệ/chậm/dốt/lười/hư; KHÔNG so sánh với bé khác; tiếng Việt tự nhiên, hướng tới trước.",
