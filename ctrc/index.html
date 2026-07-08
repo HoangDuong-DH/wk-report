@@ -588,7 +588,8 @@ const REPORT_CFG_DEFAULT = {
   mustInclude:'',
   lessonFrame:'Luôn diễn giải nội dung học trong khung 4 kỹ năng tư duy: cơ bản, logic, toán học, sáng tạo. Chỉ nhắc kỹ năng thật sự có trong giáo án/dữ liệu.',
   activityFrame:'Mô tả hoạt động theo hướng học qua trải nghiệm, khám phá, học cụ và hoạt động đa dạng; tránh ngôn ngữ nội bộ như slide, flashfile, số trang, file powerpoint.',
-  extra:''
+  extra:'',
+  presets:{ tone:[], detail:[], audience:[] }
 };
 const REPORT_TONE = {
   warm_logic:'Ấm áp, rõ logic, cụ thể hành vi; phù hợp gửi phụ huynh đại trà.',
@@ -606,8 +607,21 @@ const REPORT_AUDIENCE = {
   education_minded:'Phụ huynh quan tâm giáo dục: giải thích rõ kỹ năng tư duy và giá trị hoạt động.',
   first_time:'Phụ huynh mới: diễn giải mềm, tránh jargon, giúp họ hiểu trung tâm đang rèn gì.'
 };
-function reportCfg(raw){ return Object.assign({}, REPORT_CFG_DEFAULT, raw||{}); }
+function reportCfg(raw){
+  const c=Object.assign({}, REPORT_CFG_DEFAULT, raw||{});
+  const p=Object.assign({tone:[],detail:[],audience:[]}, (raw&&raw.presets)||{});
+  ['tone','detail','audience'].forEach(k=>{ p[k]=Array.from(new Set((p[k]||[]).map(x=>String(x||'').trim()).filter(Boolean))); });
+  c.presets=p;
+  return c;
+}
 function reportConfigValue(map, val){ return map[val] || val || ''; }
+function reportPresetMap(kind){ return kind==='tone'?REPORT_TONE:(kind==='detail'?REPORT_DETAIL:REPORT_AUDIENCE); }
+function reportPresetValues(kind, cfg){
+  const base=Object.values(reportPresetMap(kind));
+  const custom=((cfg&&cfg.presets&&cfg.presets[kind])||[]).filter(Boolean);
+  return Array.from(new Set(base.concat(custom)));
+}
+function reportIsDefaultPreset(kind, val){ return Object.values(reportPresetMap(kind)).includes(val); }
 function reportConfigPrompt(raw){
   const c=reportCfg(raw);
   return [
@@ -990,6 +1004,62 @@ function lessonContentText(cl){
   if(acts.length>1){ lines.push('• Hoạt động:'); acts.forEach(a=>lines.push('   – '+a)); }
   else if(acts.length===1){ lines.push('• Hoạt động: '+acts[0]); }
   return lines.join('\n');
+}
+function lessonSessionsOfBook(book){
+  const out={};
+  Object.values(LESSONS()).filter(l=>String(l.code)===String(book)).forEach(l=>{
+    (l.session_items||[]).forEach(si=>{ if(si && si.no!=null && !out[si.no]) out[si.no]=Object.assign({week:l.week, source_key:l.key||lessonKey(l.code,l.week)}, si); });
+  });
+  return Object.values(out).sort((a,b)=>(+a.no||0)-(+b.no||0));
+}
+function defaultSessionNos(book, week){
+  const les=lessonByKey(lessonKey(book, week));
+  const nums=les&&les.session_numbers&&les.session_numbers.length?les.session_numbers:((les&&les.session_items)||[]).map(s=>s.no);
+  return nums.map(Number).filter(Boolean);
+}
+function wkPickKey(){ return (WK.book||'')+'::w'+(WK.week||1); }
+function wkSelectedSessionNos(){ const saved=WK.sessionPick[wkPickKey()]; return saved&&saved.length?saved.slice():defaultSessionNos(WK.book, WK.week); }
+function wkToggleSession(no, checked){
+  const key=wkPickKey(); let cur=(WK.sessionPick[key]||defaultSessionNos(WK.book, WK.week)).slice().map(Number).filter(Boolean);
+  no=+no;
+  cur=checked?Array.from(new Set(cur.concat([no]))):cur.filter(x=>x!==no);
+  if(!cur.length){ toast('Cần giữ ít nhất 1 buổi thực học','var(--primary-2)'); renderWeeklyLesson(); return; }
+  WK.sessionPick[key]=cur.sort((a,b)=>a-b);
+  renderWeeklyLesson();
+}
+function wkResetSessions(){ delete WK.sessionPick[wkPickKey()]; renderWeeklyLesson(); }
+function weeklyLessonSelection(){
+  const base=lessonByKey(lessonKey(WK.book, WK.week));
+  const all=lessonSessionsOfBook(WK.book);
+  const pickKey=wkPickKey(); const custom=!!WK.sessionPick[pickKey];
+  if(!custom || !all.length) return { lesson:base, key:lessonKey(WK.book, WK.week), custom:false, nos:defaultSessionNos(WK.book, WK.week) };
+  const nos=wkSelectedSessionNos();
+  const selected=all.filter(si=>nos.includes(+si.no));
+  if(!selected.length) return { lesson:base, key:lessonKey(WK.book, WK.week), custom:false, nos:defaultSessionNos(WK.book, WK.week) };
+  const pages=[]; selected.forEach(si=>(si.pages||[]).forEach(p=>pages.push(Object.assign({},p,{range:(si.no?'Buổi '+si.no+' · ':'')+(p.range||'')}))));
+  const summaries=selected.map(si=>`Buổi ${si.no}: ${si.summary||si.title||si.skill||'Nội dung buổi học'}`);
+  const skills=Array.from(new Set(selected.map(si=>si.skill).filter(Boolean))).join(', ');
+  const lesson={ code:WK.book, week:WK.week, title:'Cuốn '+WK.book+' · Buổi '+nos.join(' & '), sessions:selected.length,
+    session_numbers:nos, session_range:'Buổi '+nos.join(' & '), session_items:selected, pages, skill:skills,
+    knowledge:summaries.join('\n'), body:summaries, raw_text:summaries.join('\n'), source:'selected_sessions' };
+  return { lesson, key:lessonKey(WK.book, WK.week)+'#b'+nos.join('-'), custom:true, nos };
+}
+function renderWeeklySessionPicker(){
+  const all=lessonSessionsOfBook(WK.book); if(all.length<2) return '';
+  const sel=wkSelectedSessionNos();
+  const def=defaultSessionNos(WK.book, WK.week);
+  const custom=!!WK.sessionPick[wkPickKey()];
+  return `<div class="lesson-card" style="margin-top:10px;background:#fffaf4;border-style:dashed">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+      <b style="font:800 12.5px/1 var(--font-d);color:var(--primary-2)">Buổi thực học đưa vào báo cáo</b>
+      <span class="badge ${custom?'b-cs':'b-wait'}">${custom?'tuỳ chỉnh':'tự động theo tuần'}</span>
+    </div>
+    <div class="hint" style="margin:6px 0">Mặc định Tuần ${esc(WK.week)} lấy ${def.length?'Buổi '+def.join(' & '):'giáo án tuần đã chọn'}. Nếu lịch học lệch, tick đúng buổi thực tế; không cần tách file DOCX.</div>
+    <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap">
+      ${all.map(si=>`<label class="badge ${sel.includes(+si.no)?'b-ok':'b-wait'}" style="cursor:pointer;display:flex;gap:5px;align-items:center"><input type="checkbox" ${sel.includes(+si.no)?'checked':''} onchange="CTRC.wkToggleSession(${+si.no},this.checked)"> Buổi ${esc(si.no)}</label>`).join('')}
+      <button class="btn sm" type="button" onclick="CTRC.wkResetSessions()">↺ Tự động</button>
+    </div>
+  </div>`;
 }
 async function viewCham(){
   GV.classes = await DB.listClasses(CENTER.id);
@@ -1399,7 +1469,7 @@ async function maybeDraftProfile(stu){
 /* ═══════════════════════════════════════════════════════════
    BÁO CÁO TUẦN (nội dung bài học từ thư viện + nhận xét)
    ═══════════════════════════════════════════════════════════ */
-let WK = { classId:'', program:'', book:'', week:1, from:'', to:'', childComments:{}, digests:{}, made:[] };
+let WK = { classId:'', program:'', book:'', week:1, from:'', to:'', childComments:{}, digests:{}, made:[], sessionPick:{} };
 /* ── Thư viện giáo án: seed (lessons.js) + DB cloud + local fallback ── */
 const LIB = {
   KEY:'ctrc:lessons:v1', db:{}, loaded:false,
@@ -1812,11 +1882,16 @@ function renderWeeklyLesson(){
   const k=$('#wk-key'); if(k) k.textContent=(WK.book||'?')+' · Tuần '+WK.week;
   const box=$('#wk-lesson'); if(!box) return;
   const obj=OBJ.get(WK.book, WK.week);
-  const les=lessonByKey(lessonKey(WK.book, WK.week));   // giáo án docx (nếu có) → hoạt động
+  const pack=weeklyLessonSelection();
+  const les=pack.lesson;
   let h='';
   if(obj) h+=`<div class="lesson-card" style="white-space:pre-line">${esc(_cleanObjective(obj))}</div>`;
   else h+='<p class="hint" style="margin:0">Cuốn/tuần này chưa có mục tiêu — bổ sung ở tab 🎯 Mục tiêu tuần.</p>';
-  if(les) h+=`<div style="margin-top:10px">${renderLessonHTML(les)}</div>`;
+  h+=renderWeeklySessionPicker();
+  if(les){
+    h+=`<div style="margin-top:10px">${renderLessonHTML(les)}</div>`;
+    if(pack.custom) h+=`<div style="margin-top:10px">${renderWeekFlow(pack.key, les)}</div>`;
+  }
   box.innerHTML=h;
 }
 async function loadWeeklyChildren(){
@@ -1843,8 +1918,9 @@ function _readWeeklyChildComments(){
 }
 async function genWeekly(){
   if(genWeekly._busy) return;                                  // chống bấm đúp nhân đôi cả lớp
-  const key=lessonKey(WK.book, WK.week);
-  const les=lessonByKey(key);
+  const lessonPack=weeklyLessonSelection();
+  const key=lessonPack.key || lessonKey(WK.book, WK.week);
+  const les=lessonPack.lesson;
   const classComment=$('#wk-class-comment').value.trim();
   _readWeeklyChildComments();
   const studs=await DB.listStudents(CENTER.id, WK.classId);
@@ -1854,8 +1930,8 @@ async function genWeekly(){
   if(genBtn){ genBtn.disabled=true; genBtn.textContent='⏳ Đang tạo…'; }
   try{
   const objText = OBJ.get(WK.book, WK.week);   // mục tiêu tuần từ thư viện mục tiêu (xlsx)
-  const lessonSnap = les ? {title:les.title, objective:objText||'', objectives:les.objectives||null, knowledge:les.knowledge||'', pages:les.pages, skill:les.skill, body:les.body, parent_content:les.parent_content||'', manager_summary:les.manager_summary||''} : (objText? {title:'', objective:objText} : null);
-  // "tuần này con học" — ưu tiên giáo án docx; nếu không có thì dùng mục tiêu tuần
+  const lessonSnap = les ? {title:les.title, objective:objText||'', objectives:les.objectives||null, knowledge:les.knowledge||'', pages:les.pages, skill:les.skill, body:les.body, parent_content:les.parent_content||'', manager_summary:les.manager_summary||'', session_numbers:les.session_numbers||[], session_items:les.session_items||[], session_range:les.session_range||''} : (objText? {title:'', objective:objText} : null);
+  // "tuần này con học" — ưu tiên giáo án docx/buổi thực học; nếu không có thì dùng mục tiêu tuần
   const hocGi = les ? ENG.lessonSummary(lessonSnap) : _cleanObjective(objText);
   // ngữ cảnh bài học cho AI (mục tiêu + hoạt động)
   const _join = x => Array.isArray(x) ? x.filter(Boolean).join('; ') : (x||'');
@@ -1863,6 +1939,7 @@ async function genWeekly(){
     title: les?(les.title||''):'',
     objective: objText ? _cleanObjective(objText) : _join(les.objectives||les.knowledge||les.skill),
     activity: (les&&les.pages&&les.pages.length)? les.pages.map(p=>(p.range?p.range+': ':'')+(p.desc||p.type||'')).join('; '):'',
+    sessions: les?(les.session_numbers||[]):[],
     content: hocGi
   } : null;
   const useAI = !!($('#wk-ai') && $('#wk-ai').checked) && AI.usable();
@@ -2769,11 +2846,18 @@ async function viewConfig(){
     </div>`;
   AICFG = AI.get();
   renderAICard('#ai-card-wrap');
+  setTimeout(reportConfigAutosizeAll,0);
 }
 
 function renderReportConfigEditor(){
   const c=reportCfg(CENTER&&CENTER.report_config);
-  const suggestions=(id,map)=>`<datalist id="${id}">${Object.values(map).map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>`;
+  const presetField=(kind,label,value,placeholder)=>{ const vals=reportPresetValues(kind,c); return `<div class="field" style="flex:1;min-width:260px"><label>${label} <span class="hint">· gợi ý, sửa/xoá/thêm được</span></label>
+      <textarea class="input" id="rc-${kind}" oninput="CTRC.rcAutosize(this)" style="width:100%;min-height:46px;max-height:180px;resize:vertical;font-size:12.5px;line-height:1.45;overflow:hidden" placeholder="${esc(placeholder)}">${esc(reportConfigValue(reportPresetMap(kind),value))}</textarea>
+      <div class="row" style="gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">
+        <select class="input" id="rc-${kind}-preset" style="flex:1;min-width:150px" onchange="CTRC.rcApplyPreset('${kind}')"><option value="">Chọn gợi ý…</option>${vals.map(v=>`<option value="${esc(v)}">${esc(v.slice(0,82))}${v.length>82?'…':''}</option>`).join('')}</select>
+        <button class="btn sm" type="button" onclick="CTRC.rcSavePreset('${kind}')">+ Lưu gợi ý</button>
+        <button class="btn sm" type="button" onclick="CTRC.rcDeletePreset('${kind}')">Xoá gợi ý</button>
+      </div></div>`; };
   return `<div class="card" style="margin:14px 0">
     <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">🗣️ Giọng văn & nội dung báo cáo</b>
@@ -2784,9 +2868,9 @@ function renderReportConfigEditor(){
     </div>
     <div class="hint" style="margin:6px 0 12px">Manager chỉnh một lần → AI per-buổi, AI báo cáo tuần và AI đọc giáo án đều bám theo. Đây là lớp điều khiển câu chữ, không thay đổi dữ liệu GV chấm.</div>
     <div class="row" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
-      <div class="field" style="flex:1;min-width:220px"><label>Tone chính <span class="hint">· gợi ý, sửa được</span></label><input class="input" id="rc-tone" list="rc-tone-list" value="${esc(reportConfigValue(REPORT_TONE,c.tone))}" placeholder="Gõ tone riêng hoặc chọn gợi ý">${suggestions('rc-tone-list',REPORT_TONE)}</div>
-      <div class="field" style="flex:1;min-width:220px"><label>Độ dài <span class="hint">· gợi ý, sửa được</span></label><input class="input" id="rc-detail" list="rc-detail-list" value="${esc(reportConfigValue(REPORT_DETAIL,c.detail))}" placeholder="Gõ quy chuẩn độ dài hoặc chọn gợi ý">${suggestions('rc-detail-list',REPORT_DETAIL)}</div>
-      <div class="field" style="flex:1;min-width:220px"><label>Kiểu phụ huynh đọc <span class="hint">· gợi ý, sửa được</span></label><input class="input" id="rc-audience" list="rc-audience-list" value="${esc(reportConfigValue(REPORT_AUDIENCE,c.audience))}" placeholder="Gõ chân dung phụ huynh hoặc chọn gợi ý">${suggestions('rc-audience-list',REPORT_AUDIENCE)}</div>
+      ${presetField('tone','Tone chính',c.tone,'Gõ tone riêng hoặc chọn gợi ý')}
+      ${presetField('detail','Độ dài',c.detail,'Gõ quy chuẩn độ dài hoặc chọn gợi ý')}
+      ${presetField('audience','Kiểu phụ huynh đọc',c.audience,'Gõ chân dung phụ huynh hoặc chọn gợi ý')}
     </div>
     <div class="row" style="gap:10px;margin-top:10px;align-items:flex-start;flex-wrap:wrap">
       <div class="field" style="width:160px"><label>Gọi bé là</label><input class="input" id="rc-child" value="${esc(c.childNoun)}" placeholder="con / bé"></div>
@@ -2818,10 +2902,11 @@ function renderReportConfigEditor(){
 }
 
 function _readReportConfigEditor(){
+  const cur=reportCfg(CENTER&&CENTER.report_config);
   return {
-    tone:($('#rc-tone')||{}).value||REPORT_CFG_DEFAULT.tone,
-    detail:($('#rc-detail')||{}).value||REPORT_CFG_DEFAULT.detail,
-    audience:($('#rc-audience')||{}).value||REPORT_CFG_DEFAULT.audience,
+    tone:(($('#rc-tone')||{}).value||REPORT_CFG_DEFAULT.tone).trim(),
+    detail:(($('#rc-detail')||{}).value||REPORT_CFG_DEFAULT.detail).trim(),
+    audience:(($('#rc-audience')||{}).value||REPORT_CFG_DEFAULT.audience).trim(),
     childNoun:(($('#rc-child')||{}).value||'con').trim(),
     teacherNoun:(($('#rc-teacher')||{}).value||'cô').trim(),
     avoidWords:(($('#rc-avoid')||{}).value||'').trim(),
@@ -2829,7 +2914,26 @@ function _readReportConfigEditor(){
     activityFrame:(($('#rc-activity')||{}).value||'').trim(),
     mustInclude:(($('#rc-must')||{}).value||'').trim(),
     extra:(($('#rc-extra')||{}).value||'').trim(),
+    presets:cur.presets,
   };
+}
+function rcAutosize(el){ if(!el) return; el.style.height='auto'; el.style.height=Math.min(Math.max(el.scrollHeight,46),180)+'px'; }
+function reportConfigAutosizeAll(){ ['rc-tone','rc-detail','rc-audience','rc-lesson','rc-activity','rc-must','rc-extra'].forEach(id=>rcAutosize($('#'+id))); }
+function rcApplyPreset(kind){ const sel=$('#rc-'+kind+'-preset'), tx=$('#rc-'+kind); if(sel&&tx&&sel.value){ tx.value=sel.value; rcAutosize(tx); } }
+async function _saveReportConfigPresets(cfg, action){ await DB.updateCenter(CENTER.id, { report_config:cfg }); CENTER.report_config=cfg; await DB.audit(CENTER.id, STAFF, action, 'center', CENTER.id, {}); viewConfig(); }
+async function rcSavePreset(kind){
+  const tx=$('#rc-'+kind); const val=(tx&&tx.value||'').trim(); if(!val){ toast('Nhập nội dung trước khi lưu gợi ý','var(--primary-2)'); return; }
+  const cfg=_readReportConfigEditor(); cfg.presets=Object.assign({tone:[],detail:[],audience:[]}, cfg.presets||{});
+  cfg.presets[kind]=Array.from(new Set((cfg.presets[kind]||[]).concat([val])));
+  try{ await _saveReportConfigPresets(cfg,'report_preset_add'); toast('✓ Đã thêm gợi ý để dùng lại'); }catch(e){ toast('Lỗi lưu gợi ý: '+(e.message||e),'var(--primary-2)'); }
+}
+async function rcDeletePreset(kind){
+  const sel=$('#rc-'+kind+'-preset'); const val=(sel&&sel.value||'').trim(); if(!val){ toast('Chọn gợi ý cần xoá trong dropdown','var(--primary-2)'); return; }
+  if(reportIsDefaultPreset(kind,val)){ toast('Gợi ý mặc định không xoá; chỉ xoá được gợi ý tự thêm','var(--primary-2)'); return; }
+  if(!confirm('Xoá gợi ý này khỏi dropdown?')) return;
+  const cfg=_readReportConfigEditor(); cfg.presets=Object.assign({tone:[],detail:[],audience:[]}, cfg.presets||{});
+  cfg.presets[kind]=(cfg.presets[kind]||[]).filter(x=>x!==val);
+  try{ await _saveReportConfigPresets(cfg,'report_preset_delete'); toast('✓ Đã xoá gợi ý'); }catch(e){ toast('Lỗi xoá gợi ý: '+(e.message||e),'var(--primary-2)'); }
 }
 async function reportConfigSave(){
   const cfg=_readReportConfigEditor();
@@ -3073,12 +3177,12 @@ window.CTRC = {
   openScore, setAttendance, saveScore,
   pickStrengthCrit, pickStrengthSentence, pickImproveCrit, pickImproveSentence, scoreDetailInput,
   gvFilter, quickAttendance, saveQuickAttendance, quickApprove,
-  editLessonContext, prefillLessonFromLib, saveLessonContext, clearLessonContext,
+  editLessonContext, prefillLessonFromLib, saveLessonContext, clearLessonContext, wkToggleSession, wkResetSessions,
   objCount, objSave, objSaveAll, objReset,
   critSave, critReset,
   addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, genAICustom, approve, returnToGV, confirmReturn, copyBlock, copyLink, markSent, voiceCheck, edInput,
-  approveProfile, editProfile, saveEditProfile, addTheme, reportConfigSave, reportConfigReset,
+  approveProfile, editProfile, saveEditProfile, addTheme, reportConfigSave, reportConfigReset, rcAutosize, rcApplyPreset, rcSavePreset, rcDeletePreset,
   aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
   addStaff, editStaff, saveStaff, delStaff,
   genWeekly, copyWeekly, saveWeeklyImg, saveWeeklyEdit, wkThisWeek, _wkGrow, copyPhone,
