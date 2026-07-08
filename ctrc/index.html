@@ -1454,7 +1454,14 @@ function codeFromName(fname){
   return m[1]+(m[2]?'+':'');
 }
 function lessonWeeksFromDocText(text, code, forcedWeek){
-  if(forcedWeek) return [{ key:code+'-w'+forcedWeek, lesson:parseLessonText(text, code, forcedWeek) }];
+  if(forcedWeek){
+    const lesson=parseLessonText(text, code, forcedWeek);
+    lesson.sessions=1;
+    lesson.session_numbers=[];
+    lesson.session_range='Tuần '+forcedWeek;
+    lesson.session_items=[sessionItemFromText(null, text, code, forcedWeek)];
+    return [{ key:code+'-w'+forcedWeek, lesson }];
+  }
   const raw=(text||'').replace(/\r/g,'');
   const parts=[]; const re=/\b(?:L\s*)?\d+\s*(?:\+)?\s*[-–]?\s*BU[ỔO]I\s*(\d+)/ig;
   let m, last=null;
@@ -1463,16 +1470,32 @@ function lessonWeeksFromDocText(text, code, forcedWeek){
     last={buoi:+m[1], idx:m.index};
   }
   if(last) parts.push({buoi:last.buoi, text:raw.slice(last.idx)});
-  if(!parts.length) return [{ key:code+'-w1', lesson:parseLessonText(text, code, 1) }];
+  if(!parts.length){
+    const lesson=parseLessonText(text, code, 1);
+    lesson.sessions=1;
+    lesson.session_numbers=[];
+    lesson.session_range='Tuần 1';
+    lesson.session_items=[sessionItemFromText(null, text, code, 1)];
+    return [{ key:code+'-w1', lesson }];
+  }
   const byWeek={};
-  parts.forEach(p=>{ const w=Math.max(1, Math.ceil((p.buoi||1)/2)); (byWeek[w]=byWeek[w]||[]).push(p.text); });
+  parts.forEach(p=>{ const w=Math.max(1, Math.ceil((p.buoi||1)/2)); (byWeek[w]=byWeek[w]||[]).push(p); });
   return Object.keys(byWeek).sort((a,b)=>+a-+b).map(w=>{
-    const lesson=parseLessonText(byWeek[w].join('\n'), code, +w);
-    lesson.sessions=byWeek[w].length;
-    lesson.session_range='Buổi '+((+w-1)*2+1)+'-'+(+w*2);
+    const items=byWeek[w].sort((a,b)=>(a.buoi||0)-(b.buoi||0));
+    const lesson=parseLessonText(items.map(p=>p.text).join('\n'), code, +w);
+    lesson.sessions=items.length;
+    lesson.session_numbers=items.map(p=>p.buoi).filter(Boolean);
+    lesson.session_range=lesson.session_numbers.length?'Buổi '+lesson.session_numbers.join(' & '):'Buổi '+((+w-1)*2+1)+'-'+(+w*2);
+    lesson.session_items=items.map(p=>sessionItemFromText(p.buoi, p.text, code, +w));
     lesson.title=lesson.title || `Giáo án ${code} · Tuần ${w}`;
     return { key:code+'-w'+w, lesson };
   });
+}
+function sessionItemFromText(no, text, code, week){
+  const p=parseLessonText(text, code, week);
+  const firstPage=(p.pages||[])[0];
+  const summary=(p.knowledge || (firstPage&&firstPage.desc) || (p.body||[]).find(x=>x.length>18) || '').replace(/\s+/g,' ').trim();
+  return { no, title:p.title||'', skill:p.skill||'', pages:p.pages||[], summary:summary.slice(0,180) };
 }
 function _normType(t){ const l=(t||'').toLowerCase(); const M={'cơ bản':'Tư duy cơ bản','toán':'Tư duy toán học','logic':'Tư duy logic','sáng tạo':'Tư duy sáng tạo','vận động':'Vận động'}; for(const k in M){ if(l.includes(k)) return M[k]; } return (t||'').trim(); }
 /* parse text giáo án 1 tuần (port parse_lessons.py) */
@@ -1623,17 +1646,54 @@ async function importLessons(){
 }
 function renderStage(staged, errs){
   const stage=$('#lib-stage'); if(!stage)return;
-  const keys=Object.keys(staged).sort();
+  const keys=Object.keys(staged).sort((a,b)=>lessonSortKey(a).localeCompare(lessonSortKey(b), undefined, {numeric:true}));
   stage.innerHTML = `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
-    <div class="ed-head" style="margin-bottom:6px"><span>Xem trước ${keys.length} tuần — duyệt rồi lưu</span></div>
+    <div class="ed-head" style="margin-bottom:6px"><span>Sơ đồ giáo án: file → buổi → tuần → tổng hợp</span><span class="cc">${keys.length} tuần</span></div>
     ${errs.length?`<p class="voice-warn">Bỏ qua: ${errs.map(esc).join('; ')}</p>`:''}
-    <table class="tb"><thead><tr><th>Mã-Tuần</th><th>Skeleton</th><th>Tóm tắt QL / PH</th></tr></thead><tbody>
-    ${keys.map(k=>{const l=staged[k];const sk=[l.session_range||'', l.skill?'kỹ năng':'', (l.pages||[]).length?`${l.pages.length} hoạt động`:''].filter(Boolean).join(' · ');return `<tr><td>${esc(k)}</td><td><b>${esc((l.title||'').slice(0,38))}</b><small style="display:block;color:var(--mute)">${esc(sk||'đã tách cấu trúc')}</small></td><td style="color:var(--mute)">${esc((l.parent_content||l.manager_summary||'— (engine, chưa AI)').slice(0,96))}</td></tr>`;}).join('')}
-    </tbody></table>
+    ${renderLessonImportDiagram(staged, keys)}
     <div class="row" style="justify-content:flex-end;margin-top:10px">
       <button class="btn ghost sm" onclick="CTRC.cancelStage()">Huỷ</button>
       <button class="btn primary sm" onclick="CTRC.saveStage()">💾 Lưu ${keys.length} tuần vào thư viện</button>
     </div></div>`;
+}
+function lessonSortKey(k){ const m=String(k).match(/^(.*)-w(\d+)$/); return m ? m[1].padStart(8,'0')+'-'+String(+m[2]).padStart(2,'0') : String(k); }
+function renderLessonImportDiagram(map, keys){
+  const groups={}; keys.forEach(k=>{ const l=map[k]||{}; const code=l.code || String(k).split('-w')[0]; (groups[code]=groups[code]||[]).push(k); });
+  return Object.keys(groups).sort((a,b)=>a.localeCompare(b, undefined, {numeric:true})).map(code=>`
+    <div style="border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:8px;background:#fffaf4">
+      <div style="font:800 12.5px/1 var(--font-d);color:var(--primary-2);margin-bottom:8px">Cuốn/Bài ${esc(code)}</div>
+      <div style="display:grid;gap:8px">${groups[code].sort((a,b)=>lessonSortKey(a).localeCompare(lessonSortKey(b), undefined, {numeric:true})).map(k=>renderWeekFlow(k,map[k])).join('')}</div>
+    </div>`).join('');
+}
+function renderWeekFlow(key, l){
+  const sessions=(l.session_items&&l.session_items.length?l.session_items:[{no:null,title:l.title||'',skill:l.skill||'',pages:l.pages||[],summary:l.knowledge||''}]);
+  const acts=(l.pages||[]).length;
+  const types=Array.from(new Set((l.pages||[]).map(p=>p.type).filter(Boolean))).slice(0,3).join(' · ');
+  const total=(l.parent_content||l.manager_summary||lessonDigest(l));
+  return `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:stretch">
+    <div style="border:1px dashed #ead8be;border-radius:10px;padding:8px;background:#fff;flex:1 1 230px;min-width:0">
+      <div style="font:800 12px/1 var(--font);color:var(--ink);margin-bottom:6px">${esc(l.session_range||'Các buổi')}</div>
+      <div style="display:grid;gap:6px">${sessions.map(s=>`<div style="border-radius:9px;background:#f8f1e8;padding:7px 8px">
+        <b style="font:800 11.5px/1 var(--font);color:var(--primary-2)">${s.no?'Buổi '+esc(s.no):'Giáo án'}</b>
+        <span style="display:block;font:600 11.5px/1.35 var(--font);color:var(--ink);margin-top:3px">${esc((s.title||s.skill||'Nội dung buổi học').slice(0,72))}</span>
+        <small style="display:block;color:var(--mute);margin-top:3px">${esc(((s.pages||[]).length?((s.pages||[]).length+' hoạt động'):(s.summary||'đã đọc nội dung')).slice(0,86))}</small>
+      </div>`).join('')}</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;color:var(--primary-2);font:900 18px/1 var(--font-d);flex:0 0 28px">→</div>
+    <div style="border:1px solid #d9e8d0;border-radius:10px;padding:9px 10px;background:#f4fbef;flex:1.2 1 260px;min-width:0">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:5px"><b style="font:900 12.5px/1 var(--font-d);color:#2e7d32">Tuần ${esc(l.week||'')} · Tổng hợp</b><span class="badge b-ok">${sessions.length} buổi</span></div>
+      <div style="font:700 12px/1.4 var(--font);color:var(--ink)">${esc((l.title||'Nội dung học tuần').slice(0,80))}</div>
+      <small style="display:block;color:var(--mute);margin-top:4px">${esc([l.skill||types, acts?acts+' hoạt động':''].filter(Boolean).join(' · ')||'mục tiêu + hoạt động')}</small>
+      <div style="font:500 12px/1.45 var(--font);color:var(--ink-soft);margin-top:6px">${esc((total||'Hệ thống đã gom các buổi trong tuần để AI/manager biên tập thành nội dung báo cáo.').slice(0,190))}</div>
+    </div>
+  </div>`;
+}
+function lessonDigest(l){
+  const parts=[];
+  if(l.knowledge) parts.push(l.knowledge);
+  if(l.skill) parts.push('Mục tiêu kỹ năng: '+l.skill);
+  (l.pages||[]).slice(0,2).forEach(p=>parts.push([p.range,p.type,p.desc].filter(Boolean).join(': ')));
+  return parts.join(' ').replace(/\s+/g,' ').trim();
 }
 function cancelStage(){ LIBV.staged=null; const s=$('#lib-stage'); if(s)s.innerHTML=''; const i=$('#lib-files'); if(i)i.value=''; }
 async function saveStage(){
@@ -1660,6 +1720,7 @@ function viewLesson(key){
     ${l.manager_summary?`<div style="background:var(--cream);border-radius:10px;padding:10px 12px;margin-bottom:10px;font:500 12.5px/1.6 var(--font)"><b style="color:var(--primary-2)">📊 Tóm tắt cho quản lý:</b><br>${esc(l.manager_summary)}</div>`:''}
     ${l.parent_content?`<div style="background:#eef7ff;border-radius:10px;padding:10px 12px;margin-bottom:10px;font:500 12.5px/1.6 var(--font)"><b style="color:#2f6ea0">👨‍👩‍👧 Nội dung cho phụ huynh:</b><br>${esc(l.parent_content)}</div>`:''}
     <div>${renderLessonHTML(l)}</div>
+    <div style="margin-top:12px">${renderWeekFlow(key,l)}</div>
     <div class="row" style="justify-content:space-between;margin-top:12px">
       ${(LIB.imported()[key]||LIB.db[key])?`<button class="btn sm" onclick="CTRC.delLesson('${key}')">🗑 Xoá khỏi thư viện</button>`:'<span></span>'}
       <button class="btn ghost" onclick="CTRC.closeModal()">Đóng</button>
