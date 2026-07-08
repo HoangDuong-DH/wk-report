@@ -1474,7 +1474,7 @@ async function maybeDraftProfile(stu){
 /* ═══════════════════════════════════════════════════════════
    BÁO CÁO TUẦN (nội dung bài học từ thư viện + nhận xét)
    ═══════════════════════════════════════════════════════════ */
-let WK = { classId:'', program:'', book:'', week:1, from:'', to:'', childComments:{}, digests:{}, made:[], sessionPick:{} };
+let WK = { classId:'', program:'', book:'', week:1, from:'', to:'', childComments:{}, digests:{}, made:[], sessionPick:{}, stats:{total:0,ready:0,empty:0,sessions:0}, generating:false };
 /* ── Thư viện giáo án: seed (lessons.js) + DB cloud + local fallback ── */
 const LIB = {
   KEY:'ctrc:lessons:v1', db:{}, loaded:false,
@@ -1827,12 +1827,14 @@ function _wkSyncFromClass(){
 }
 async function viewWeekly(){
   const classes = await DB.listClasses(CENTER.id);
+  WK.classes=classes;
   if(!WK.classId && classes[0]) WK.classId = classes[0].id;
   if(!WK.from){ WK.from=DB._mondayOf(new Date()); WK.to=_sundayStr(WK.from); }
   _wkSyncFromClass();
   view.innerHTML = `
     <h2 class="h-title">📅 Báo cáo tuần</h2>
     <p class="h-sub">Cô chấm từng buổi → AI <b>tự gom các buổi trong tuần của từng bé</b> thành 1 báo cáo, bám <b>mục tiêu tuần</b>. Tạo cho <b>cả lớp</b> một lượt; <b>sửa lại được</b> trước khi gửi.</p>
+    <div id="wk-flow" class="card" style="margin-bottom:12px;background:#fffaf4;border-color:#ead8be"></div>
     <div class="card" style="margin-bottom:12px">
       <div class="row" style="align-items:flex-end">
         <div class="field"><label>Lớp</label><select class="input" id="wk-class">${classes.map(c=>`<option value="${c.id}" ${WK.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
@@ -1863,25 +1865,55 @@ async function viewWeekly(){
       <label style="font:600 12px/1.3 var(--font);display:flex;gap:6px;align-items:center">
         <input type="checkbox" id="wk-ai" ${AI.usable()?'checked':'disabled'}> ✨ AI tổng hợp đầy đủ (gom các buổi, nêu rõ điểm cần cải thiện)${AI.usable()?'':' — bật ⚙ AI để dùng'}</label>
       <button class="btn primary" onclick="CTRC.genWeekly()">📨 Tạo báo cáo cả lớp</button>
+      <div id="wk-gen-status" class="hint" style="width:100%;margin:2px 0 0;text-align:right"></div>
     </div>
     <div id="wk-result"></div>
     <div id="wk-recent" style="margin-top:18px"></div>`;
   $('#wk-class').onchange = e=>{ WK.classId=e.target.value; _wkSyncFromClass(); $('#wk-prog').value=WK.program; renderWkBooks(); $('#wk-week').value=WK.week; renderWeeklyLesson(); loadWeeklyChildren(); loadWeeklyRecent(); };
-  $('#wk-from').onchange = e=>{ WK.from=e.target.value; loadWeeklyChildren(); };
-  $('#wk-to').onchange = e=>{ WK.to=e.target.value; loadWeeklyChildren(); };
+  $('#wk-from').onchange = e=>{ WK.from=e.target.value; renderWeeklyFlow(); loadWeeklyChildren(); };
+  $('#wk-to').onchange = e=>{ WK.to=e.target.value; renderWeeklyFlow(); loadWeeklyChildren(); };
   $('#wk-prog').onchange = e=>{ WK.program=e.target.value; const bs=OBJ.booksOf(WK.program); WK.book=bs[0]||''; renderWkBooks(); renderWeeklyLesson(); };
   $('#wk-book').onchange = e=>{ WK.book=e.target.value; renderWeeklyLesson(); };
   $('#wk-week').onchange = e=>{ WK.week=+e.target.value; renderWeeklyLesson(); };
   renderWkBooks();
   renderWeeklyLesson();
+  renderWeeklyFlow();
   loadWeeklyChildren();
   loadWeeklyRecent();
 }
-function wkThisWeek(){ WK.from=DB._mondayOf(new Date()); WK.to=_sundayStr(WK.from); const f=$('#wk-from'),t=$('#wk-to'); if(f)f.value=WK.from; if(t)t.value=WK.to; loadWeeklyChildren(); }
+function wkThisWeek(){ WK.from=DB._mondayOf(new Date()); WK.to=_sundayStr(WK.from); const f=$('#wk-from'),t=$('#wk-to'); if(f)f.value=WK.from; if(t)t.value=WK.to; renderWeeklyFlow(); loadWeeklyChildren(); }
 function renderWkBooks(){
   const sel=$('#wk-book'); if(!sel) return;
   const bs=OBJ.booksOf(WK.program);
   sel.innerHTML = bs.map(c=>`<option value="${esc(c)}" ${WK.book===c?'selected':''}>${esc(c)}</option>`).join('')||'<option value="">(trống)</option>';
+}
+function _wkClassName(){ const sel=$('#wk-class'); if(sel&&sel.selectedIndex>=0) return sel.options[sel.selectedIndex].textContent; const c=(WK.classes||[]).find(x=>x.id===WK.classId); return c?c.name:'Chưa chọn lớp'; }
+function _wkStep(label, sub, state){
+  const bg=state==='ok'?'#f4fbef':(state==='warn'?'#fff8e8':'#fff');
+  const border=state==='ok'?'#cfe7c1':(state==='warn'?'#ead8be':'var(--line)');
+  const dot=state==='ok'?'#53a52d':(state==='warn'?'#d78925':'#b8aaa0');
+  return `<div style="flex:1 1 170px;min-width:0;border:1px solid ${border};border-radius:10px;padding:9px;background:${bg}">
+    <div style="display:flex;gap:6px;align-items:center"><span style="width:9px;height:9px;border-radius:999px;background:${dot};display:inline-block;flex:none"></span><b style="font:800 12px/1.25 var(--font);color:var(--ink)">${esc(label)}</b></div>
+    <small style="display:block;color:var(--mute);font:500 11px/1.35 var(--font);margin-top:5px">${esc(sub||'')}</small>
+  </div>`;
+}
+function renderWeeklyFlow(){
+  const box=$('#wk-flow'); if(!box) return;
+  const pack=weeklyLessonSelection();
+  const nos=(pack.nos&&pack.nos.length)?pack.nos:(pack.lesson&&pack.lesson.session_numbers)||[];
+  const ses=nos.length?'Buổi '+nos.join(' & '):(pack.lesson?'Giáo án tuần':'Chưa có buổi');
+  const st=WK.stats||{};
+  const ready=st.ready||0, total=st.total||0, empty=st.empty||0;
+  const dataSub=total?`${ready}/${total} bé có dữ liệu`+(empty?` · ${empty} bé sẽ bỏ qua`:''):'Đang kiểm tra dữ liệu bé';
+  const generated=(WK.made&&WK.made.length)||0;
+  box.innerHTML=`<div class="ed-head" style="margin-bottom:9px"><span>Luồng tạo báo cáo tuần</span><span class="cc">${esc(_dateLabel(WK.from,WK.to))}</span></div>
+    <div class="row" style="gap:8px;align-items:stretch;flex-wrap:wrap">
+      ${_wkStep('1. Lớp & ngày', `${_wkClassName()} · ${_dateLabel(WK.from,WK.to)}`, WK.classId?'ok':'warn')}
+      ${_wkStep('2. Giáo án & buổi', `${WK.book||'?'} · Tuần ${WK.week||'?'} · ${ses}`, pack.lesson?'ok':'warn')}
+      ${_wkStep('3. Dữ liệu bé', dataSub, total?(ready?'ok':'warn'):'warn')}
+      ${_wkStep('4. Tạo & rà soát', WK.generating?'Đang tạo báo cáo…':(generated?`Đã tạo ${generated} báo cáo, kiểm tra và copy`:'Sẵn sàng khi dữ liệu đủ'), WK.generating||generated?'ok':'warn')}
+    </div>
+    <div class="hint" style="margin-top:8px">Mẹo vận hành: nếu lịch học lệch, chỉnh ở bước 2 bằng cách tick đúng buổi thực học; nhận xét bé sẽ dùng đúng ngữ cảnh buổi đã chọn.</div>`;
 }
 function renderWeeklyLesson(){
   const k=$('#wk-key'); if(k) k.textContent=(WK.book||'?')+' · Tuần '+WK.week;
@@ -1898,17 +1930,21 @@ function renderWeeklyLesson(){
     if(pack.custom) h+=`<div style="margin-top:10px">${renderWeekFlow(pack.key, les)}</div>`;
   }
   box.innerHTML=h;
+  renderWeeklyFlow();
 }
 async function loadWeeklyChildren(){
   const box=$('#wk-children'); if(!box) return;
+  WK.stats={total:0,ready:0,empty:0,sessions:0}; renderWeeklyFlow();
   box.innerHTML='<p class="hint" style="margin:0">Đang tổng hợp các buổi…</p>';
   const studs=await DB.listStudents(CENTER.id, WK.classId);
   WK.digests={};
+  WK.stats={total:studs.length,ready:0,empty:0,sessions:0};
   const rows=[];
   for(const s of studs){
     const recs=await DB.studentRecordsInRange(s.id, WK.from, WK.to);
     const dg=ENG.weeklyDigest(recs);
     WK.digests[s.id]=dg;
+    if(dg.sessions){ WK.stats.ready++; WK.stats.sessions+=dg.sessions; } else WK.stats.empty++;
     const sub = dg.sessions? `${dg.sessions} buổi`+(dg.topStrengths.length?` · ${dg.topStrengths.slice(0,2).join(', ')}`:'') : 'chưa có buổi nào trong khoảng này';
     rows.push(`<div class="wk-child">
       <span class="av" style="width:30px;height:30px;font-size:16px">${AV(s.gender)}</span>
@@ -1916,7 +1952,9 @@ async function loadWeeklyChildren(){
       <input class="input wk-cc" data-sid="${s.id}" placeholder="lời nhắn riêng (tuỳ chọn)…" value="${esc(WK.childComments[s.id]||'')}" style="flex:1">
     </div>`);
   }
-  box.innerHTML = rows.join('') || '<p class="hint" style="margin:0">Lớp chưa có bé.</p>';
+  const summary = studs.length ? `<div style="border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;background:#fffaf4"><b style="font:800 12px/1 var(--font);color:var(--primary-2)">${WK.stats.ready}/${WK.stats.total} bé có dữ liệu trong khoảng ngày</b><small style="display:block;color:var(--mute);margin-top:4px">${WK.stats.empty?WK.stats.empty+' bé chưa có buổi học sẽ được bỏ qua khi tạo báo cáo.':'Tất cả bé đều có dữ liệu để tạo báo cáo.'}</small></div>` : '';
+  box.innerHTML = (summary + rows.join('')) || '<p class="hint" style="margin:0">Lớp chưa có bé.</p>';
+  renderWeeklyFlow();
 }
 function _readWeeklyChildComments(){
   document.querySelectorAll('#wk-children .wk-cc').forEach(i=>{ WK.childComments[i.dataset.sid]=i.value.trim(); });
@@ -1949,6 +1987,7 @@ async function genWeekly(){
   genWeekly._busy = true;
   const genBtn=[].slice.call(document.querySelectorAll('button')).find(b=>/Tạo báo cáo cả lớp/.test(b.textContent));
   if(genBtn){ genBtn.disabled=true; genBtn.textContent='⏳ Đang tạo…'; }
+  WK.generating=true; WK.made=[]; renderWeeklyFlow(); const genStatus=$('#wk-gen-status'); if(genStatus) genStatus.textContent='Đang chuẩn bị dữ liệu…';
   try{
   const objText = OBJ.get(WK.book, WK.week);   // mục tiêu tuần từ thư viện mục tiêu (xlsx)
   const lessonSnap = les ? {title:les.title, objective:objText||'', objectives:les.objectives||null, knowledge:les.knowledge||'', pages:les.pages, skill:les.skill, body:les.body, parent_content:les.parent_content||'', manager_summary:les.manager_summary||'', session_numbers:les.session_numbers||[], session_items:les.session_items||[], session_range:les.session_range||''} : (objText? {title:'', objective:objText} : null);
@@ -1970,6 +2009,8 @@ async function genWeekly(){
   let idx=0;
   for(const s of studs){
     idx++;
+    const genStatus=$('#wk-gen-status'); if(genStatus) genStatus.textContent=`Đang xử lý ${idx}/${studs.length}: ${s.name}`;
+    renderWeeklyFlow();
     const recs = await DB.studentRecordsInRange(s.id, WK.from, WK.to);
     const dg = WK.digests[s.id] || ENG.weeklyDigest(recs);
     if(dg.sessions===0){ skipped.push(s.name); continue; }      // bỏ qua bé chưa học buổi nào trong tuần
@@ -1992,13 +2033,13 @@ async function genWeekly(){
     made.push({stu:s, w});
   }
   await DB.audit(CENTER.id, STAFF, 'weekly_report','class',WK.classId,{book:WK.book,week:WK.week,count:made.length});
-  WK.childComments={}; WK.made=made;
+  WK.childComments={}; WK.made=made; WK.generating=false; renderWeeklyFlow(); const genDone=$('#wk-gen-status'); if(genDone) genDone.textContent=made.length?`Đã tạo ${made.length} báo cáo, kiểm tra nội dung bên dưới.`:'Chưa tạo báo cáo nào.';
   if(!made.length){ toast(skipped.length?('Tất cả '+skipped.length+' bé chưa học buổi nào trong tuần — chưa tạo báo cáo'):'Không có dữ liệu để tạo','var(--primary-2)'); }
   else toast('✓ Đã tạo '+made.length+' báo cáo'+(skipped.length?(' · bỏ qua '+skipped.length+' bé chưa học buổi nào'):'')+' — Copy hoặc lưu ảnh để gửi');
   renderWeeklyResult(made, skipped);
   loadWeeklyRecent();
   }catch(e){ toast('Lỗi tạo báo cáo: '+(e.message||e),'var(--primary-2)'); }
-  finally{ genWeekly._busy=false; if(genBtn){ genBtn.disabled=false; genBtn.textContent='📨 Tạo báo cáo cả lớp'; } }
+  finally{ genWeekly._busy=false; WK.generating=false; renderWeeklyFlow(); if(genBtn){ genBtn.disabled=false; genBtn.textContent='📨 Tạo báo cáo cả lớp'; } }
 }
 function _dateLabel(from,to){ return ENG.fmtDate(from)+' – '+ENG.fmtDate(to); }
 function _reEsc(s){ return String(s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
