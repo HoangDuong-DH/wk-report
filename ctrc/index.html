@@ -607,6 +607,7 @@ const REPORT_AUDIENCE = {
   first_time:'Phụ huynh mới: diễn giải mềm, tránh jargon, giúp họ hiểu trung tâm đang rèn gì.'
 };
 function reportCfg(raw){ return Object.assign({}, REPORT_CFG_DEFAULT, raw||{}); }
+function reportConfigValue(map, val){ return map[val] || val || ''; }
 function reportConfigPrompt(raw){
   const c=reportCfg(raw);
   return [
@@ -2650,7 +2651,7 @@ async function viewConfig(){
 
 function renderReportConfigEditor(){
   const c=reportCfg(CENTER&&CENTER.report_config);
-  const opt=(map,val)=>Object.entries(map).map(([k,v])=>`<option value="${esc(k)}" ${val===k?'selected':''}>${esc(v)}</option>`).join('');
+  const suggestions=(id,map)=>`<datalist id="${id}">${Object.values(map).map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>`;
   return `<div class="card" style="margin:14px 0">
     <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <b style="font:800 13px/1 var(--font-d);color:var(--primary-2)">🗣️ Giọng văn & nội dung báo cáo</b>
@@ -2661,9 +2662,9 @@ function renderReportConfigEditor(){
     </div>
     <div class="hint" style="margin:6px 0 12px">Manager chỉnh một lần → AI per-buổi, AI báo cáo tuần và AI đọc giáo án đều bám theo. Đây là lớp điều khiển câu chữ, không thay đổi dữ liệu GV chấm.</div>
     <div class="row" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
-      <div class="field" style="flex:1;min-width:220px"><label>Tone chính</label><select class="input" id="rc-tone">${opt(REPORT_TONE,c.tone)}</select></div>
-      <div class="field" style="flex:1;min-width:220px"><label>Độ dài</label><select class="input" id="rc-detail">${opt(REPORT_DETAIL,c.detail)}</select></div>
-      <div class="field" style="flex:1;min-width:220px"><label>Kiểu phụ huynh đọc</label><select class="input" id="rc-audience">${opt(REPORT_AUDIENCE,c.audience)}</select></div>
+      <div class="field" style="flex:1;min-width:220px"><label>Tone chính <span class="hint">· gợi ý, sửa được</span></label><input class="input" id="rc-tone" list="rc-tone-list" value="${esc(reportConfigValue(REPORT_TONE,c.tone))}" placeholder="Gõ tone riêng hoặc chọn gợi ý">${suggestions('rc-tone-list',REPORT_TONE)}</div>
+      <div class="field" style="flex:1;min-width:220px"><label>Độ dài <span class="hint">· gợi ý, sửa được</span></label><input class="input" id="rc-detail" list="rc-detail-list" value="${esc(reportConfigValue(REPORT_DETAIL,c.detail))}" placeholder="Gõ quy chuẩn độ dài hoặc chọn gợi ý">${suggestions('rc-detail-list',REPORT_DETAIL)}</div>
+      <div class="field" style="flex:1;min-width:220px"><label>Kiểu phụ huynh đọc <span class="hint">· gợi ý, sửa được</span></label><input class="input" id="rc-audience" list="rc-audience-list" value="${esc(reportConfigValue(REPORT_AUDIENCE,c.audience))}" placeholder="Gõ chân dung phụ huynh hoặc chọn gợi ý">${suggestions('rc-audience-list',REPORT_AUDIENCE)}</div>
     </div>
     <div class="row" style="gap:10px;margin-top:10px;align-items:flex-start;flex-wrap:wrap">
       <div class="field" style="width:160px"><label>Gọi bé là</label><input class="input" id="rc-child" value="${esc(c.childNoun)}" placeholder="con / bé"></div>
