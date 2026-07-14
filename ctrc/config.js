@@ -15,12 +15,14 @@ window.CTRC_CONFIG = {
   edgeFnUrl: '',             // vd 'https://abcd.supabase.co/functions/v1/generate'
 
   // ── Mặc định AI (có thể đổi trong app → Cấu hình → AI; lưu localStorage đè lên đây) ──
+  // provider: 'gemini' (Google) | 'anthropic' (Claude). Đổi trong app được, cả 2 đều chạy.
   ai: {
-    provider: 'anthropic',
-    mode: 'edge',            // 'edge' (key ở server, an toàn) | 'direct' (key ở trình duyệt)
-    model: 'claude-sonnet-4-5',
+    provider: 'gemini',
+    mode: 'direct',          // 'direct' (key ở trình duyệt máy này) | 'edge' (key ở server Supabase)
+    model: 'gemini-3.5-flash',
     maxTokens: 600,
-    baseUrl: 'https://api.anthropic.com',
+    baseUrl: 'https://generativelanguage.googleapis.com',
+    // ⚠ KEY KHÔNG để ở đây (repo CÔNG KHAI). Dán key trong app → Cấu hình → AI → API key → Lưu.
   },
 
   // ── Trung tâm mặc định khi nhiều center (để trống = lấy center đầu tiên) ──

@@ -489,7 +489,7 @@ table.tb tbody tr:hover td{background:#faf7f1}
 <div id="toast"></div>
 <div id="modal-root"></div>
 
-<script src="config.js?v=30"></script>
+<script src="config.js?v=31"></script>
 <script src="db.js?v=30"></script>
 <script src="engine.js?v=31"></script>
 <script src="lessons.js?v=29"></script>
@@ -725,6 +725,14 @@ const AI = {
     {id:'claude-sonnet-4-5',      name:'Claude Sonnet 4.5 — cân bằng (khuyên dùng)'},
     {id:'claude-3-5-haiku-latest',name:'Claude Haiku 3.5 — nhanh, tiết kiệm'},
   ],
+  GEMINI_MODELS:[
+    {id:'gemini-3.5-flash',       name:'Gemini 3.5 Flash — nhanh, mạnh (khuyên dùng)'},
+    {id:'gemini-3.1-pro',         name:'Gemini 3.1 Pro — suy luận sâu nhất'},
+    {id:'gemini-3.1-flash-lite',  name:'Gemini 3.1 Flash-Lite — rẻ nhất'},
+    {id:'gemini-flash-latest',    name:'Gemini Flash (bản mới nhất)'},
+  ],
+  GEMINI_BASE:'https://generativelanguage.googleapis.com',
+  ANTHROPIC_BASE:'https://api.anthropic.com',
   // mức effort (output_config.effort) — đúng giá trị API. Model mới: adaptive + effort;
   // model cũ: enabled + budget_tokens (quy đổi từ effort).
   THINKING_LEVELS:['off','low','medium','high','xhigh','max'],
@@ -751,14 +759,40 @@ const AI = {
     const base = Object.assign({
       provider:'anthropic', mode: (CFG.edgeFnUrl?'edge':'edge'),
       edgeFnUrl: CFG.edgeFnUrl||'', apiKey:'', model:'claude-sonnet-4-5',
-      maxTokens:600, thinking:'off', baseUrl:'https://api.anthropic.com', models:this.DEFAULT_MODELS.slice(),
+      maxTokens:600, thinking:'off', baseUrl:this.ANTHROPIC_BASE,
     }, (CFG.ai||{}));
     let saved={}; try{ saved=JSON.parse(localStorage.getItem(this.KEY))||{}; }catch(_){}
-    return Object.assign(base, saved);
+    const c = Object.assign(base, saved);
+    // danh sách model gợi ý + base URL tự khớp đúng hãng (trừ khi đã tải thật từ API)
+    if(!c.models || c.modelsSource!=='API') c.models = this._isGemini(c) ? this.GEMINI_MODELS.slice() : this.DEFAULT_MODELS.slice();
+    if(this._isGemini(c)){ if(!c.baseUrl || /anthropic/i.test(c.baseUrl)) c.baseUrl=this.GEMINI_BASE; }
+    else if(/googleapis/i.test(c.baseUrl||'')) c.baseUrl=this.ANTHROPIC_BASE;
+    return c;
   },
   save(cfg){ try{ localStorage.setItem(this.KEY, JSON.stringify(cfg)); }catch(e){ toast('Lưu cấu hình lỗi','var(--primary-2)'); } },
   usable(){ const c=this.get(); return c.mode==='edge' ? !!c.edgeFnUrl : !!c.apiKey; },
   _directHeaders(c){ return {'content-type':'application/json','x-api-key':c.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}; },
+  /* provider = gemini? (theo cấu hình hoặc suy từ tên model) */
+  _isGemini(c){ return (c && c.provider==='gemini') || /gemini/i.test((c&&c.model)||''); },
+  /* gọi Gemini generateContent (chế độ trực tiếp). Gemini 3.x là model "suy nghĩ":
+     effort=off → thinkingBudget 0 (kẻo phần nghĩ thầm nuốt hết token trả lời);
+     effort>off → cấp thêm budget và nới maxOutputTokens cho đủ chỗ cả nghĩ lẫn trả lời. */
+  async _callGemini(c, system, content){
+    const eff = c.thinking || 'off';
+    const think = eff==='off' ? 0 : (this.EFFORT_BUDGET[eff] || 6144);
+    const out = c.maxTokens || 600;
+    let base = (c.baseUrl||'').trim().replace(/\/+$/,'');
+    if(!base || /anthropic/i.test(base)) base = this.GEMINI_BASE;   // né base URL còn sót của Anthropic
+    const url = base + '/v1beta/models/' + encodeURIComponent(c.model) + ':generateContent';
+    const body = {
+      contents:[{role:'user', parts:[{text:content}]}],
+      generationConfig:{ maxOutputTokens: out + think, thinkingConfig:{ thinkingBudget: think } },
+    };
+    if(system) body.systemInstruction = { parts:[{text:system}] };
+    const r = await fetch(url, {method:'POST', headers:{'content-type':'application/json','x-goog-api-key':c.apiKey}, body:JSON.stringify(body)});
+    if(!r.ok) throw new Error('Gemini HTTP '+r.status+': '+(await r.text()).slice(0,180));
+    return r.json();
+  },
   /* model mới (4.6+/4.7/4.8/mythos) → adaptive + output_config.effort; còn lại → enabled+budget */
   _isAdaptive(model){ return /(opus-4-(6|7|8|9))|(sonnet-4-(6|7|8|9))|mythos/i.test(model||''); },
   /* danh sách body-variant để thử theo thứ tự (có fallback) */
@@ -772,6 +806,7 @@ const AI = {
   },
   /* gọi /v1/messages, thử lần lượt các variant; lỗi 400 liên quan thinking/effort → thử variant kế */
   async _callMessages(c, system, content){
+    if(this._isGemini(c)) return this._callGemini(c, system, content);
     let lastErr;
     for(const v of this._variants(c)){
       const body = Object.assign({ model:c.model, system, messages:[{role:'user',content}] }, v);
@@ -785,7 +820,12 @@ const AI = {
   },
   /* lấy đúng khối text (bỏ qua khối thinking nếu có) */
   _text(d){
-    if(!d || !d.content) return '';
+    if(!d) return '';
+    if(d.candidates){   // khuôn Gemini: candidates[0].content.parts[].text (bỏ phần nghĩ thầm)
+      const parts = (((d.candidates[0]||{}).content||{}).parts) || [];
+      return parts.filter(p=>p && p.text && !p.thought).map(p=>p.text).join('').trim();
+    }
+    if(!d.content) return '';
     const t = d.content.find(b=>b.type==='text');
     return t ? (t.text||'').trim() : ((d.content[0]&&d.content[0].text)||'').trim();
   },
@@ -798,6 +838,16 @@ const AI = {
       const d=await r.json(); return (d.data||d.models||[]).map(m=>({id:m.id,name:m.display_name||m.id}));
     }
     if(!c.apiKey) throw new Error('Chưa có API key');
+    if(this._isGemini(c)){
+      let base=(c.baseUrl||'').trim().replace(/\/+$/,''); if(!base||/anthropic/i.test(base)) base=this.GEMINI_BASE;
+      const r=await fetch(base+'/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':c.apiKey}});
+      if(!r.ok) throw new Error('HTTP '+r.status+': '+(await r.text()).slice(0,140));
+      const d=await r.json();
+      return (d.models||[])
+        .filter(m=>!m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent'))
+        .map(m=>({id:(m.name||'').replace(/^models\//,''), name:m.displayName||(m.name||'').replace(/^models\//,'')}))
+        .filter(m=>m.id);
+    }
     const r=await fetch(c.baseUrl+'/v1/models?limit=100',{headers:this._directHeaders(c)});
     if(!r.ok) throw new Error('HTTP '+r.status+': '+(await r.text()).slice(0,140));
     const d=await r.json(); return (d.data||[]).map(m=>({id:m.id,name:m.display_name||m.id}));
@@ -3115,8 +3165,9 @@ function renderAICard(sel){
 
       <div class="row" style="gap:18px;margin-bottom:12px">
         <div class="field"><label>Nhà cung cấp</label>
-          <select class="input" id="ai-provider">
+          <select class="input" id="ai-provider" onchange="CTRC.aiSetProvider(this.value)">
             <option value="anthropic" ${c.provider==='anthropic'?'selected':''}>Anthropic — Claude</option>
+            <option value="gemini" ${c.provider==='gemini'?'selected':''}>Google — Gemini</option>
           </select></div>
         <div class="field"><label>Chế độ kết nối</label>
           <div class="row" style="gap:14px;padding-top:6px">
@@ -3130,16 +3181,16 @@ function renderAICard(sel){
           <input class="input" id="ai-edge" value="${esc(c.edgeFnUrl)}" placeholder="https://xxxx.supabase.co/functions/v1/generate" style="width:100%">
           <div class="hint">Key Claude nằm ở server (Supabase secret) — không lộ ra trình duyệt. Xem SETUP.md.</div></div>
       ` : `
-        <div class="ln"><label>API key (Anthropic)</label>
-          <input class="input" id="ai-key" type="password" value="${esc(c.apiKey)}" placeholder="sk-ant-... (dán key vào, danh sách model tự hiện)" style="width:100%" onblur="CTRC.aiKeyBlur()">
+        <div class="ln"><label>API key (${c.provider==='gemini'?'Google Gemini':'Anthropic'})</label>
+          <input class="input" id="ai-key" type="password" value="${esc(c.apiKey)}" placeholder="${c.provider==='gemini'?'AIza... (dán key Gemini, danh sách model tự hiện)':'sk-ant-... (dán key vào, danh sách model tự hiện)'}" style="width:100%" onblur="CTRC.aiKeyBlur()">
           <div class="voice-warn">⚠ Chế độ trực tiếp lưu key trong localStorage của <b>máy này</b> và gọi thẳng API từ trình duyệt. Chỉ dùng trên máy tin cậy.</div></div>
         <div class="ln"><label>Base URL (gốc API)</label><input class="input" id="ai-base" value="${esc(c.baseUrl)}" style="width:100%">
-          <div class="hint">Chỉ là phần gốc — hệ thống tự thêm <code>/v1/messages</code>. Để nguyên <code>https://api.anthropic.com</code>; chỉ đổi nếu dùng proxy tương thích Anthropic.</div></div>
+          <div class="hint">${c.provider==='gemini'?'Gốc API Gemini — hệ thống tự thêm <code>/v1beta/models/&lt;model&gt;:generateContent</code>. Để nguyên <code>https://generativelanguage.googleapis.com</code>.':'Chỉ là phần gốc — hệ thống tự thêm <code>/v1/messages</code>. Để nguyên <code>https://api.anthropic.com</code>; chỉ đổi nếu dùng proxy tương thích Anthropic.'}</div></div>
       `}
 
       <div class="row" style="align-items:flex-end;gap:12px">
         <div class="field" style="flex:1;min-width:220px"><label>Model (gõ để lọc, hoặc chọn)</label>
-          <input class="input" id="ai-model" list="ai-models-dl" value="${esc(c.model)}" placeholder="claude-sonnet-4-5" style="width:100%">
+          <input class="input" id="ai-model" list="ai-models-dl" value="${esc(c.model)}" placeholder="${c.provider==='gemini'?'gemini-3.5-flash':'claude-sonnet-4-5'}" style="width:100%">
           <datalist id="ai-models-dl">${(c.models||[]).map(m=>`<option value="${esc(m.id)}">${esc(m.name||m.id)}</option>`).join('')}</datalist>
         </div>
         <button class="btn sm" onclick="CTRC.aiLoadModels()" title="Gọi API lấy danh sách model thật để lọc">🔄 Tải model từ API</button>
@@ -3181,6 +3232,21 @@ async function aiKeyBlur(){
   }
 }
 function aiSetMode(mode){ aiReadForm(); AICFG.mode=mode; renderAICard(); }
+/* đổi nhà cung cấp → nạp base URL + model mặc định + danh sách gợi ý đúng hãng (không đè key đang gõ) */
+function aiSetProvider(p){
+  aiReadForm();
+  AICFG.provider=p;
+  if(p==='gemini'){
+    if(!AICFG.model || /claude/i.test(AICFG.model)) AICFG.model='gemini-3.5-flash';
+    if(!AICFG.baseUrl || /anthropic/i.test(AICFG.baseUrl)) AICFG.baseUrl=AI.GEMINI_BASE;
+    AICFG.models=AI.GEMINI_MODELS.slice();
+  }else{
+    if(!AICFG.model || /gemini/i.test(AICFG.model)) AICFG.model='claude-sonnet-4-5';
+    if(!AICFG.baseUrl || /googleapis/i.test(AICFG.baseUrl)) AICFG.baseUrl=AI.ANTHROPIC_BASE;
+    AICFG.models=AI.DEFAULT_MODELS.slice();
+  }
+  AICFG.modelsSource=''; renderAICard();
+}
 async function aiLoadModels(){
   aiReadForm();
   toast('Đang tải model…','var(--blue)');
@@ -3357,7 +3423,7 @@ window.CTRC = {
   addClass, renameClass, addStudentPrompt, editStudent, saveStudent, delStudent, bulkStudents, applyBulk,
   qTab, openMsg, renderMsg, regen, pasteAI, applyPaste, genAI, genAICustom, approve, returnToGV, confirmReturn, copyBlock, copyLink, markSent, voiceCheck, edInput,
   approveProfile, editProfile, saveEditProfile, addTheme, reportConfigSave, reportConfigReset, rcAutosize, rcApplyPreset, rcSavePreset, rcDeletePreset,
-  aiSetMode, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
+  aiSetMode, aiSetProvider, aiLoadModels, aiTest, aiSave, openAIConfig, insightsAI, aiKeyBlur,
   addStaff, editStaff, saveStaff, delStaff,
   genWeekly, copyWeekly, saveWeeklyImg, saveWeeklyEdit, wkThisWeek, _wkGrow, copyPhone,
   importLessons, cancelStage, saveStage, viewLesson, delLesson,
