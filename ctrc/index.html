@@ -565,7 +565,27 @@ function skeletonList(n){ let h=''; for(let i=0;i<(n||4);i++) h+=`<div class="st
 /* trạng thái rỗng thân thiện */
 function emptyState(icon, title, sub, actionHtml){ return `<div class="empty-state"><div class="es-icon">${icon}</div><div class="es-title">${esc(title)}</div>${sub?`<div class="es-sub">${esc(sub)}</div>`:''}${actionHtml||''}</div>`; }
 /* SĐT phụ huynh — chạm để copy (CSKH dán vào Zalo) */
-async function copyPhone(num){ try{ await navigator.clipboard.writeText(num); toast('📋 Đã copy SĐT '+num); }catch(_){ toast('Bôi đen để copy: '+num,'var(--primary-2)'); } }
+/* Copy đa trình duyệt. Nhiều máy CHẶN quyền clipboard-write (navigator.clipboard ném NotAllowedError)
+   → dự phòng execCommand('copy') chạy đồng bộ trong cùng cú chạm, không cần quyền đó. Trả Promise<bool>. */
+function clipCopy(text){
+  text = (text==null?'':String(text));
+  let ok=false;
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select(); try{ ta.setSelectionRange(0,text.length); }catch(_){}
+    ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+  }catch(_){ ok=false; }
+  if(ok) return Promise.resolve(true);
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text).then(()=>true).catch(()=>false);
+  }
+  return Promise.resolve(false);
+}
+async function copyPhone(num){ const ok=await clipCopy(num); if(ok) toast('📋 Đã copy SĐT '+num); else toast('Bôi đen để copy: '+num,'var(--primary-2)'); }
 function phoneChip(stu){ const p=(stu&&stu.parent_phone||'').trim(); return p?`<button class="phone-chip" onclick="event.stopPropagation();CTRC.copyPhone('${esc(p)}')" title="Chạm để copy">📞 ${esc(p)}</button>`:''; }
 const MOODS = {happy:'😊 Vui',normal:'🙂 Bình thường',sad:'😟 Buồn',tired:'😴 Mệt'};
 const STATUS = {
@@ -2209,8 +2229,8 @@ async function copyWeekly(weeklyId){
   const w=m?m.w:((await DB.listWeekly(CENTER.id)).find(x=>x.id===weeklyId));
   if(!w) return;
   const stu=m?m.stu:(await DB.getStudent(w.student_id));
-  try{ await navigator.clipboard.writeText(composeWeekly(stu,w)); toast('📋 Đã copy — dán vào Zalo PH '+stu.name); }
-  catch(_){ toast('Trình duyệt chặn clipboard — bôi đen thẻ để copy','var(--primary-2)'); }
+  if(await clipCopy(composeWeekly(stu,w))) toast('📋 Đã copy — dán vào Zalo PH '+stu.name);
+  else toast('Trình duyệt chặn clipboard — bôi đen thẻ để copy','var(--primary-2)');
 }
 function _loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('Không tải được '+src)); document.head.appendChild(s); }); }
 async function saveWeeklyImg(weeklyId){
@@ -2610,11 +2630,12 @@ function renderCopyZone(){
 async function copyBlock(){
   const link = _includeLink() ? (parentBase()+'#t='+(MSG.token||'')) : '';
   const block = ENG.composeZalo(MSG.stu, MSG_DATE(), MSG.m, link);
-  try { await navigator.clipboard.writeText(block); toast('📋 Đã copy — dán vào Zalo phụ huynh'); }
-  catch(_){ toast('Trình duyệt chặn clipboard — copy thủ công trong khung','var(--primary-2)'); }
+  if(await clipCopy(block)) toast('📋 Đã copy — dán vào Zalo phụ huynh');
+  else toast('Trình duyệt chặn clipboard — copy thủ công trong khung','var(--primary-2)');
 }
 async function copyLink(){
-  try { await navigator.clipboard.writeText($('#p-link').value); toast('📋 Đã copy link'); } catch(_){}
+  if(await clipCopy(($('#p-link')||{}).value||'')) toast('📋 Đã copy link');
+  else toast('Bôi đen để copy link','var(--primary-2)');
 }
 async function markSent(){
   try {
