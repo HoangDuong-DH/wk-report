@@ -490,7 +490,7 @@ table.tb tbody tr:hover td{background:#faf7f1}
 <div id="modal-root"></div>
 
 <script src="config.js?v=31"></script>
-<script src="db.js?v=30"></script>
+<script src="db.js?v=32"></script>
 <script src="engine.js?v=31"></script>
 <script src="lessons.js?v=29"></script>
 <script src="objectives.js?v=29"></script>
@@ -919,29 +919,80 @@ const AI = {
 };
 
 /* ═══════════════ BOOT ═══════════════ */
+/* Màn báo lỗi kết nối — hiện NGAY trong thẻ đăng nhập, tiếng Việt đời thường.
+   Nguyên tắc production: KHÔNG âm thầm rơi về demo khi đã cấu hình Supabase,
+   vì GV có thể nhập báo cáo thật vào máy mình mà tưởng đã lưu lên hệ thống chung. */
+function bootFail(err){
+  const msg = (err && err.message) ? err.message : String(err||'không rõ');
+  const offline = (typeof navigator!=='undefined' && navigator.onLine===false);
+  const note = $('#mode-note'); if(note){ note.textContent='🔴 Chưa kết nối được máy chủ dữ liệu'; note.style.color='var(--primary-2)'; }
+  const box = $('#staff-pick');
+  if(box) box.innerHTML = `
+    <div style="text-align:left;background:#fff6f3;border:1.5px solid var(--primary-2);border-radius:14px;padding:14px 15px">
+      <div style="font:800 14px/1.3 var(--font-d);color:var(--primary-2);margin-bottom:8px">🔴 Chưa vào được dữ liệu trung tâm</div>
+      <div style="font:500 12.5px/1.6 var(--font);color:var(--ink)">
+        ${offline ? 'Máy này đang <b>không có mạng</b>. Kiểm tra wifi/4G rồi bấm Thử lại.'
+                  : 'App mở bình thường nhưng <b>không gọi được máy chủ dữ liệu</b> (Supabase). Thường do: máy chủ đang tạm dừng/bảo trì, hoặc mạng chặn.'}
+        <br><b>Dữ liệu cũ không bị mất</b> — chỉ là tạm thời chưa lấy về được.
+      </div>
+      <div style="font:500 11px/1.5 var(--font);color:var(--mute);margin-top:8px">Chi tiết kỹ thuật: ${esc(msg)}</div>
+      <div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn primary sm" onclick="location.reload()">🔄 Thử lại</button>
+        <button class="btn sm" onclick="CTRC.useDemoAnyway()">Dùng tạm chế độ thử (không lưu lên hệ thống)</button>
+      </div>
+      <div style="font:500 11px/1.5 var(--font);color:var(--mute);margin-top:8px">
+        ⚠ "Dùng tạm" chỉ để xem/thử — <b>mọi thứ nhập vào sẽ KHÔNG lên hệ thống chung</b>. Đừng dùng để chấm báo cáo thật.
+      </div>
+    </div>`;
+}
+/* người dùng CHỦ ĐỘNG chọn chạy tạm bằng dữ liệu trên máy */
+function useDemoAnyway(){
+  try{ localStorage.setItem('ctrc:force-demo','1'); }catch(_){}
+  location.reload();
+}
+function exitDemoMode(){
+  try{ localStorage.removeItem('ctrc:force-demo'); }catch(_){}
+  location.reload();
+}
 async function boot(){
   let mode = 'demo';
-  try { mode = await DB.init(); }
-  catch(e){ console.error(e); toast('Lỗi kết nối backend, chạy tạm demo: '+e.message,'var(--primary-2)'); }
-  CENTER = await DB.getCenter();
-  // tiêu chí tùy chỉnh của trung tâm (lưu ở centers.criteria — đồng bộ mọi máy)
-  if (CENTER && CENTER.criteria) { try { ENG.setCriteria(CENTER.criteria); } catch(_){} }
-  if (CENTER) await LIB.load(CENTER.id);
-  $('#login-center').textContent = CENTER ? CENTER.name : 'WonderKids';
-  $('#tb-center').textContent = CENTER ? CENTER.name : 'WonderKids';
-  $('#mode-note').textContent = mode==='supabase' ? '🟢 Kết nối Supabase' : '⚡ Demo (localStorage)';
-  if (mode==='demo') $('#demo-banner').classList.remove('hidden');
-  // tự dọn lock "CS đang sửa" bị kẹt (demo: tất cả; supabase: chỉ lock cũ >15')
-  if (CENTER) await DB.healLocks(CENTER.id, mode==='demo');
-  AI.loadRules().catch(()=>{});   // nạp quy tắc từ rules/*.md để AI bám theo
-  // session đã đăng nhập?
-  const saved = sessionStorage.getItem('ctrc:staff');
-  if (saved){ try { STAFF = JSON.parse(saved); enterApp(); return; } catch(_){} }
-  renderLogin();
+  try {
+    try { mode = await DB.init(); }
+    catch(e){ console.error('[boot] DB.init lỗi:', e); mode='demo'; }
+
+    // Gọi mạng THẬT đầu tiên nằm ở đây — trước đây không được bảo vệ nên cả boot chết câm.
+    CENTER = await DB.getCenter();
+
+    // tiêu chí tùy chỉnh của trung tâm (lưu ở centers.criteria — đồng bộ mọi máy)
+    if (CENTER && CENTER.criteria) { try { ENG.setCriteria(CENTER.criteria); } catch(_){} }
+    if (CENTER) { try { await LIB.load(CENTER.id); } catch(e){ console.warn('[boot] LIB.load lỗi (bỏ qua):', e); } }
+    $('#login-center').textContent = CENTER ? CENTER.name : 'WonderKids';
+    $('#tb-center').textContent = CENTER ? CENTER.name : 'WonderKids';
+    const forced = (()=>{ try{ return localStorage.getItem('ctrc:force-demo')==='1'; }catch(_){ return false; } })();
+    $('#mode-note').textContent = mode==='supabase' ? '🟢 Kết nối Supabase' : (forced?'🟠 Đang dùng tạm chế độ thử':'⚡ Demo (localStorage)');
+    if (mode==='demo') $('#demo-banner').classList.remove('hidden');
+    if (forced){
+      const b=$('#demo-banner');
+      if(b) b.innerHTML = '🟠 <b>Chế độ thử</b> — dữ liệu chỉ nằm trên máy này, KHÔNG lên hệ thống chung. <a href="#" onclick="CTRC.exitDemoMode();return false;">Thoát chế độ thử &amp; kết nối lại →</a>';
+    }
+    // tự dọn lock "CS đang sửa" bị kẹt (demo: tất cả; supabase: chỉ lock cũ >15')
+    if (CENTER) { try { await DB.healLocks(CENTER.id, mode==='demo'); } catch(e){ console.warn('[boot] healLocks lỗi (bỏ qua):', e); } }
+    AI.loadRules().catch(()=>{});   // nạp quy tắc từ rules/*.md để AI bám theo
+    // session đã đăng nhập?
+    const saved = sessionStorage.getItem('ctrc:staff');
+    if (saved){ try { STAFF = JSON.parse(saved); enterApp(); return; } catch(_){} }
+    await renderLogin();
+    if (!CENTER) bootFail(new Error('Không tìm thấy trung tâm nào trong dữ liệu'));
+  } catch(e){
+    console.error('[boot] lỗi nghiêm trọng:', e);
+    bootFail(e);          // KHÔNG bao giờ để màn hình trống nữa
+  }
 }
 
 async function renderLogin(){
-  const staff = CENTER ? await DB.listStaff(CENTER.id) : [];
+  let staff = [];
+  try { staff = CENTER ? await DB.listStaff(CENTER.id) : []; }
+  catch(e){ console.error('[renderLogin] không lấy được nhân sự:', e); bootFail(e); return; }
   $('#staff-pick').innerHTML = staff.map(s=>{
     const r = STATUS_ROLE(s.role);
     return `<button onclick="CTRC.login('${s.id}')">
@@ -3448,7 +3499,27 @@ window.CTRC = {
   addStaff, editStaff, saveStaff, delStaff,
   genWeekly, copyWeekly, saveWeeklyImg, saveWeeklyEdit, wkThisWeek, _wkGrow, copyPhone,
   importLessons, cancelStage, saveStage, viewLesson, delLesson,
+  useDemoAnyway, exitDemoMode,
 };
+
+/* ═══ LƯỚI AN TOÀN: không để lỗi nào làm app "đứng hình" mà không báo ═══
+   Trước đây một lỗi mạng lúc khởi động làm màn hình trắng trơn, người dùng
+   không biết chuyện gì. Nay mọi lỗi lọt lưới đều hiện toast + ghi console. */
+window.addEventListener('error', function(ev){
+  console.error('[global error]', ev.error||ev.message);
+  try{ toast('Có lỗi kỹ thuật: '+((ev.error&&ev.error.message)||ev.message||'không rõ')+' — thử tải lại trang','var(--primary-2)'); }catch(_){}
+});
+window.addEventListener('unhandledrejection', function(ev){
+  const r=ev.reason; console.error('[unhandled promise]', r);
+  const m=(r&&r.message)||String(r||'không rõ');
+  // lỗi mạng khi đang dùng app → nhắc rõ ràng thay vì im lặng
+  const netlike=/Failed to fetch|NetworkError|ERR_|fetch/i.test(m);
+  try{ toast(netlike?('Mất kết nối máy chủ — thao tác vừa rồi CHƯA được lưu. Kiểm tra mạng rồi thử lại.'):('Có lỗi: '+m),'var(--primary-2)'); }catch(_){}
+});
+/* mất/khôi phục mạng khi đang làm việc */
+window.addEventListener('offline', function(){ try{ toast('📴 Mất mạng — tạm dừng nhập liệu, dữ liệu chưa lưu sẽ không lên hệ thống','var(--primary-2)'); }catch(_){} });
+window.addEventListener('online',  function(){ try{ toast('🟢 Có mạng trở lại — tải lại trang để đồng bộ'); }catch(_){} });
+
 boot();
 </script>
 </body>

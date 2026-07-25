@@ -8,7 +8,11 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 (function () {
   const CFG = window.CTRC_CONFIG || {};
-  const useSupa = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+  /* Cờ "dùng tạm chế độ demo" — CHỈ bật khi người dùng tự chọn ở màn báo lỗi kết nối
+     (xem boot() trong index.html). Không bao giờ tự bật, để tránh nhập liệu thật vào
+     localStorage rồi tưởng đã lưu lên hệ thống chung. */
+  const forceDemo = (() => { try { return localStorage.getItem('ctrc:force-demo') === '1'; } catch (_) { return false; } })();
+  const useSupa = !forceDemo && !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
 
   /* ── tiện ích ── */
   const uid = () =>
